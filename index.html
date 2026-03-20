@@ -1364,6 +1364,17 @@
                 </div>
             </div>
             
+            <!-- Drag and Drop Zone -->
+            <div id="dropZone" style="display: none; margin-bottom: 1.5rem; border: 2px dashed var(--primary); border-radius: 12px; padding: 2rem; text-align: center; background: linear-gradient(135deg, rgba(0, 40, 104, 0.02) 0%, rgba(0, 40, 104, 0.05) 100%); transition: all 0.3s ease;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 1rem;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <div style="font-size: 1.125rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">Drop Project File Here</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Or click "Import Project" button above</div>
+            </div>
+            
             <!-- Data Status Banner -->
             <!-- Data status banner removed - using per-project export only -->
 
@@ -1619,6 +1630,14 @@
                         <label for="packageFees">
                             <strong>Fees</strong>
                             <span class="hint">Integration or Tentpole/On The Ground fees (100% margin)</span>
+                        </label>
+                    </div>
+
+                    <div class="radio-option" onclick="document.getElementById('packageLinear').click();">
+                        <input type="radio" id="packageLinear" name="packageType" value="linear">
+                        <label for="packageLinear">
+                            <strong>Linear</strong>
+                            <span class="hint">Linear TV placements (no media calculations)</span>
                         </label>
                     </div>
 
@@ -4061,7 +4080,7 @@
                 const packageType = currentPackage.type;
                 
                 // Simple package types - complete directly
-                if (packageType === 'streaming' || packageType === 'fees' || packageType === 'partnership' || packageType === 'sponsorship' || packageType === 'branded-blended' || packageType === 'added-value') {
+                if (packageType === 'streaming' || packageType === 'fees' || packageType === 'linear' || packageType === 'partnership' || packageType === 'sponsorship' || packageType === 'branded-blended' || packageType === 'added-value') {
                     // Calculate cost and margin based on package type
                     let totalCost = 0;
                     let talentCost = 0;
@@ -4106,7 +4125,7 @@
                         currentPackage.mediaMargin = 0;
                         currentPackage.mediaMarginPercent = 0;
                     }
-                    // For streaming, fees, and sponsorship: cost = 0 (100% margin)
+                    // For streaming, fees, linear, and sponsorship: cost = 0 (100% margin)
                     
                     // Calculate margins
                     if (packageType === 'added-value') {
@@ -4420,6 +4439,9 @@
                     currentPackage.impressions = impressions;
                 } else if (packageType === 'fees') {
                     currentPackage.feeType = document.querySelector('input[name="feeType"]:checked').value;
+                } else if (packageType === 'linear') {
+                    // Linear packages are simple - no additional data needed
+                    // Investment already saved, cost = 0, margin = 100%
                 } else if (packageType === 'partnership') {
                     currentPackage.partnershipType = document.getElementById('partnershipType').value;
                     currentPackage.revShare = parseFloat(document.getElementById('revShare').value) || 50;
@@ -4593,6 +4615,9 @@
                     document.getElementById('streamingSponsorFields').style.display = 'block';
                 } else if (type === 'fees') {
                     document.getElementById('feesFields').style.display = 'block';
+                } else if (type === 'linear') {
+                    // Linear packages are simple - no special fields needed
+                    // Investment field already shown above
                 } else if (type === 'partnership') {
                     document.getElementById('partnershipFields').style.display = 'block';
                 } else if (type === 'branded-blended') {
@@ -4616,9 +4641,10 @@
                 simpleForm.style.display = 'none';
                 complexForm.style.display = 'block';
                 
-                // Show/hide platform distribution column for talent packages
+                // Show/hide platform distribution column for talent and simple packages
                 const platformColumn = document.getElementById('platformDistributionColumn');
-                if (type === 'talent') {
+                if (type === 'talent' || type === 'streaming' || type === 'fees' || type === 'linear' || type === 'sponsorship' || type === 'partnership' || type === 'branded-blended' || type === 'added-value') {
+                    // Simple packages don't need platform distribution
                     platformColumn.style.display = 'none';
                 } else {
                     platformColumn.style.display = 'block';
@@ -4626,8 +4652,8 @@
                 
                 // Show/hide investment split section based on type
                 const splitSection = document.getElementById('investmentSplitSection');
-                if (type === 'talent' || type === 'media') {
-                    // Talent-only or Media-only packages don't need split
+                if (type === 'talent' || type === 'media' || type === 'streaming' || type === 'fees' || type === 'linear' || type === 'sponsorship' || type === 'partnership' || type === 'branded-blended' || type === 'added-value') {
+                    // Simple packages and talent/media-only don't need investment split
                     splitSection.style.display = 'none';
                 } else {
                     // Influencer and Branded Content need split
@@ -5669,6 +5695,13 @@
                 totalCost = 0; // They don't have cost breakdown
                 totalMarginDollar = 0; // No margin calculation for these
                 totalMarginPercent = 0;
+            } else if (packageType === 'fees' || packageType === 'linear') {
+                // For fees and linear: no impressions, 100% margin
+                totalImpressions = 0;
+                overallCPM = 0;
+                totalCost = 0;
+                totalMarginDollar = totalPrice; // 100% margin
+                totalMarginPercent = 100;
             } else {
                 // For other packages, calculate from platformAllocations
                 totalImpressions = platformAllocations.reduce((sum, a) => sum + (a.impressions || 0), 0);
@@ -5874,6 +5907,7 @@
                 partnerships: { types: ['partnership'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
                 sponsorships: { types: ['sponsorship'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
                 fees: { types: ['fees'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
+                linear: { types: ['linear'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
                 addedvalue: { types: ['added-value'], investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 }
             };
             
@@ -5915,6 +5949,7 @@
                         partnerships: 'Social Partnerships',
                         sponsorships: 'Sponsorships',
                         fees: 'Fees',
+                        linear: 'Linear',
                         addedvalue: 'Added Value'
                     };
                     
@@ -6679,7 +6714,8 @@
                 oo: { types: ['streaming'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'O&O' },
                 partnerships: { types: ['partnership'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Social Partnerships' },
                 sponsorships: { types: ['sponsorship'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Sponsorships' },
-                fees: { types: ['fees'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Fees' }
+                fees: { types: ['fees'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Fees' },
+                linear: { types: ['linear'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Linear' }
             };
             
             packages.forEach(pkg => {
@@ -7248,7 +7284,135 @@
             if (filenameInput) {
                 filenameInput.addEventListener('input', updateExportPreview);
             }
+            
+            // Initialize drag-and-drop functionality
+            initializeDragAndDrop();
         });
+        
+        // Drag and Drop functionality for project import
+        function initializeDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            const screen0 = document.getElementById('screen-0');
+            
+            if (!dropZone || !screen0) return;
+            
+            // Prevent default drag behaviors on the entire screen
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                screen0.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // Highlight drop zone when dragging over
+            ['dragenter', 'dragover'].forEach(eventName => {
+                screen0.addEventListener(eventName, () => {
+                    if (document.getElementById('screen-0').classList.contains('active')) {
+                        dropZone.style.display = 'block';
+                        dropZone.style.borderColor = 'var(--primary)';
+                        dropZone.style.background = 'linear-gradient(135deg, rgba(0, 40, 104, 0.05) 0%, rgba(0, 40, 104, 0.1) 100%)';
+                    }
+                });
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                screen0.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = 'var(--primary)';
+                    dropZone.style.background = 'linear-gradient(135deg, rgba(0, 40, 104, 0.02) 0%, rgba(0, 40, 104, 0.05) 100%)';
+                    setTimeout(() => {
+                        if (eventName === 'drop') {
+                            dropZone.style.display = 'none';
+                        }
+                    }, 500);
+                });
+            });
+            
+            // Handle dropped files
+            screen0.addEventListener('drop', handleDrop);
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                handleDroppedFile(files[0]);
+            }
+        }
+        
+        function handleDroppedFile(file) {
+            // Check if it's a JSON file
+            if (!file.name.endsWith('.json')) {
+                customAlert('Please drop a valid project JSON file.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    
+                    // Single project import only
+                    const importedProject = importedData;
+                    
+                    // Validate the imported data has required fields
+                    if (!importedProject.projectName || !importedProject.agencyName || !importedProject.brandName) {
+                        customAlert('Invalid project file: Missing required fields');
+                        return;
+                    }
+
+                    // Check if a project with the same name already exists
+                    const existingIndex = projects.findIndex(p => p.projectName === importedProject.projectName);
+                    
+                    if (existingIndex >= 0) {
+                        const existingProject = projects[existingIndex];
+                        
+                        // Store the imported project and index for the dialog callbacks
+                        pendingImportProject = importedProject;
+                        pendingImportIndex = existingIndex;
+                        
+                        // Show detailed message about the conflict
+                        const existingVersionCount = existingProject.versions.length;
+                        const existingPackageCount = existingProject.versions.reduce((sum, v) => sum + v.packages.length, 0);
+                        const importedVersionCount = importedProject.versions.length;
+                        const importedPackageCount = importedProject.versions.reduce((sum, v) => sum + v.packages.length, 0);
+                        
+                        document.getElementById('importOptionsMessage').innerHTML = `
+                            <div style="margin-bottom: 0.75rem;">
+                                <strong>Project Name:</strong> "${importedProject.projectName}"
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.875rem;">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Currently Open:</div>
+                                    <div>${existingVersionCount} version${existingVersionCount !== 1 ? 's' : ''}</div>
+                                    <div>${existingPackageCount} package${existingPackageCount !== 1 ? 's' : ''}</div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">In File:</div>
+                                    <div>${importedVersionCount} version${importedVersionCount !== 1 ? 's' : ''}</div>
+                                    <div>${importedPackageCount} package${importedPackageCount !== 1 ? 's' : ''}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('importOptionsDialog').style.display = 'flex';
+                    } else {
+                        // New project - import directly
+                        importedProject.id = Date.now();
+                        projects.push(importedProject);
+                        saveProjects();
+                        displayProjects();
+                        customAlert(`Project "${importedProject.projectName}" imported successfully! 🎉`);
+                    }
+                } catch (error) {
+                    customAlert('Error importing project: Invalid JSON file\n\n' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
 
         function importProject() {
             const fileInput = document.getElementById('fileImportInput');
@@ -7452,6 +7616,7 @@
                 partnerships: { types: ['partnership'], label: 'Partnerships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 sponsorships: { types: ['sponsorship'], label: 'Sponsorships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 fees: { types: ['fees'], label: 'Fees', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                linear: { types: ['linear'], label: 'Linear', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
@@ -8066,6 +8231,7 @@
                 partnerships: { types: ['partnership'], label: 'Partnerships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 sponsorships: { types: ['sponsorship'], label: 'Sponsorships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 fees: { types: ['fees'], label: 'Fees', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                linear: { types: ['linear'], label: 'Linear', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
