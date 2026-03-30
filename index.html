@@ -1444,6 +1444,11 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label>Salesforce Link (URL)</label>
+                    <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/...">
+                </div>
+
                 <div class="button-group">
                     <button class="btn-secondary" id="projectFormCancelBtn" onclick="cancelNewProject()">Cancel</button>
                     <button class="btn-primary" id="projectFormSaveBtn" onclick="createProject()">Create Project</button>
@@ -1493,6 +1498,11 @@
                         <label>Campaign End Date</label>
                         <input type="date" id="editCampaignEndDate">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Salesforce Link (URL)</label>
+                    <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/...">
                 </div>
 
                 <div class="button-group">
@@ -2175,9 +2185,12 @@
                                 <th>Platform</th>
                                 <th>Media Type</th>
                                 <th>Handle Type</th>
-                                <th>Default CPM</th>
-                                <th>CPM Premium (%)</th>
-                                <th>Final CPM</th>
+                                <th>Base Price CPM <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(☑ to edit)</span></th>
+                                <th>Premium (%)</th>
+                                <th>Final Price CPM</th>
+                                <th>Base Cost CPM <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(☑ to edit)</span></th>
+                                <th>Final Cost CPM</th>
+                                <th>Margin</th>
                                 <th>Impressions</th>
                             </tr>
                         </thead>
@@ -2186,9 +2199,11 @@
                     </table>
                 </div>
 
+                <div id="pricingTotals" style="margin-top: 1.5rem; padding: 1rem; background: var(--background); border-radius: 8px; border: 1px solid var(--border);"></div>
+
                 <div class="button-group">
                     <button class="btn-secondary" onclick="prevStep(3)">← Previous</button>
-                    <button class="btn-primary" onclick="nextStep(3)">Next: Cost & Margin →</button>
+                    <button class="btn-primary" onclick="nextStep(3)">Next: Summary →</button>
                 </div>
             </div>
         </div>
@@ -3213,6 +3228,7 @@
             'TikTok': [],
             'Facebook': [],
             'Facebook / Instagram': [],
+            'Facebook/Instagram (Conversion)': [],
             'X (Twitter)': [],
             'YouTube Shorts': [],
             'YouTube TrueView': [],
@@ -3231,6 +3247,7 @@
                 TikTok: 25.00,
                 Facebook: 25.00,
                 'Facebook / Instagram': 25.00,
+                'Facebook/Instagram (Conversion)': 40.00,
                 'YouTube TrueView': 25.00,
                 'YouTube Shorts': 25.00,
                 'X (Twitter)': 25.00,
@@ -3243,6 +3260,7 @@
                 TikTok: 8.75,
                 Facebook: 8.75,
                 'Facebook / Instagram': 8.75,
+                'Facebook/Instagram (Conversion)': 25.00,
                 'YouTube TrueView': 17.25,
                 'YouTube Shorts': 8.75,
                 'X (Twitter)': 8.75,
@@ -3266,6 +3284,7 @@
                 TikTok: 6.00,
                 Facebook: 6.00,
                 'Facebook / Instagram': 6.00,
+                'Facebook/Instagram (Conversion)': 17.50,
                 'YouTube TrueView': 12.00,
                 'YouTube Shorts': 6.00,
                 'X (Twitter)': 6.00,
@@ -3278,6 +3297,7 @@
                 TikTok: 6.00,
                 Facebook: 6.00,
                 'Facebook / Instagram': 6.00,
+                'Facebook/Instagram (Conversion)': 17.50,
                 'YouTube TrueView': 12.00,
                 'YouTube Shorts': 6.00,
                 'X (Twitter)': 6.00,
@@ -3574,6 +3594,7 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
+                            ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none;" onclick="event.stopPropagation();">🔗 Salesforce</a>` : ''}
                             <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}">✎ Rename</button>
                             <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}">⎘ Duplicate</button>
                             <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}">× Delete</button>
@@ -3598,6 +3619,7 @@
             const projectName = document.getElementById('projectName').value;
             const campaignStartDate = document.getElementById('campaignStartDate').value;
             const campaignEndDate = document.getElementById('campaignEndDate').value;
+            const salesforceLink = document.getElementById('salesforceLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -3612,6 +3634,7 @@
                 projectName,
                 campaignStartDate,
                 campaignEndDate,
+                salesforceLink,
                 versions: [],
                 createdAt: new Date().toISOString()
             };
@@ -3626,6 +3649,7 @@
             document.getElementById('projectName').value = '';
             document.getElementById('campaignStartDate').value = '';
             document.getElementById('campaignEndDate').value = '';
+            document.getElementById('salesforceLink').value = '';
 
             displayProjects();
             showScreen('screen-0');
@@ -3672,6 +3696,7 @@
             document.getElementById('editProjectName').value = currentProject.projectName || '';
             document.getElementById('editCampaignStartDate').value = currentProject.campaignStartDate || '';
             document.getElementById('editCampaignEndDate').value = currentProject.campaignEndDate || '';
+            document.getElementById('editSalesforceLink').value = currentProject.salesforceLink || '';
             
             showScreen('screen-0-6');
         }
@@ -3689,6 +3714,7 @@
             const projectName = document.getElementById('editProjectName').value;
             const campaignStartDate = document.getElementById('editCampaignStartDate').value;
             const campaignEndDate = document.getElementById('editCampaignEndDate').value;
+            const salesforceLink = document.getElementById('editSalesforceLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -3702,6 +3728,7 @@
             currentProject.projectName = projectName;
             currentProject.campaignStartDate = campaignStartDate;
             currentProject.campaignEndDate = campaignEndDate;
+            currentProject.salesforceLink = salesforceLink;
 
             saveProjects();
             
@@ -4195,26 +4222,10 @@
                     showScreen('screen-3');
                 }
             } else if (step === 3) {
-                // From CPM Pricing, go to Cost & Margin (screen-4)
-                calculateCostMargin();
-                const packageType = currentPackage.type;
-                
-                // Hide Production & Talent section for Media Only packages
-                const talentSection = document.querySelector('#screen-4 h3');
-                const talentForm = talentSection?.nextElementSibling;
-                const talentSummary = talentForm?.nextElementSibling;
-                
-                if (packageType === 'media') {
-                    if (talentSection) talentSection.style.display = 'none';
-                    if (talentForm) talentForm.style.display = 'none';
-                    if (talentSummary) talentSummary.style.display = 'none';
-                } else {
-                    if (talentSection) talentSection.style.display = 'block';
-                    if (talentForm) talentForm.style.display = 'block';
-                    if (talentSummary) talentSummary.style.display = 'grid';
-                }
-                
-                showScreen('screen-4');
+                // From CPM Pricing with costs, go directly to Final Summary (screen-5)
+                // Costs are now calculated in setupCPMPricing, so we have all data
+                displayFinalSummary();
+                showScreen('screen-5');
             } else if (step === 4) {
                 // From Cost & Margin, go to Final Summary (screen-5)
                 displayFinalSummary();
@@ -4242,12 +4253,16 @@
                 }
             } else if (step === 5) {
                 // From Final Summary (5), go back appropriately based on package type
-                if (packageType === 'branded-blended') {
-                    // Blended packages skip CPM Pricing and Cost & Margin, go directly to Setup
+                const packageType = currentPackage.type;
+                if (packageType === 'branded-blended' || packageType === 'streaming' || packageType === 'fees' || packageType === 'linear' || packageType === 'partnership' || packageType === 'sponsorship' || packageType === 'added-value') {
+                    // Simple packages go back to Setup (2)
+                    showScreen('screen-2');
+                } else if (packageType === 'talent') {
+                    // Talent-only goes back to Setup (2)
                     showScreen('screen-2');
                 } else {
-                    // All other packages go back to Cost & Margin (4)
-                    showScreen('screen-4');
+                    // Complex packages go back to CPM Pricing (3)
+                    showScreen('screen-3');
                 }
             }
         }
@@ -5262,6 +5277,7 @@
                                     <option value="TikTok" ${allocation.platform === 'TikTok' ? 'selected' : ''}>TikTok</option>
                                     <option value="Facebook" ${allocation.platform === 'Facebook' ? 'selected' : ''}>Facebook</option>
                                     <option value="Facebook / Instagram" ${allocation.platform === 'Facebook / Instagram' ? 'selected' : ''}>Facebook / Instagram</option>
+                                    <option value="Facebook/Instagram (Conversion)" ${allocation.platform === 'Facebook/Instagram (Conversion)' ? 'selected' : ''}>Facebook/Instagram (Conversion)</option>
                                     <option value="YouTube Trueview" ${allocation.platform === 'YouTube Trueview' ? 'selected' : ''}>YouTube Trueview</option>
                                     <option value="YouTube Shorts" ${allocation.platform === 'YouTube Shorts' ? 'selected' : ''}>YouTube Shorts</option>
                                     <option value="X" ${allocation.platform === 'X' ? 'selected' : ''}>X</option>
@@ -5446,20 +5462,43 @@
             const tbody = document.getElementById('cpmPricingTable');
             const mediaInvestment = currentPackage.mediaInvestmentDollar;
             
+            let totalInvestment = 0;
+            let totalCost = 0;
+            let totalImpressions = 0;
+            
             tbody.innerHTML = platformAllocations.map(allocation => {
                 const investment = mediaInvestment * (allocation.percentage / 100);
                 const handleType = allocation.handleType || 'influencer';
                 const defaultCPM = DEFAULT_CPMS[handleType][allocation.platform] || 0;
+                const defaultCostCPM = COST_CPMS[handleType][allocation.platform] || 0;
                 
                 // Initialize if not set
                 if (!allocation.cpmPrice) allocation.cpmPrice = defaultCPM;
                 if (!allocation.cpmPremium) allocation.cpmPremium = 0;
+                if (allocation.baseCostCPM === undefined) allocation.baseCostCPM = defaultCostCPM;
                 
+                // Apply premium to BOTH price and cost
                 const finalCPM = allocation.cpmPrice * (1 + allocation.cpmPremium / 100);
+                const costCPM = allocation.baseCostCPM * (1 + allocation.cpmPremium / 100);
+                
                 const impressions = investment / finalCPM * 1000;
+                const totalPlatformCost = costCPM * impressions / 1000;
+                const marginCPM = finalCPM - costCPM;
+                const marginPercent = finalCPM > 0 ? (marginCPM / finalCPM) * 100 : 0;
                 
                 allocation.finalCPM = finalCPM;
+                allocation.costCPM = costCPM;
                 allocation.impressions = impressions;
+                allocation.totalCost = totalPlatformCost;
+                allocation.marginPercent = marginPercent;
+                
+                totalInvestment += investment;
+                totalCost += totalPlatformCost;
+                totalImpressions += impressions;
+                
+                // Check if fields are being manually edited
+                const isPriceEditing = allocation.isPriceEditing || false;
+                const isCostEditing = allocation.isCostEditing || false;
                 
                 return `
                     <tr>
@@ -5467,10 +5506,19 @@
                         <td>${allocation.mediaType || 'N/A'}</td>
                         <td>${handleType === 'paramount' ? 'Paramount' : 'Influencer'}</td>
                         <td>
-                            <input type="text" value="${allocation.cpmPrice}" 
-                                style="width: 100px;" 
-                                onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
-                                onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" 
+                                    ${isPriceEditing ? 'checked' : ''} 
+                                    onchange="togglePriceEdit(${allocation.id}, this.checked)"
+                                    style="width: auto; height: auto;">
+                                <input type="number" 
+                                    value="${allocation.cpmPrice.toFixed(2)}" 
+                                    step="0.01"
+                                    style="width: 100px; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                    ${isPriceEditing ? '' : 'disabled'}
+                                    onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
+                                    onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
+                            </div>
                         </td>
                         <td>
                             <input type="text" value="${allocation.cpmPremium}" 
@@ -5478,11 +5526,68 @@
                                 onchange="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)"
                                 onblur="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)">
                         </td>
-                        <td><strong>$${finalCPM.toFixed(2)}</strong></td>
+                        <td style="background: rgba(0, 40, 104, 0.05);"><span style="color: var(--primary);">$${finalCPM.toFixed(2)}</span></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" 
+                                    ${isCostEditing ? 'checked' : ''} 
+                                    onchange="toggleCostEdit(${allocation.id}, this.checked)"
+                                    style="width: auto; height: auto;">
+                                <input type="number" 
+                                    value="${allocation.baseCostCPM.toFixed(2)}" 
+                                    step="0.01"
+                                    style="width: 100px; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                    ${isCostEditing ? '' : 'disabled'}
+                                    onchange="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)"
+                                    onblur="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)">
+                            </div>
+                        </td>
+                        <td style="background: rgba(239, 68, 68, 0.05);"><span style="color: var(--primary);">$${costCPM.toFixed(2)}</span></td>
+                        <td>
+                            <div style="color: ${marginCPM >= 0 ? '#10b981' : '#ef4444'};">
+                                <strong>$${marginCPM.toFixed(2)}</strong>
+                                <div style="font-size: 0.75rem;">(${marginPercent.toFixed(1)}%)</div>
+                            </div>
+                        </td>
                         <td>${formatImpressions(impressions)}</td>
                     </tr>
                 `;
             }).join('');
+            
+            // Display totals
+            const totalMargin = totalInvestment - totalCost;
+            const totalMarginPercent = totalInvestment > 0 ? (totalMargin / totalInvestment) * 100 : 0;
+            const avgCPM = totalImpressions > 0 ? (totalInvestment / totalImpressions * 1000) : 0;
+            const avgCostCPM = totalImpressions > 0 ? (totalCost / totalImpressions * 1000) : 0;
+            
+            document.getElementById('pricingTotals').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL PRICE</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(totalInvestment)}</div>
+                    </div>
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL IMPRESSIONS</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent);">${formatImpressions(totalImpressions)}</div>
+                    </div>
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">OVERALL CPM</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${avgCPM.toFixed(2)}</div>
+                    </div>
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL COST</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(totalCost)}</div>
+                    </div>
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL MARGIN</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);">$${formatNumber(totalMargin)}</div>
+                    </div>
+                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">MARGIN %</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);">${totalMarginPercent.toFixed(3)}%</div>
+                    </div>
+                </div>
+            `;
             
             // Show/hide Paramount guidance based on handle types
             const hasParamountHandles = platformAllocations.some(a => a.handleType === 'paramount');
@@ -5496,6 +5601,22 @@
             const allocation = platformAllocations.find(a => a.id === id);
             if (allocation) {
                 allocation[field] = value;
+                setupCPMPricing();  // Re-render
+            }
+        }
+
+        function togglePriceEdit(id, checked) {
+            const allocation = platformAllocations.find(a => a.id === id);
+            if (allocation) {
+                allocation.isPriceEditing = checked;
+                setupCPMPricing();  // Re-render
+            }
+        }
+
+        function toggleCostEdit(id, checked) {
+            const allocation = platformAllocations.find(a => a.id === id);
+            if (allocation) {
+                allocation.isCostEditing = checked;
                 setupCPMPricing();  // Re-render
             }
         }
@@ -5710,6 +5831,8 @@
                 totalCost = (currentPackage.talentCost || 0) + totalMediaCost;
                 totalMarginDollar = totalPrice - totalCost;
                 totalMarginPercent = (totalMarginDollar / totalPrice) * 100;
+                // Store media cost for breakdown display
+                currentPackage.mediaCost = totalMediaCost;
             }
             
             // Store in package
@@ -5731,10 +5854,8 @@
             document.getElementById('summaryTotalMarginPercent').textContent = totalMarginPercent.toFixed(3) + '%';
             
             // Display cost breakdown cards (only costs, not investments)
-            const mediaCost = currentPackage.mediaCost || 0;
-            
             document.getElementById('summaryTalentCost').textContent = '$' + formatNumber(currentPackage.talentCost || 0);
-            document.getElementById('summaryMediaCost').textContent = '$' + formatNumber(mediaCost);
+            document.getElementById('summaryMediaCost').textContent = '$' + formatNumber(currentPackage.mediaCost || 0);
             
             // Populate notes and URL fields (for editing)
             document.getElementById('packageNotes').value = currentPackage.notes || '';
@@ -6757,6 +6878,9 @@
             summaryData.push(['Version:', currentVersion.name || 'N/A']);
             summaryData.push(['Version Created:', currentVersion.createdAt ? new Date(currentVersion.createdAt).toLocaleDateString() : new Date().toLocaleDateString()]);
             summaryData.push(['Campaign Period:', `${currentProject.campaignStartDate || 'N/A'} to ${currentProject.campaignEndDate || 'N/A'}`]);
+            if (currentProject.salesforceLink) {
+                summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
+            }
             summaryData.push([]);
             summaryData.push(['OVERALL TOTALS']);
             summaryData.push(['Metric', 'Value']);
@@ -7585,6 +7709,7 @@
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Project:</td><td style="padding: 0.5rem;">${currentProject?.projectName || 'N/A'}</td></tr>
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Version:</td><td style="padding: 0.5rem;">${currentVersion?.name || 'N/A'}</td></tr>
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Campaign Period:</td><td style="padding: 0.5rem;">${currentProject?.campaignStartDate || 'N/A'} to ${currentProject?.campaignEndDate || 'N/A'}</td></tr>
+                        ${currentProject?.salesforceLink ? `<tr><td style="padding: 0.5rem; font-weight: bold;">Salesforce Link:</td><td style="padding: 0.5rem;"><a href="${escapeHtml(currentProject.salesforceLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(currentProject.salesforceLink)}</a></td></tr>` : ''}
                     </table>
                 </div>
                 
@@ -8178,6 +8303,10 @@
                 ['Version:', currentVersion?.name || 'N/A'],
                 ['Campaign Period:', `${currentProject?.campaignStartDate || 'N/A'} to ${currentProject?.campaignEndDate || 'N/A'}`]
             ];
+            
+            if (currentProject?.salesforceLink) {
+                projectInfo.push(['Salesforce Link:', currentProject.salesforceLink]);
+            }
             
             doc.autoTable({
                 startY: yPos,
