@@ -2159,11 +2159,6 @@
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <h2>CPM Pricing & Premiums</h2>
-                    <p>Set the CPM pricing and apply premiums for each placement</p>
-                </div>
-
                 <!-- Paramount Handles Guidance - Modern Gradient Card -->
                 <div id="paramountCPMGuidance" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 1rem; margin-bottom: 1.5rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -2176,6 +2171,54 @@
                             </span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Production & Talent Markup Section -->
+                <div id="talentMarkupSection" style="margin-bottom: 1.5rem;">
+                    <div style="margin: 0 0 1rem;">
+                        <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text); font-weight: 700;">Production & Talent</h2>
+                        <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Set the markup percentage for production and talent costs</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <label style="margin-bottom: 0;">Production & Talent Markup (%) <span style="font-size: 0.875rem; font-weight: normal; color: var(--text-muted);">(☑ to edit)</span></label>
+                                <span class="hint" style="display: block; margin-top: 0.25rem;">Default is 25%. This determines the margin on production costs.</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+                                <input type="checkbox" id="talentMarkupCheckbox" 
+                                    onchange="toggleTalentMarkup(this.checked)"
+                                    style="width: auto; height: auto;">
+                                <input type="number" id="talentMarkup" value="25" step="0.1" min="0" 
+                                    style="opacity: 0.5; pointer-events: none; width: 100px;" 
+                                    disabled
+                                    oninput="calculateTalentCost()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); background: var(--background);">
+                            <div style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Investment</div>
+                                <div style="font-size: 0.95rem; font-weight: 700;" id="talentInvestmentDisplay">$0</div>
+                            </div>
+                            <div style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Cost</div>
+                                <div style="font-size: 0.95rem; font-weight: 700;" id="talentCostDisplay">$0</div>
+                            </div>
+                            <div style="padding: 0.65rem 0.85rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Margin</div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);" id="talentMarginDisplay">$0 (0%)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 1.5rem 0 1rem;">
+                    <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text); font-weight: 700;">Media Placement Pricing & Premiums</h2>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Set the CPM pricing and apply premiums for each placement</p>
                 </div>
 
                 <div class="table-container">
@@ -5595,6 +5638,9 @@
             if (guidanceElement) {
                 guidanceElement.style.display = hasParamountHandles ? 'block' : 'none';
             }
+            
+            // Calculate and display talent cost
+            calculateTalentCost();
         }
 
         function updateCPM(id, field, value) {
@@ -5618,6 +5664,62 @@
             if (allocation) {
                 allocation.isCostEditing = checked;
                 setupCPMPricing();  // Re-render
+            }
+        }
+
+        // Toggle Production & Talent Markup editing
+        function toggleTalentMarkup(enabled) {
+            const input = document.getElementById('talentMarkup');
+            if (enabled) {
+                // Enable editing
+                input.disabled = false;
+                input.style.opacity = '1';
+                input.style.pointerEvents = 'auto';
+                input.focus();
+            } else {
+                // Disable editing and reset to default
+                input.disabled = true;
+                input.style.opacity = '0.5';
+                input.style.pointerEvents = 'none';
+                input.value = 25;
+                calculateTalentCost();
+            }
+        }
+
+        // Calculate and display talent cost in CPM Pricing screen
+        function calculateTalentCost() {
+            const packageType = currentPackage.type;
+            const talentMarkup = parseFloat(document.getElementById('talentMarkup').value) / 100;
+            const talentInvestment = currentPackage.talentInvestment || 0;
+            
+            // Calculate talent cost using inverse markup formula
+            let talentCost = 0;
+            let talentMarginDollar = 0;
+            let talentMarginPercent = 0;
+            
+            if (talentInvestment > 0) {
+                talentCost = talentInvestment / (1 + talentMarkup);
+                talentMarginDollar = talentInvestment - talentCost;
+                talentMarginPercent = (talentMarginDollar / talentInvestment) * 100;
+            }
+            
+            // Store for later use
+            currentPackage.talentCost = talentCost;
+            currentPackage.talentMarginDollar = talentMarginDollar;
+            currentPackage.talentMarginPercent = talentMarginPercent;
+            currentPackage.talentMarkup = parseFloat(document.getElementById('talentMarkup').value);
+            
+            // Update display
+            document.getElementById('talentInvestmentDisplay').textContent = '$' + formatNumber(talentInvestment);
+            document.getElementById('talentCostDisplay').textContent = '$' + formatNumber(talentCost);
+            document.getElementById('talentMarginDisplay').textContent = '$' + formatNumber(talentMarginDollar) + ' (' + talentMarginPercent.toFixed(1) + '%)';
+            
+            // Hide section for media-only packages
+            const talentSection = document.getElementById('talentMarkupSection');
+            if (packageType === 'media') {
+                if (talentSection) talentSection.style.display = 'none';
+            } else {
+                if (talentSection) talentSection.style.display = 'block';
             }
         }
 
