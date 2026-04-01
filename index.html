@@ -2191,20 +2191,18 @@
                         </div>
                     </div>
 
-                    <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem;">
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); background: var(--background);">
-                            <div style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border);">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Investment</div>
-                                <div style="font-size: 0.95rem; font-weight: 700;" id="talentInvestmentDisplay">$0</div>
-                            </div>
-                            <div style="padding: 0.65rem 0.85rem; border-right: 1px solid var(--border);">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Cost</div>
-                                <div style="font-size: 0.95rem; font-weight: 700;" id="talentCostDisplay">$0</div>
-                            </div>
-                            <div style="padding: 0.65rem 0.85rem;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Talent Margin</div>
-                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);" id="talentMarginDisplay">$0 (0%)</div>
-                            </div>
+                    <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
+                        <div class="summary-card">
+                            <div class="summary-label">Talent Investment</div>
+                            <div class="summary-value" id="talentInvestmentDisplay">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Talent Cost</div>
+                            <div class="summary-value" id="talentCostDisplay">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Talent Margin</div>
+                            <div class="summary-value success" id="talentMarginDisplay">$0 (0%)</div>
                         </div>
                     </div>
                 </div>
@@ -3840,9 +3838,9 @@
             }
 
             container.innerHTML = currentProject.versions.map((version, index) => `
-                <div class="package-card" style="cursor: pointer;">
+                <div class="package-card" style="cursor: pointer;" onclick="selectVersion(${index})">
                     <div class="package-header">
-                        <div onclick="selectVersion(${index})" style="flex: 1; cursor: pointer;">
+                        <div style="flex: 1;">
                             <div class="package-title">${version.name || 'Version ' + (index + 1)}</div>
                             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
                                 ${version.packages.length} package${version.packages.length !== 1 ? 's' : ''} • 
@@ -3857,10 +3855,10 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="badge badge-success">$${formatNumber(calculateVersionTotal(version))}</span>
-                            <button class="btn-secondary btn-sm" data-action="rename-version" data-index="${index}">✎ Rename</button>
-                            <button class="btn-secondary btn-sm" data-action="edit-version-notes" data-index="${index}">📝 Notes</button>
-                            <button class="btn-secondary btn-sm" data-action="duplicate-version" data-index="${index}">⎘ Duplicate</button>
-                            <button class="btn-danger btn-sm" data-action="delete-version" data-index="${index}">× Delete</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="rename-version" data-index="${index}">✎ Rename</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="edit-version-notes" data-index="${index}">📝 Notes</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="duplicate-version" data-index="${index}">⎘ Duplicate</button>
+                            <button class="btn-danger btn-sm" onclick="event.stopPropagation();" data-action="delete-version" data-index="${index}">× Delete</button>
                         </div>
                     </div>
                 </div>
@@ -5550,7 +5548,7 @@
                                 <input type="number" 
                                     value="${allocation.cpmPrice.toFixed(2)}" 
                                     step="0.01"
-                                    style="width: 100px; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                    style="width: 100px; font-size: 0.875rem; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
                                     ${isPriceEditing ? '' : 'disabled'}
                                     onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
                                     onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
@@ -5558,7 +5556,7 @@
                         </td>
                         <td>
                             <input type="text" value="${allocation.cpmPremium}" 
-                                style="width: 80px;" 
+                                style="width: 80px; font-size: 0.875rem;" 
                                 onchange="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)"
                                 onblur="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)">
                         </td>
@@ -5572,7 +5570,7 @@
                                 <input type="number" 
                                     value="${allocation.baseCostCPM.toFixed(2)}" 
                                     step="0.01"
-                                    style="width: 100px; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                    style="width: 100px; font-size: 0.875rem; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
                                     ${isCostEditing ? '' : 'disabled'}
                                     onchange="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)"
                                     onblur="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)">
@@ -5597,30 +5595,30 @@
             const avgCostCPM = totalImpressions > 0 ? (totalCost / totalImpressions * 1000) : 0;
             
             document.getElementById('pricingTotals').innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL PRICE</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(totalInvestment)}</div>
+                <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+                    <div class="summary-card">
+                        <div class="summary-label">TOTAL PRICE</div>
+                        <div class="summary-value">$${formatNumber(totalInvestment)}</div>
                     </div>
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL IMPRESSIONS</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--accent);">${formatImpressions(totalImpressions)}</div>
+                    <div class="summary-card">
+                        <div class="summary-label">TOTAL IMPRESSIONS</div>
+                        <div class="summary-value accent">${formatImpressions(totalImpressions)}</div>
                     </div>
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">OVERALL CPM</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${avgCPM.toFixed(2)}</div>
+                    <div class="summary-card">
+                        <div class="summary-label">OVERALL CPM</div>
+                        <div class="summary-value">$${avgCPM.toFixed(2)}</div>
                     </div>
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL COST</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(totalCost)}</div>
+                    <div class="summary-card">
+                        <div class="summary-label">TOTAL COST</div>
+                        <div class="summary-value">$${formatNumber(totalCost)}</div>
                     </div>
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">TOTAL MARGIN</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);">$${formatNumber(totalMargin)}</div>
+                    <div class="summary-card">
+                        <div class="summary-label">TOTAL MARGIN</div>
+                        <div class="summary-value success">$${formatNumber(totalMargin)}</div>
                     </div>
-                    <div style="background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">MARGIN %</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success-dark);">${totalMarginPercent.toFixed(3)}%</div>
+                    <div class="summary-card">
+                        <div class="summary-label">MARGIN %</div>
+                        <div class="summary-value success">${totalMarginPercent.toFixed(3)}%</div>
                     </div>
                 </div>
             `;
