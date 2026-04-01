@@ -3855,10 +3855,10 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="badge badge-success">$${formatNumber(calculateVersionTotal(version))}</span>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="rename-version" data-index="${index}">✎ Rename</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="edit-version-notes" data-index="${index}">📝 Notes</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();" data-action="duplicate-version" data-index="${index}">⎘ Duplicate</button>
-                            <button class="btn-danger btn-sm" onclick="event.stopPropagation();" data-action="delete-version" data-index="${index}">× Delete</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); renameVersion(${index});">✎ Rename</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editVersionNotes(${index});">📝 Notes</button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); duplicateVersion(${index});">⎘ Duplicate</button>
+                            <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteVersion(${index});">× Delete</button>
                         </div>
                     </div>
                 </div>
