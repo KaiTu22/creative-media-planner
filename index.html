@@ -1444,9 +1444,9 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Salesforce Link (URL)</label>
-                    <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/...">
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
+                    <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -1500,9 +1500,9 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Salesforce Link (URL)</label>
-                    <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/...">
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
+                    <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -6749,6 +6749,19 @@
             
             if (mediaPercent) mediaPercent.value = '50';
             if (simpleCPM) simpleCPM.value = '';
+            
+            // Reset talent markup to default
+            const talentMarkup = document.getElementById('talentMarkup');
+            const talentMarkupCheckbox = document.getElementById('talentMarkupCheckbox');
+            if (talentMarkup) {
+                talentMarkup.value = '25';
+                talentMarkup.disabled = true;
+                talentMarkup.style.opacity = '0.5';
+                talentMarkup.style.pointerEvents = 'none';
+            }
+            if (talentMarkupCheckbox) {
+                talentMarkupCheckbox.checked = false;
+            }
             
             showScreen('screen-1');
         }
