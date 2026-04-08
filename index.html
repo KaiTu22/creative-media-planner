@@ -3617,13 +3617,20 @@
                     dateLine = `End: ${new Date(project.campaignEndDate).toLocaleDateString()}`;
                 }
                 
+                // Build export timestamp line
+                let exportLine = '';
+                if (project.lastExportedAt) {
+                    const exportDate = new Date(project.lastExportedAt);
+                    exportLine = `<br><span style="color: var(--success-dark); font-size: 0.8rem;">📥 Last exported: ${exportDate.toLocaleDateString()} at ${exportDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>`;
+                }
+                
                 return `
                 <div class="package-card" style="cursor: pointer;">
                     <div class="package-header">
                         <div onclick="selectProject(${index})" style="flex: 1; cursor: pointer;">
                             <div class="package-title">${project.projectName}</div>
                             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-                                ${brandLine}${dateLine ? '<br>' + dateLine : ''}
+                                ${brandLine}${dateLine ? '<br>' + dateLine : ''}${exportLine}
                             </p>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -6921,6 +6928,10 @@
                 return;
             }
             
+            // Save export timestamp to project
+            currentProject.lastExportedAt = new Date().toISOString();
+            saveProjects();
+            
             // Calculate totals
             const packages = currentVersion.packages;
             const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
@@ -7364,6 +7375,10 @@
             }
 
             try {
+                // Save export timestamp
+                currentProject.lastExportedAt = new Date().toISOString();
+                saveProjects();
+                
                 // Create default filename with INTERNAL prefix
                 const sanitizedName = currentProject.projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 const dateStr = new Date().toISOString().split('T')[0];
