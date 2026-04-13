@@ -1761,6 +1761,10 @@
                                     <input type="radio" id="feeTypeTentpole" name="feeType" value="tentpole">
                                     <label for="feeTypeTentpole">Tentpole / On The Ground</label>
                                 </div>
+                                <div class="radio-option" style="flex: 1;">
+                                    <input type="radio" id="feeTypeOther" name="feeType" value="other">
+                                    <label for="feeTypeOther">Other</label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1846,6 +1850,7 @@
                                 <option value="talent">Talent and Production</option>
                                 <option value="distribution">Paid Distribution</option>
                                 <option value="streaming">Paramount Streaming</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         
@@ -1940,6 +1945,42 @@
                                 <div class="summary-card">
                                     <div class="summary-label">Media Value</div>
                                     <div class="summary-value accent" id="streamingMediaValueDisplay">$0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Other Added Value Fields -->
+                        <div id="addedValueOtherFields" style="display: none;">
+                            <div class="form-group">
+                                <label>Cost <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-addon">$</span>
+                                    <input type="text" id="otherCostValue" 
+                                           oninput="formatCurrencyLive(event); calculateOtherValue();" 
+                                           placeholder="0.00" required>
+                                </div>
+                                <span class="hint">Your actual cost for this added value</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Value Price <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-addon">$</span>
+                                    <input type="text" id="otherValuePrice" 
+                                           oninput="formatCurrencyLive(event); calculateOtherValue();" 
+                                           placeholder="0.00" required>
+                                </div>
+                                <span class="hint">Market value if client were to pay</span>
+                            </div>
+                            
+                            <div class="summary-grid" style="grid-template-columns: 1fr 1fr;">
+                                <div class="summary-card">
+                                    <div class="summary-label">Cost</div>
+                                    <div class="summary-value" id="otherCostDisplay">$0</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-label">Value</div>
+                                    <div class="summary-value accent" id="otherValueDisplay">$0</div>
                                 </div>
                             </div>
                         </div>
@@ -2413,13 +2454,17 @@
                 <h3 id="summaryBreakdownHeader" style="margin: 1.5rem 0 0.75rem; font-size: 1rem; color: var(--primary); font-weight: 700;">Cost Breakdown</h3>
                 
                 <div class="summary-grid" id="summaryBreakdownGrid" style="grid-template-columns: repeat(2, 1fr);">
-                    <div class="summary-card">
+                    <div class="summary-card" id="summaryTalentCard">
                         <div class="summary-label">Production & Talent Cost</div>
                         <div class="summary-value" id="summaryTalentCost">$0</div>
                     </div>
-                    <div class="summary-card">
+                    <div class="summary-card" id="summaryMediaCard">
                         <div class="summary-label">Media Cost</div>
                         <div class="summary-value" id="summaryMediaCost">$0</div>
+                    </div>
+                    <div class="summary-card" id="summaryRevShareCard" style="display: none;">
+                        <div class="summary-label">Rev Share Cost</div>
+                        <div class="summary-value" id="summaryRevShareCost">$0</div>
                     </div>
                 </div>
 
@@ -4431,6 +4476,17 @@
                             customAlert('Please enter Impressions');
                             return false;
                         }
+                    } else if (addedValueType === 'other') {
+                        const cost = document.getElementById('otherCostValue').value;
+                        const value = document.getElementById('otherValuePrice').value;
+                        if (!cost || parseCurrency(cost) <= 0) {
+                            customAlert('Please enter a Cost value');
+                            return false;
+                        }
+                        if (!value || parseCurrency(value) <= 0) {
+                            customAlert('Please enter a Value Price');
+                            return false;
+                        }
                     }
                 }
                 
@@ -4946,6 +5002,7 @@
             document.getElementById('addedValueTalentFields').style.display = 'none';
             document.getElementById('addedValueDistributionFields').style.display = 'none';
             document.getElementById('addedValueStreamingFields').style.display = 'none';
+            document.getElementById('addedValueOtherFields').style.display = 'none';
             
             // Show relevant fields
             if (type === 'talent') {
@@ -4954,6 +5011,8 @@
                 document.getElementById('addedValueDistributionFields').style.display = 'block';
             } else if (type === 'streaming') {
                 document.getElementById('addedValueStreamingFields').style.display = 'block';
+            } else if (type === 'other') {
+                document.getElementById('addedValueOtherFields').style.display = 'block';
             }
             
             // Reset all calculations
@@ -5006,6 +5065,16 @@
             updateAddedValueTotals();
         }
         
+        function calculateOtherValue() {
+            const cost = parseCurrency(document.getElementById('otherCostValue')?.value) || 0;
+            const value = parseCurrency(document.getElementById('otherValuePrice')?.value) || 0;
+            
+            document.getElementById('otherCostDisplay').textContent = '$' + formatNumber(cost);
+            document.getElementById('otherValueDisplay').textContent = '$' + formatNumber(value);
+            
+            updateAddedValueTotals();
+        }
+        
         function updateAddedValueTotals() {
             const type = document.getElementById('addedValueType').value;
             let totalCost = 0;
@@ -5027,6 +5096,9 @@
                 
                 totalCost = 0; // Streaming has no cost (100% margin)
                 totalValue = (impressions * cpmPrice) / 1000;
+            } else if (type === 'other') {
+                totalCost = parseCurrency(document.getElementById('otherCostValue')?.value) || 0;
+                totalValue = parseCurrency(document.getElementById('otherValuePrice')?.value) || 0;
             }
             
             document.getElementById('addedValueTotalCost').textContent = '$' + formatNumber(totalCost);
@@ -5908,6 +5980,24 @@
                 totalCost = currentPackage.totalCost || 0;
                 totalMarginDollar = currentPackage.totalMargin || 0;
                 totalMarginPercent = currentPackage.totalMarginPercent || 0;
+            } else if (packageType === 'partnership') {
+                // For partnerships: impressions/views calculated, cost = rev share
+                const revSharePercent = currentPackage.revShare || 50;
+                totalCost = totalPrice * (revSharePercent / 100);
+                totalMarginDollar = totalPrice - totalCost;
+                totalMarginPercent = (totalMarginDollar / totalPrice) * 100;
+                
+                // Use views for CPV, impressions for CPM
+                if (currentPackage.pricingMetric === 'cpv') {
+                    totalImpressions = currentPackage.views || 0;
+                    overallCPM = 0; // CPV packages don't have CPM
+                } else {
+                    totalImpressions = currentPackage.impressions || 0;
+                    overallCPM = currentPackage.cpm || 0;
+                }
+                
+                // Store rev share cost as media cost for breakdown display
+                currentPackage.mediaCost = totalCost;
             } else if (packageType === 'streaming' || packageType === 'sponsorship') {
                 // For streaming/sponsorship, impressions already calculated in saveStepData
                 totalImpressions = currentPackage.impressions || 0;
@@ -5953,9 +6043,27 @@
             document.getElementById('summaryTotalMarginDollar').textContent = '$' + formatNumber(totalMarginDollar);
             document.getElementById('summaryTotalMarginPercent').textContent = totalMarginPercent.toFixed(3) + '%';
             
-            // Display cost breakdown cards (only costs, not investments)
-            document.getElementById('summaryTalentCost').textContent = '$' + formatNumber(currentPackage.talentCost || 0);
-            document.getElementById('summaryMediaCost').textContent = '$' + formatNumber(currentPackage.mediaCost || 0);
+            // Display cost breakdown cards based on package type
+            const talentCard = document.getElementById('summaryTalentCard');
+            const mediaCard = document.getElementById('summaryMediaCard');
+            const revShareCard = document.getElementById('summaryRevShareCard');
+            
+            if (packageType === 'partnership') {
+                // Show only rev share cost for partnerships
+                if (talentCard) talentCard.style.display = 'none';
+                if (mediaCard) mediaCard.style.display = 'none';
+                if (revShareCard) {
+                    revShareCard.style.display = 'block';
+                    document.getElementById('summaryRevShareCost').textContent = '$' + formatNumber(totalCost);
+                }
+            } else {
+                // Show talent and media costs for other packages
+                if (talentCard) talentCard.style.display = 'block';
+                if (mediaCard) mediaCard.style.display = 'block';
+                if (revShareCard) revShareCard.style.display = 'none';
+                document.getElementById('summaryTalentCost').textContent = '$' + formatNumber(currentPackage.talentCost || 0);
+                document.getElementById('summaryMediaCost').textContent = '$' + formatNumber(currentPackage.mediaCost || 0);
+            }
             
             // Populate notes and URL fields (for editing)
             document.getElementById('packageNotes').value = currentPackage.notes || '';
@@ -6123,13 +6231,22 @@
             
             // Calculate investment category breakdown
             const categories = {
-                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                oo: { types: ['streaming'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                partnerships: { types: ['partnership'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                sponsorships: { types: ['sponsorship'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                fees: { types: ['fees'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                linear: { types: ['linear'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
-                addedvalue: { types: ['added-value'], investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 }
+                creative: { 
+                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
+                },
+                oo: { 
+                    types: ['streaming', 'linear'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
+                },
+                sponsorships: { 
+                    types: ['sponsorship'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
+                },
+                addedvalue: { 
+                    types: ['added-value'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
+                }
             };
             
             packages.forEach(pkg => {
@@ -6833,11 +6950,15 @@
                 blendedPlatformAllocations = JSON.parse(JSON.stringify(pkg.blendedPlatforms));
             }
             
-            // Navigate to first step
-            showScreen('screen-1');
+            // Mark as editing (unsaved changes)
+            hasUnsavedChanges = true;
             
-            // Pre-select package type
+            // Pre-select package type (in case user navigates back)
             document.querySelector(`input[name="packageType"][value="${pkg.type}"]`).checked = true;
+            
+            // Skip package type selection, go directly to package details (Step 2)
+            setupPackageDetails();
+            showScreen('screen-2');
         }
 
         function deletePackage(index) {
@@ -6948,12 +7069,26 @@
             
             // Calculate categories
             const categories = {
-                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Creative' },
-                oo: { types: ['streaming'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'O&O' },
-                partnerships: { types: ['partnership'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Social Partnerships' },
-                sponsorships: { types: ['sponsorship'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Sponsorships' },
-                fees: { types: ['fees'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Fees' },
-                linear: { types: ['linear'], investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, label: 'Linear' }
+                creative: { 
+                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
+                    label: 'Creative' 
+                },
+                oo: { 
+                    types: ['streaming', 'linear'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
+                    label: 'O&O' 
+                },
+                sponsorships: { 
+                    types: ['sponsorship'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
+                    label: 'Sponsorships' 
+                },
+                addedValue: { 
+                    types: ['added-value'], 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
+                    label: 'Added Value' 
+                }
             };
             
             packages.forEach(pkg => {
@@ -7857,13 +7992,26 @@
             
             // Investment Category Breakdown
             const categories = {
-                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                oo: { types: ['streaming'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                partnerships: { types: ['partnership'], label: 'Partnerships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                sponsorships: { types: ['sponsorship'], label: 'Sponsorships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                fees: { types: ['fees'], label: 'Fees', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                linear: { types: ['linear'], label: 'Linear', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
+                creative: { 
+                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
+                    label: 'Creative', 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
+                },
+                oo: { 
+                    types: ['streaming', 'linear'], 
+                    label: 'O&O', 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
+                },
+                sponsorships: { 
+                    types: ['sponsorship'], 
+                    label: 'Sponsorships', 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
+                },
+                addedvalue: { 
+                    types: ['added-value'], 
+                    label: 'Added Value', 
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 
+                }
             };
             
             packages.forEach(pkg => {
@@ -8476,12 +8624,9 @@
             
             // Investment Category Breakdown
             const categories = {
-                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                oo: { types: ['streaming'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                partnerships: { types: ['partnership'], label: 'Partnerships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 sponsorships: { types: ['sponsorship'], label: 'Sponsorships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                fees: { types: ['fees'], label: 'Fees', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                linear: { types: ['linear'], label: 'Linear', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
