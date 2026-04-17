@@ -1662,8 +1662,8 @@
                     <div class="radio-option" onclick="document.getElementById('packageSponsorship').click();">
                         <input type="radio" id="packageSponsorship" name="packageType" value="sponsorship">
                         <label for="packageSponsorship">
-                            <strong>Sponsorship Packages</strong>
-                            <span class="hint">O&O Media - Sponsorship placements (100% margin)</span>
+                            <strong>Sponsorship Package</strong>
+                            <span class="hint">Simple or detailed breakdown with import</span>
                         </label>
                     </div>
 
@@ -1679,6 +1679,229 @@
                 <div class="button-group">
                     <button class="btn-secondary" onclick="displayVersionSummary(); showScreen('screen-6');">← Back to Package Summary</button>
                     <button class="btn-primary" onclick="nextStep(1)">Next: Package Details →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1-Sponsorship: Sponsorship Type Selection -->
+        <div id="screen-1-sponsorship" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Sponsorship Package Setup</h2>
+                    <p>Choose how you want to build your sponsorship package</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Package Title <span class="required">*</span></label>
+                    <input type="text" id="sponsorshipPackageTitle" placeholder="e.g., Yellowstone VMA Sponsorship" required>
+                </div>
+
+                <div class="form-group" id="sponsorshipTotalInvestmentGroup">
+                    <label>Total Package Investment <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-addon">$</span>
+                        <input type="text" id="sponsorshipTotalInvestment" 
+                               oninput="formatCurrencyLive(event);" 
+                               placeholder="0.00" required>
+                    </div>
+                    <span class="hint">This will be calculated from the uploaded file for detailed sponsorships</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Setup Type <span class="required">*</span></label>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="radio-option" onclick="document.getElementById('sponsorshipSimple').click();">
+                            <input type="radio" id="sponsorshipSimple" name="sponsorshipType" value="simple" checked>
+                            <label for="sponsorshipSimple">
+                                <strong>Simple Sponsorship</strong>
+                                <span class="hint">Single line item, no detailed breakdown (current behavior)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="radio-option" onclick="document.getElementById('sponsorshipDetailed').click();">
+                            <input type="radio" id="sponsorshipDetailed" name="sponsorshipType" value="detailed">
+                            <label for="sponsorshipDetailed">
+                                <strong>Detailed Sponsorship (Import & Breakdown)</strong>
+                                <span class="hint">Upload Excel file and break down by placement types with costs</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Upload Section (shown when detailed is selected) -->
+                <div id="sponsorshipFileUpload" style="display: none;">
+                    <div style="margin-top: 2rem; padding: 3rem; border: 2px dashed var(--border); border-radius: 8px; text-align: center; background: var(--surface); cursor: pointer;" 
+                         onclick="document.getElementById('sponsorshipFileInput').click();"
+                         ondrop="handleSponsorshipDrop(event)" 
+                         ondragover="event.preventDefault(); event.currentTarget.style.borderColor = 'var(--primary)'; event.currentTarget.style.background = 'rgba(0, 87, 184, 0.05)';"
+                         ondragleave="event.currentTarget.style.borderColor = 'var(--border)'; event.currentTarget.style.background = 'var(--surface)';">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">Upload Sponsorship Plan</h3>
+                        <p style="margin: 0 0 1rem 0; color: var(--text-muted);">Drag and drop your Excel file here, or click to browse</p>
+                        <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted);">Supported formats: .xlsx, .xls</p>
+                        <input type="file" id="sponsorshipFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleSponsorshipFileSelect(event)">
+                    </div>
+                    <div id="sponsorshipFileName" style="margin-top: 1rem; text-align: center; color: var(--text-muted); display: none;">
+                        <strong>Selected:</strong> <span id="sponsorshipFileNameText"></span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('screen-1');">← Back</button>
+                    <button class="btn-primary" onclick="proceedFromSponsorshipSetup()">Next →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1-Sponsorship-Mapping: Column Mapping for Sponsorship Import -->
+        <div id="screen-1-sponsorship-mapping" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Map Your Columns</h2>
+                    <p>Confirm or adjust which columns contain your sponsorship data</p>
+                </div>
+
+                <div id="tableDetectionInfo" style="padding: 1rem; background: var(--surface); border-radius: 6px; margin-bottom: 1.5rem; border-left: 4px solid var(--success);">
+                    <strong style="color: var(--success-dark);">✓ Table Detected</strong>
+                    <div id="tableDetectionDetails" style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Platform/Brand Column</label>
+                        <select id="colPlatform" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Package Column</label>
+                        <select id="colPackage" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Description Column</label>
+                        <select id="colDescription" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Size Column (Optional)</label>
+                        <select id="colSize" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Flight Column (Optional)</label>
+                        <select id="colFlight" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Cost Method Column</label>
+                        <select id="colCostMethod" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Rate Column</label>
+                        <select id="colRate" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Quantity Column</label>
+                        <select id="colQuantity" onchange="updateColumnMapping()"></select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Net Cost Column</label>
+                        <select id="colNetCost" onchange="updateColumnMapping()"></select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--primary);">Data Preview (First 5 Rows)</h3>
+                    <div style="overflow-x: auto; max-height: 400px; border: 1px solid var(--border); border-radius: 6px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead id="previewTableHead" style="background: var(--background); position: sticky; top: 0; z-index: 1;">
+                            </thead>
+                            <tbody id="previewTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="detectionSummary" style="padding: 1rem; background: var(--surface); border-radius: 6px; border-left: 4px solid var(--primary);">
+                    <strong>Detection Summary</strong>
+                    <div id="detectionSummaryContent" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('screen-1-sponsorship');">← Back</button>
+                    <button class="btn-primary" onclick="proceedFromColumnMapping()">Next: Assign Types →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1-Sponsorship-Types: Type & Cost Assignment for Sponsorship Line Items -->
+        <div id="screen-1-sponsorship-types" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Assign Placement Types & Costs</h2>
+                    <p>Categorize each line item and add costs to calculate margins</p>
+                </div>
+
+                <div id="lineItemsSummaryBanner" style="padding: 1rem; background: var(--surface); border-radius: 6px; margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+                    <strong id="lineItemsSummaryTitle"></strong>
+                    <div id="lineItemsSummaryDetails" style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+                </div>
+
+                <!-- Line Items Container -->
+                <div id="lineItemsContainer" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                    <!-- Line items will be dynamically inserted here -->
+                </div>
+
+                <!-- Overall Summary -->
+                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--surface); border-radius: 8px; border: 2px solid var(--primary);">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--primary);">Overall Summary</h3>
+                    
+                    <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 1rem;">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Price</div>
+                            <div class="summary-value" id="sponsorshipTotalPrice">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Cost</div>
+                            <div class="summary-value" id="sponsorshipTotalCost">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Margin</div>
+                            <div class="summary-value success" id="sponsorshipTotalMargin">$0 (0%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Impressions</div>
+                            <div class="summary-value accent" id="sponsorshipTotalImpressions">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Views</div>
+                            <div class="summary-value accent" id="sponsorshipTotalViews">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">CPM</div>
+                            <div class="summary-value" id="sponsorshipCPM">$0.00</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">CPV</div>
+                            <div class="summary-value" id="sponsorshipCPV">$0.00</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Category Breakdown</h4>
+                    <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="summary-card">
+                            <div class="summary-label">Creative Total</div>
+                            <div class="summary-value" id="sponsorshipCreativeTotal">$0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Creative Margin</div>
+                            <div class="summary-value success" id="sponsorshipCreativeMargin">$0 (0%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">O&O Total</div>
+                            <div class="summary-value" id="sponsorshipOOTotal">$0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="sponsorshipGoBack()">← Back</button>
+                    <button class="btn-primary" onclick="proceedFromTypeAssignment()">Next: Review & Save →</button>
                 </div>
             </div>
         </div>
@@ -2419,7 +2642,7 @@
 
                 <h3 style="margin: 1rem 0 0.75rem; font-size: 1rem; color: var(--primary); font-weight: 700;">Overall Totals</h3>
                 
-                <div class="summary-grid">
+                <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                     <div class="summary-card">
                         <div class="summary-label">Total Price</div>
                         <div class="summary-value" id="summaryTotalPrice">$0</div>
@@ -2429,8 +2652,16 @@
                         <div class="summary-value accent" id="summaryTotalImpressions">0</div>
                     </div>
                     <div class="summary-card">
+                        <div class="summary-label">Total Views</div>
+                        <div class="summary-value accent" id="summaryTotalViews">0</div>
+                    </div>
+                    <div class="summary-card">
                         <div class="summary-label">Overall CPM</div>
                         <div class="summary-value" id="summaryOverallCPM">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Overall CPV</div>
+                        <div class="summary-value" id="summaryOverallCPV">$0</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">Total Cost</div>
@@ -2465,6 +2696,14 @@
                     <div class="summary-card" id="summaryRevShareCard" style="display: none;">
                         <div class="summary-label">Rev Share Cost</div>
                         <div class="summary-value" id="summaryRevShareCost">$0</div>
+                    </div>
+                </div>
+
+                <!-- Sponsorship Line Items Summary (shown only for detailed sponsorships) -->
+                <div id="sponsorshipLineItemsSummary" style="display: none; margin: 2rem 0;">
+                    <h3 style="margin: 0 0 1rem; font-size: 1.1rem; color: var(--primary);">Line Items Summary</h3>
+                    <div id="sponsorshipLineItemsContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Line items will be inserted here -->
                     </div>
                 </div>
 
@@ -3551,6 +3790,13 @@
                     // Extract projects array
                     projects = data.projects || [];
                     
+                    // Normalize sponsorship data (lineItems → sponsorshipLineItems)
+                    projects.forEach(project => {
+                        project.versions.forEach(version => {
+                            normalizeSponsorshipData(version.packages);
+                        });
+                    });
+                    
                     // Save back with updated schema if migration occurred
                     if (data.schemaVersion !== CURRENT_SCHEMA_VERSION) {
                         data.schemaVersion = CURRENT_SCHEMA_VERSION;
@@ -4186,6 +4432,14 @@
 
             // Move to next screen
             if (step === 1) {
+                const packageType = currentPackage.type;
+                
+                // Route to sponsorship setup if sponsorship selected
+                if (packageType === 'sponsorship') {
+                    showScreen('screen-1-sponsorship');
+                    return;
+                }
+                
                 setupPackageDetails();
                 showScreen('screen-2');
             } else if (step === 2) {
@@ -4340,6 +4594,13 @@
             } else if (step === 5) {
                 // From Final Summary (5), go back appropriately based on package type
                 const packageType = currentPackage.type;
+                
+                // Handle detailed sponsorships - go back to type assignment screen
+                if (packageType === 'sponsorship' && currentPackage.sponsorshipType === 'detailed') {
+                    showLineItemTypeAssignment();
+                    return;
+                }
+                
                 if (packageType === 'branded-blended' || packageType === 'streaming' || packageType === 'fees' || packageType === 'linear' || packageType === 'partnership' || packageType === 'sponsorship' || packageType === 'added-value') {
                     // Simple packages go back to Setup (2)
                     showScreen('screen-2');
@@ -5802,6 +6063,24 @@
         
         // Calculate and display cost and margin breakdown
         function calculateCostMargin() {
+            // Handle detailed sponsorships differently
+            if (currentPackage.sponsorshipType === 'detailed') {
+                console.log('calculateCostMargin: Populating sponsorship summary values');
+                
+                // Use the values already calculated in currentPackage
+                document.getElementById('summaryTotalPrice').textContent = '$' + formatNumber(currentPackage.totalInvestment || 0);
+                document.getElementById('summaryTotalImpressions').textContent = formatImpressions(currentPackage.totalImpressions || 0);
+                document.getElementById('summaryTotalViews').textContent = formatImpressions(currentPackage.totalViews || 0);
+                document.getElementById('summaryOverallCPM').textContent = currentPackage.overallCPM ? '$' + currentPackage.overallCPM.toFixed(2) : 'N/A';
+                document.getElementById('summaryOverallCPV').textContent = currentPackage.overallCPV ? '$' + currentPackage.overallCPV.toFixed(2) : 'N/A';
+                document.getElementById('summaryTotalCost').textContent = '$' + formatNumber(currentPackage.totalCost || 0);
+                document.getElementById('summaryTotalMarginDollar').textContent = '$' + formatNumber(currentPackage.totalMargin || 0);
+                document.getElementById('summaryTotalMarginPercent').textContent = (currentPackage.totalMarginPercent || 0).toFixed(1) + '%';
+                
+                console.log('calculateCostMargin: Done populating sponsorship values');
+                return;
+            }
+            
             const packageType = currentPackage.type;
             const talentMarkup = parseFloat(document.getElementById('talentMarkup').value) / 100;
             const talentInvestment = currentPackage.talentInvestment || 0;
@@ -5939,6 +6218,84 @@
             document.getElementById('summaryPackageTitle').textContent = currentPackage.title + ' - Summary';
             
             const packageType = currentPackage.type;
+            
+            // Special handling for detailed sponsorships
+            if (currentPackage.sponsorshipType === 'detailed') {
+                console.log('displayFinalSummary: Handling detailed sponsorship');
+                
+                // Hide blended platforms section
+                const blendedPlatformsSection = document.getElementById('summaryBlendedPlatforms');
+                if (blendedPlatformsSection) blendedPlatformsSection.style.display = 'none';
+                
+                // Calculate talent and media costs from line items
+                let talentCost = 0;
+                let mediaCost = 0;
+                
+                if (currentPackage.sponsorshipLineItems) {
+                    currentPackage.sponsorshipLineItems.forEach(item => {
+                        const type = item.placementType;
+                        const itemCost = item.totalCost || 0;
+                        
+                        // Categorize by placement type
+                        const creativeTypes = ['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
+                                               'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'];
+                        
+                        if (type === 'TALENT_PRODUCTION' || type === 'EXPERIENTIAL_FEE' || type === 'EXPERIENTIAL_BUILDOUT' || 
+                            type === 'INTEGRATION_FEE' || type === 'INTEGRATION_BUILDOUT') {
+                            // Talent & Production
+                            talentCost += itemCost;
+                        } else if (type === 'PAID_MEDIA' || type === 'CUSTOM_SOCIAL' || type === 'SOCIAL_VIDEO') {
+                            // Paid Media
+                            mediaCost += itemCost;
+                        } else if (type === 'ADDED_VALUE') {
+                            // Added Value - check sub-type
+                            if (item.addedValueSubType === 'talent') {
+                                talentCost += itemCost;
+                            } else {
+                                mediaCost += itemCost;
+                            }
+                        } else {
+                            // O&O types (DIGITAL_OO, LINEAR_OO) - count as media
+                            mediaCost += itemCost;
+                        }
+                    });
+                }
+                
+                // Show Cost Breakdown section with calculated values
+                const breakdownHeader = document.getElementById('summaryBreakdownHeader');
+                const breakdownGrid = document.getElementById('summaryBreakdownGrid');
+                if (breakdownHeader) breakdownHeader.style.display = 'block';
+                if (breakdownGrid) breakdownGrid.style.display = 'grid';
+                
+                // Populate breakdown cards
+                const talentCostEl = document.getElementById('summaryTalentCost');
+                const mediaCostEl = document.getElementById('summaryMediaCost');
+                if (talentCostEl) talentCostEl.textContent = '$' + formatNumber(talentCost);
+                if (mediaCostEl) mediaCostEl.textContent = '$' + formatNumber(mediaCost);
+                
+                // Use sponsorship-calculated values
+                const totalPrice = currentPackage.totalInvestment;
+                const totalImpressions = currentPackage.totalImpressions || 0;
+                const totalViews = currentPackage.totalViews || 0;
+                const overallCPM = currentPackage.overallCPM || 0;
+                const overallCPV = currentPackage.overallCPV || 0;
+                const totalCost = currentPackage.totalCost || 0;
+                const totalMarginDollar = currentPackage.totalMargin || 0;
+                const totalMarginPercent = currentPackage.totalMarginPercent || 0;
+                
+                // Display values
+                document.getElementById('summaryTotalPrice').textContent = '$' + formatNumber(totalPrice);
+                document.getElementById('summaryTotalImpressions').textContent = formatImpressions(totalImpressions);
+                document.getElementById('summaryTotalViews').textContent = formatImpressions(totalViews);
+                document.getElementById('summaryOverallCPM').textContent = overallCPM > 0 ? '$' + overallCPM.toFixed(2) : 'N/A';
+                document.getElementById('summaryOverallCPV').textContent = overallCPV > 0 ? '$' + overallCPV.toFixed(2) : 'N/A';
+                document.getElementById('summaryTotalCost').textContent = '$' + formatNumber(totalCost);
+                document.getElementById('summaryTotalMarginDollar').textContent = '$' + formatNumber(totalMarginDollar);
+                document.getElementById('summaryTotalMarginPercent').textContent = totalMarginPercent.toFixed(1) + '%';
+                
+                console.log('displayFinalSummary: Populated sponsorship values with breakdown - Talent:', talentCost, 'Media:', mediaCost);
+                return; // Skip the rest of the function
+            }
             
             // Show/hide blended platforms section
             const blendedPlatformsSection = document.getElementById('summaryBlendedPlatforms');
@@ -6086,9 +6443,10 @@
             
             saveProjects();
             
-            // Reset current package
+            // Reset current package and sponsorship data
             currentPackage = {};
             platformAllocations = [];
+            sponsorshipLineItems = [];
             
             // Clear unsaved changes flag
             hasUnsavedChanges = false;
@@ -6143,7 +6501,10 @@
                     totalCPVInvestment += pkg.totalInvestment;
                 } else {
                     // CPM package - count impressions
-                    if (['streaming', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                        // Detailed sponsorships use totalImpressions field
+                        totalImpressions += (pkg.totalImpressions || 0);
+                    } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
                         totalImpressions += (pkg.impressions || 0);
                     } else {
                         totalImpressions += (pkg.totalImpressions || 0);
@@ -6239,10 +6600,6 @@
                     types: ['streaming', 'linear'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
                 },
-                sponsorships: { 
-                    types: ['sponsorship'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
-                },
                 addedvalue: { 
                     types: ['added-value'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
@@ -6250,33 +6607,72 @@
             };
             
             packages.forEach(pkg => {
-                for (const [key, category] of Object.entries(categories)) {
-                    if (category.types.includes(pkg.type)) {
-                        category.investment += pkg.totalInvestment;
-                        category.cost += pkg.totalCost || 0;
-                        category.margin += (pkg.totalInvestment - (pkg.totalCost || 0));
+                // Special handling for detailed sponsorships - distribute line items to categories
+                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        const placementType = item.placementType;
+                        let targetCategory = null;
                         
-                        // For added-value, track the value provided
-                        if (pkg.type === 'added-value') {
-                            category.value += (pkg.totalValue || 0);
+                        // Map placement types to categories per specification
+                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
+                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                            targetCategory = categories.creative;
+                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                            targetCategory = categories.oo;
+                        } else if (placementType === 'ADDED_VALUE') {
+                            targetCategory = categories.addedvalue;
                         }
                         
-                        // Add impressions based on package type
-                        if (['streaming', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type)) {
-                            category.impressions += (pkg.impressions || 0);
-                        } else {
-                            category.impressions += (pkg.totalImpressions || 0);
+                        if (targetCategory) {
+                            targetCategory.investment += item.netCost || 0;
+                            targetCategory.cost += item.totalCost || 0;
+                            targetCategory.margin += (item.margin || 0);
+                            
+                            // Add impressions/views based on cost method
+                            if (item.costMethod === 'CPV') {
+                                // Views - for now just add to impressions field
+                                targetCategory.impressions += (item.quantity || 0);
+                            } else {
+                                targetCategory.impressions += (item.quantity || 0);
+                            }
+                            
+                            // For added value, track the value provided (net cost is the value)
+                            if (placementType === 'ADDED_VALUE') {
+                                targetCategory.value += (item.netCost || 0);
+                            }
                         }
-                        
-                        category.count++;
-                        break;
+                    });
+                    // Don't break - we've handled all line items, continue to next package
+                } else {
+                    // Regular package handling
+                    for (const [key, category] of Object.entries(categories)) {
+                        if (category.types.includes(pkg.type)) {
+                            category.investment += pkg.totalInvestment;
+                            category.cost += pkg.totalCost || 0;
+                            category.margin += (pkg.totalInvestment - (pkg.totalCost || 0));
+                            
+                            // For added-value, track the value provided
+                            if (pkg.type === 'added-value') {
+                                category.value += (pkg.totalValue || 0);
+                            }
+                            
+                            // Add impressions based on package type
+                            if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                                category.impressions += (pkg.impressions || 0);
+                            } else {
+                                category.impressions += (pkg.totalImpressions || 0);
+                            }
+                            
+                            category.count++;
+                            break;
+                        }
                     }
                 }
             });
             
             // Display investment category breakdown
             const categoryHTML = Object.entries(categories)
-                .filter(([key, cat]) => cat.count > 0)
+                .filter(([key, cat]) => cat.investment > 0) // Show if has investment (not just package count)
                 .map(([key, cat]) => {
                     const marginPercent = cat.investment > 0 ? ((cat.margin / cat.investment) * 100) : 0;
                     const cpm = cat.impressions > 0 ? (cat.investment / cat.impressions * 1000) : 0;
@@ -6285,17 +6681,20 @@
                         creative: 'Creative',
                         oo: 'O&O',
                         partnerships: 'Social Partnerships',
-                        sponsorships: 'Sponsorships',
-                        fees: 'Fees',
-                        linear: 'Linear',
                         addedvalue: 'Added Value'
                     };
+                    
+                    // Calculate display text for package count
+                    let countText = '';
+                    if (cat.count > 0) {
+                        countText = `${cat.count} package${cat.count !== 1 ? 's' : ''}`;
+                    }
                     
                     return `
                         <div style="margin-bottom: 1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                                 <strong style="font-size: 1.1rem; color: var(--primary);">${labels[key]}</strong>
-                                <span class="badge badge-primary">${cat.count} package${cat.count !== 1 ? 's' : ''}</span>
+                                ${countText ? `<span class="badge badge-primary">${countText}</span>` : ''}
                             </div>
                             <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                                 ${key === 'addedvalue' ? `
@@ -6416,6 +6815,11 @@
                         <div>
                             <div class="package-title">${escapeHtml(pkg.title)}</div>
                             <span class="badge badge-primary">${getTypeLabel(pkg.type)}</span>
+                            ${pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems ? `
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); margin-left: 0.5rem;">
+                                    ${pkg.sponsorshipLineItems.length} Line Items
+                                </span>
+                            ` : ''}
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="btn-secondary btn-sm" data-action="move-up" data-index="${index}" title="Move Up" ${index === 0 ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''}>▲</button>
@@ -6549,6 +6953,96 @@
                         </div>
                         <div id="packageDetails${index}" style="display: none;">
                             <div style="background: var(--background); padding: 1rem; border-radius: 8px; font-size: 0.875rem; text-align: left;">
+                                ${pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems ? `
+                                    <div style="margin-bottom: 1rem;">
+                                        <strong style="display: block; margin-bottom: 0.75rem; font-size: 1rem; color: var(--primary);">Line Items (${pkg.sponsorshipLineItems.length})</strong>
+                                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                            ${pkg.sponsorshipLineItems.map((item, idx) => {
+                                                const placementTypeLabel = getPlacementTypeLabel(item.placementType);
+                                                const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                                                const metricLabel = item.costMethod === 'CPV' ? 'Views' : 'Impressions';
+                                                
+                                                return `
+                                                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                                        <div style="flex: 1;">
+                                                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">
+                                                                ${escapeHtml(item.platform || '')}${item.package ? ' - ' + escapeHtml(item.package) : ''}
+                                                            </div>
+                                                            <div style="font-size: 0.8125rem; color: var(--text-muted);">
+                                                                ${escapeHtml(item.description || '')}
+                                                            </div>
+                                                        </div>
+                                                        <div style="text-align: right; margin-left: 1rem;">
+                                                            <div style="font-size: 0.75rem; color: var(--text-muted);">Net Cost</div>
+                                                            <div style="font-weight: 700; color: var(--primary);">$${formatNumber(item.netCost)}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; padding: 0.5rem; background: var(--background); border-radius: 4px; font-size: 0.8125rem;">
+                                                        <div>
+                                                            <div style="color: var(--text-muted); font-size: 0.75rem;">Type</div>
+                                                            <div style="font-weight: 600;">${placementTypeLabel}${addedValueSubType}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div style="color: var(--text-muted); font-size: 0.75rem;">${metricLabel}</div>
+                                                            <div style="font-weight: 600; color: var(--accent);">${formatImpressions(item.quantity || 0)}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div style="color: var(--text-muted); font-size: 0.75rem;">Cost Method</div>
+                                                            <div style="font-weight: 600;">${item.costMethod || 'N/A'}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div style="color: var(--text-muted); font-size: 0.75rem;">Margin</div>
+                                                            <div style="font-weight: 600; color: ${getMarginColor(item.marginPercent || 0)};">$${formatNumber(item.margin || 0)} (${(item.marginPercent || 0).toFixed(1)}%)</div>
+                                                        </div>
+                                                    </div>
+                                                    ${(() => {
+                                                        // Calculate internal costs breakdown
+                                                        const placementType = item.placementType;
+                                                        let talentCost = 0;
+                                                        let mediaCost = 0;
+                                                        
+                                                        // Determine cost category based on placement type
+                                                        if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                                                            talentCost = item.totalCost || 0;
+                                                        } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                                            mediaCost = item.totalCost || 0;
+                                                        } else if (placementType === 'ADDED_VALUE') {
+                                                            if (item.addedValueSubType === 'talent') {
+                                                                talentCost = item.totalCost || 0;
+                                                            } else {
+                                                                mediaCost = item.totalCost || 0;
+                                                            }
+                                                        }
+                                                        
+                                                        const totalCost = item.totalCost || 0;
+                                                        
+                                                        return `
+                                                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--surface); border-radius: 4px; font-size: 0.8125rem;">
+                                                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                                                                <div>
+                                                                    <div style="color: var(--text-muted); font-size: 0.75rem;">Production & Talent (INTERNAL)</div>
+                                                                    <div style="font-weight: 600; color: var(--danger);">$${formatNumber(talentCost)}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style="color: var(--text-muted); font-size: 0.75rem;">Media Cost (INTERNAL)</div>
+                                                                    <div style="font-weight: 600; color: var(--danger);">$${formatNumber(mediaCost)}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style="color: var(--text-muted); font-size: 0.75rem;">Total Cost (INTERNAL)</div>
+                                                                    <div style="font-weight: 600; color: var(--danger);">$${formatNumber(totalCost)}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        `;
+                                                    })()}
+                                                    ${item.notes ? `<div style="margin-top: 0.5rem; font-size: 0.8125rem; font-style: italic; color: var(--text-muted);">📝 ${escapeHtml(item.notes)}</div>` : ''}
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
                                 ${pkg.type === 'fees' ? `
                                     <div style="margin-bottom: 0.5rem;"><strong>Fee Type:</strong> ${pkg.feeType === 'integration' ? 'Integration' : 'Tentpole / On The Ground'}</div>
                                 ` : ''}
@@ -6944,6 +7438,24 @@
             // Load package data
             currentPackage = {...pkg};
             platformAllocations = JSON.parse(JSON.stringify(pkg.platformAllocations || []));
+            
+            // Handle sponsorship packages
+            if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                console.log('Editing detailed sponsorship package:', pkg);
+                
+                // Restore sponsorship line items
+                sponsorshipLineItems = JSON.parse(JSON.stringify(pkg.sponsorshipLineItems || []));
+                
+                // Mark as editing
+                hasUnsavedChanges = true;
+                
+                // Pre-select sponsorship type
+                document.querySelector(`input[name="packageType"][value="sponsorship"]`).checked = true;
+                
+                // Go to sponsorship type assignment screen
+                showLineItemTypeAssignment();
+                return;
+            }
             
             // Also restore blended platforms if it's a branded-blended package
             if (pkg.type === 'branded-blended' && pkg.blendedPlatforms) {
@@ -7412,18 +7924,51 @@
             return Math.round(num).toLocaleString('en-US', { maximumFractionDigits: 0 });
         }
         
+        // Helper function to normalize sponsorship data (lineItems → sponsorshipLineItems)
+        function normalizeSponsorshipData(packages) {
+            packages.forEach(pkg => {
+                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                    // If lineItems exists but sponsorshipLineItems doesn't, migrate it
+                    if (pkg.lineItems && !pkg.sponsorshipLineItems) {
+                        pkg.sponsorshipLineItems = pkg.lineItems;
+                    }
+                }
+            });
+        }
+        
+        // Helper function to get margin color based on percentage
+        function getMarginColor(marginPercent) {
+            return marginPercent >= 35 ? '#008000' : '#F4A460';
+        }
+        
         // Helper function to determine if package uses Views or Impressions
         function getPackageMetricInfo(pkg) {
             const usesViews = pkg.type === 'partnership' && 
                               pkg.partnershipType === 'x_amplify' && 
                               pkg.pricingMetric === 'cpv';
             
+            // Get impressions value based on package type
+            let impressionsValue;
+            if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                impressionsValue = pkg.totalImpressions || 0;
+            } else {
+                impressionsValue = pkg.impressions || 0;
+            }
+            
+            // Get CPM value based on package type
+            let cpmValue;
+            if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                cpmValue = pkg.overallCPM || 0;
+            } else {
+                cpmValue = pkg.cpm || pkg.packageCPM || 0;
+            }
+            
             return {
                 usesViews: usesViews,
                 metricLabel: usesViews ? 'Views' : 'Impressions',
-                metricValue: usesViews ? (pkg.views || 0) : (pkg.impressions || 0),
+                metricValue: usesViews ? (pkg.views || 0) : impressionsValue,
                 pricingLabel: usesViews ? 'CPV' : 'CPM',
-                pricingValue: usesViews ? (pkg.cpv || 0) : (pkg.cpm || pkg.packageCPM || 0)
+                pricingValue: usesViews ? (pkg.cpv || 0) : cpmValue
             };
         }
         
@@ -7854,6 +8399,12 @@
                         } else {
                             // New project - import directly
                             importedProject.id = Date.now();
+                            
+                            // Normalize sponsorship data (lineItems → sponsorshipLineItems)
+                            importedProject.versions.forEach(version => {
+                                normalizeSponsorshipData(version.packages);
+                            });
+                            
                             projects.push(importedProject);
                             saveProjects();
                             displayProjects();
@@ -7877,6 +8428,11 @@
             if (pendingImportProject && pendingImportIndex >= 0) {
                 // Keep the same ID to maintain identity
                 pendingImportProject.id = projects[pendingImportIndex].id;
+                
+                // Normalize sponsorship data (lineItems → sponsorshipLineItems)
+                pendingImportProject.versions.forEach(version => {
+                    normalizeSponsorshipData(version.packages);
+                });
                 
                 // Replace the existing project
                 projects[pendingImportIndex] = pendingImportProject;
@@ -7905,6 +8461,12 @@
                             // Import with new name and new ID
                             pendingImportProject.id = Date.now();
                             pendingImportProject.projectName = newName.trim();
+                            
+                            // Normalize sponsorship data (lineItems → sponsorshipLineItems)
+                            pendingImportProject.versions.forEach(version => {
+                                normalizeSponsorshipData(version.packages);
+                            });
+                            
                             projects.push(pendingImportProject);
                             saveProjects();
                             displayProjects();
@@ -7934,6 +8496,28 @@
             const content = document.getElementById('packageDetailsContent');
             
             title.textContent = 'MEDIA PLAN SUMMARY';
+            
+            // Check if there are any detailed sponsorships
+            const hasDetailedSponsorships = currentVersion.packages.some(pkg => 
+                pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed'
+            );
+            
+            // Add or remove sponsorship tab based on whether we have sponsorships
+            const tabContainer = document.getElementById('platformBreakdownTab').parentElement;
+            let sponsorshipTab = document.getElementById('sponsorshipDetailsTab');
+            
+            if (hasDetailedSponsorships && !sponsorshipTab) {
+                // Create sponsorship tab
+                sponsorshipTab = document.createElement('button');
+                sponsorshipTab.id = 'sponsorshipDetailsTab';
+                sponsorshipTab.onclick = () => switchSummaryTab('sponsorshipDetails');
+                sponsorshipTab.style.cssText = 'padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer;';
+                sponsorshipTab.textContent = 'Sponsorship Details';
+                tabContainer.appendChild(sponsorshipTab);
+            } else if (!hasDetailedSponsorships && sponsorshipTab) {
+                // Remove sponsorship tab if no sponsorships
+                sponsorshipTab.remove();
+            }
             
             const packages = currentVersion.packages;
             const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
@@ -7984,8 +8568,8 @@
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Production & Talent Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalTalentCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Media Placements Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalMediaCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Cost</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalCost)}</td></tr>
-                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Margin</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: var(--success);">$${formatNumber(totalMarginDollar)}</td></tr>
-                        <tr><td style="padding: 0.75rem;">Margin %</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: var(--success);">${totalMarginPercent.toFixed(3)}%</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Margin</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">$${formatNumber(totalMarginDollar)}</td></tr>
+                        <tr><td style="padding: 0.75rem;">Margin %</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">${totalMarginPercent.toFixed(3)}%</td></tr>
                     </tbody>
                 </table>
             `;
@@ -8002,11 +8586,6 @@
                     label: 'O&O', 
                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
                 },
-                sponsorships: { 
-                    types: ['sponsorship'], 
-                    label: 'Sponsorships', 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
-                },
                 addedvalue: { 
                     types: ['added-value'], 
                     label: 'Added Value', 
@@ -8015,37 +8594,68 @@
             };
             
             packages.forEach(pkg => {
-                for (const [key, cat] of Object.entries(categories)) {
-                    if (cat.types.includes(pkg.type)) {
-                        cat.count++;
-                        cat.investment += pkg.totalInvestment;
-                        cat.cost += pkg.totalCost;
-                        cat.margin += (pkg.totalInvestment - pkg.totalCost);
+                // Special handling for detailed sponsorships - distribute line items to categories
+                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        const placementType = item.placementType;
+                        let targetCategory = null;
                         
-                        // For Added Value, track additional fields
-                        if (pkg.type === 'added-value') {
-                            cat.value += (pkg.totalValue || 0);
-                            if (pkg.addedValueType === 'talent') {
-                                cat.talentCost += (pkg.talentCost || 0);
-                                // Talent packages have no impressions
-                            } else {
-                                // Distribution and Streaming
-                                cat.mediaCost += (pkg.totalCost || 0);
-                                cat.impressions += (pkg.impressions || 0);
-                            }
-                        } else if (['streaming', 'partnership', 'sponsorship', 'branded-blended'].includes(pkg.type)) {
-                            // Other simple packages
-                            cat.impressions += (pkg.impressions || 0);
-                        } else {
-                            // Complex packages
-                            cat.impressions += (pkg.totalImpressions || 0);
+                        // Map placement types to categories
+                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
+                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                            targetCategory = categories.creative;
+                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                            targetCategory = categories.oo;
+                        } else if (placementType === 'ADDED_VALUE') {
+                            targetCategory = categories.addedvalue;
                         }
-                        break;
+                        
+                        if (targetCategory) {
+                            targetCategory.investment += item.netCost || 0;
+                            targetCategory.cost += item.totalCost || 0;
+                            targetCategory.margin += (item.margin || 0);
+                            targetCategory.impressions += (item.quantity || 0);
+                            
+                            // For added value, track the value provided
+                            if (placementType === 'ADDED_VALUE') {
+                                targetCategory.value += (item.netCost || 0);
+                            }
+                        }
+                    });
+                } else {
+                    // Regular package handling
+                    for (const [key, cat] of Object.entries(categories)) {
+                        if (cat.types.includes(pkg.type)) {
+                            cat.count++;
+                            cat.investment += pkg.totalInvestment;
+                            cat.cost += pkg.totalCost;
+                            cat.margin += (pkg.totalInvestment - pkg.totalCost);
+                            
+                            // For Added Value, track additional fields
+                            if (pkg.type === 'added-value') {
+                                cat.value += (pkg.totalValue || 0);
+                                if (pkg.addedValueType === 'talent') {
+                                    cat.talentCost += (pkg.talentCost || 0);
+                                    // Talent packages have no impressions
+                                } else {
+                                    // Distribution and Streaming
+                                    cat.mediaCost += (pkg.totalCost || 0);
+                                    cat.impressions += (pkg.impressions || 0);
+                                }
+                            } else if (['streaming', 'partnership', 'branded-blended'].includes(pkg.type)) {
+                                // Other simple packages
+                                cat.impressions += (pkg.impressions || 0);
+                            } else {
+                                // Complex packages
+                                cat.impressions += (pkg.totalImpressions || 0);
+                            }
+                            break;
+                        }
                     }
                 }
             });
             
-            const categoriesWithData = Object.values(categories).filter(cat => cat.count > 0);
+            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
             
             if (categoriesWithData.length > 0) {
                 html += `<h3 style="color: var(--primary); margin: 2rem 0 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">INVESTMENT CATEGORY BREAKDOWN</h3>`;
@@ -8055,9 +8665,12 @@
                     const marginPercent = cat.investment > 0 ? (cat.margin / cat.investment * 100) : 0;
                     const mediaCPM = cat.impressions > 0 && cat.mediaCost > 0 ? (cat.mediaCost / cat.impressions * 1000) : 0;
                     
+                    // Display package count only if > 0
+                    const countText = cat.count > 0 ? ` (${cat.count} package${cat.count > 1 ? 's' : ''})` : '';
+                    
                     html += `
                         <div style="background: var(--background); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--accent);">
-                            <h4 style="margin: 0 0 1rem; color: var(--text); font-size: 1.1rem;">${cat.label} (${cat.count} package${cat.count > 1 ? 's' : ''})</h4>
+                            <h4 style="margin: 0 0 1rem; color: var(--text); font-size: 1.1rem;">${cat.label}${countText}</h4>
                             <table style="width: 100%; border-collapse: collapse;">
                                 ${cat.label === 'Added Value' ? `
                                     <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 200px;">Client Price</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
@@ -8068,11 +8681,11 @@
                                     ${cat.impressions > 0 && mediaCPM > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Media CPM</td><td style="padding: 0.5rem; text-align: right;">$${mediaCPM.toFixed(2)}</td></tr>` : ''}
                                 ` : `
                                     <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 150px;">Investment</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
-                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right;">${formatImpressions(cat.impressions)}</td></tr>` : ''}
+                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right; color: var(--accent);">${formatImpressions(cat.impressions)}</td></tr>` : ''}
                                     ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">CPM</td><td style="padding: 0.5rem; text-align: right;">$${cpm.toFixed(2)}</td></tr>` : ''}
-                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Cost</td><td style="padding: 0.5rem; text-align: right;">$${formatNumber(cat.cost)}</td></tr>
-                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Margin</td><td style="padding: 0.5rem; text-align: right; color: var(--success);">$${formatNumber(cat.margin)}</td></tr>
-                                    <tr><td style="padding: 0.5rem;">Margin %</td><td style="padding: 0.5rem; text-align: right; color: var(--success); font-weight: bold;">${marginPercent.toFixed(3)}%</td></tr>
+                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Cost</td><td style="padding: 0.5rem; text-align: right; color: var(--danger);">$${formatNumber(cat.cost)}</td></tr>
+                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Margin</td><td style="padding: 0.5rem; text-align: right; color: ${getMarginColor(marginPercent)};">$${formatNumber(cat.margin)}</td></tr>
+                                    <tr><td style="padding: 0.5rem;">Margin %</td><td style="padding: 0.5rem; text-align: right; color: ${getMarginColor(marginPercent)}; font-weight: bold;">${marginPercent.toFixed(3)}%</td></tr>
                                 `}
                             </table>
                         </div>
@@ -8090,7 +8703,7 @@
         let currentSummaryContent = '';
         
         function switchSummaryTab(tab) {
-            const tabs = ['summary', 'packageDetails', 'platformBreakdown'];
+            const tabs = ['summary', 'packageDetails', 'platformBreakdown', 'sponsorshipDetails'];
             tabs.forEach(t => {
                 const btn = document.getElementById(t + 'Tab');
                 if (btn) {
@@ -8114,6 +8727,8 @@
                 content.innerHTML = renderPackageDetailsTab();
             } else if (tab === 'platformBreakdown') {
                 content.innerHTML = renderPlatformBreakdownTab();
+            } else if (tab === 'sponsorshipDetails') {
+                content.innerHTML = renderSponsorshipDetailsTab();
             }
         }
         
@@ -8176,10 +8791,38 @@
                                 ` : ''}
                             ` : `
                                 <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; font-weight: bold;">Total Investment</td><td style="padding: 0.6rem; font-weight: bold;">$${formatNumber(pkg.totalInvestment)}</td></tr>
-                                ${hasTalent ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Production & Talent Cost</td><td style="padding: 0.6rem;">$${formatNumber(talentCostAmount)}</td></tr>` : ''}
-                                ${hasMedia || pkg.type === 'branded-blended' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Media Cost</td><td style="padding: 0.6rem;">$${formatNumber(mediaCostAmount)}</td></tr>` : ''}
-                                <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; font-weight: bold;">Total Cost</td><td style="padding: 0.6rem;">$${formatNumber(pkg.totalCost)}</td></tr>
-                                <tr><td style="padding: 0.6rem; font-weight: bold;">Total Margin</td><td style="padding: 0.6rem; color: var(--success); font-weight: bold;">$${formatNumber(pkg.totalInvestment - pkg.totalCost)} (${(pkg.totalMarginPercent || 0).toFixed(3)}%)</td></tr>
+                                ${pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems ? `
+                                    ${(() => {
+                                        // Calculate total talent and media costs from line items
+                                        let totalTalentCost = 0;
+                                        let totalMediaCost = 0;
+                                        
+                                        pkg.sponsorshipLineItems.forEach(item => {
+                                            const placementType = item.placementType;
+                                            
+                                            if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                                                totalTalentCost += (item.totalCost || 0);
+                                            } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                                totalMediaCost += (item.totalCost || 0);
+                                            } else if (placementType === 'ADDED_VALUE') {
+                                                if (item.addedValueSubType === 'talent') {
+                                                    totalTalentCost += (item.totalCost || 0);
+                                                } else {
+                                                    totalMediaCost += (item.totalCost || 0);
+                                                }
+                                            }
+                                        });
+                                        
+                                        return `
+                                            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Production & Talent Cost (INTERNAL)</td><td style="padding: 0.6rem; color: var(--danger);">$${formatNumber(totalTalentCost)}</td></tr>
+                                            <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Media Cost (INTERNAL)</td><td style="padding: 0.6rem; color: var(--danger);">$${formatNumber(totalMediaCost)}</td></tr>
+                                        `;
+                                    })()}
+                                ` : ''}
+                                ${hasTalent && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Production & Talent Cost</td><td style="padding: 0.6rem;">$${formatNumber(talentCostAmount)}</td></tr>` : ''}
+                                ${(hasMedia || pkg.type === 'branded-blended') && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Media Cost</td><td style="padding: 0.6rem;">$${formatNumber(mediaCostAmount)}</td></tr>` : ''}
+                                <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; font-weight: bold;">Total Cost${pkg.type === 'sponsorship' ? ' (INTERNAL)' : ''}</td><td style="padding: 0.6rem; color: var(--danger);">$${formatNumber(pkg.totalCost)}</td></tr>
+                                <tr><td style="padding: 0.6rem; font-weight: bold;">Total Margin</td><td style="padding: 0.6rem; color: ${getMarginColor(pkg.totalMarginPercent || 0)}; font-weight: bold;">$${formatNumber(pkg.totalInvestment - pkg.totalCost)} (${(pkg.totalMarginPercent || 0).toFixed(3)}%)</td></tr>
                             `}
                         </table>
                 `;
@@ -8219,8 +8862,8 @@
                                         ${isBlended ? `
                                             <tr style="border-bottom: 1px solid var(--border);">
                                                 <td style="padding: 0.6rem;"><strong>See Notes Section</strong></td>
-                                                <td style="padding: 0.6rem; text-align: right;">${formatImpressions(pkg.impressions || 0)}</td>
-                                                <td style="padding: 0.6rem; text-align: right;">$${formatNumber(mediaCostAmount)}</td>
+                                                <td style="padding: 0.6rem; text-align: right; color: var(--accent);">${formatImpressions(pkg.impressions || 0)}</td>
+                                                <td style="padding: 0.6rem; text-align: right; color: var(--danger);">$${formatNumber(mediaCostAmount)}</td>
                                                 <td style="padding: 0.6rem; text-align: right;">$${((pkg.impressions || 0) > 0 ? (mediaCostAmount / (pkg.impressions || 1) * 1000) : (pkg.cpmCost || 0)).toFixed(2)}</td>
                                             </tr>
                                         ` : platforms.map(allocation => {
@@ -8235,10 +8878,10 @@
                                                         <td style="padding: 0.6rem;">${allocation.handleType === 'paramount' ? 'Paramount' : 'Influencer'}</td>
                                                         <td style="padding: 0.6rem; text-align: right; font-weight: bold;">$${formatNumber(investment)}</td>
                                                         <td style="padding: 0.6rem; text-align: right;">$${priceCPM.toFixed(2)}</td>
-                                                        <td style="padding: 0.6rem; text-align: right;">${formatImpressions(allocation.impressions)}</td>
-                                                        <td style="padding: 0.6rem; text-align: right;">$${formatNumber(allocation.totalCost)}</td>
+                                                        <td style="padding: 0.6rem; text-align: right; color: var(--accent);">${formatImpressions(allocation.impressions)}</td>
+                                                        <td style="padding: 0.6rem; text-align: right; color: var(--danger);">$${formatNumber(allocation.totalCost)}</td>
                                                         <td style="padding: 0.6rem; text-align: right;">$${costCPM.toFixed(2)}</td>
-                                                        <td style="padding: 0.6rem; text-align: right; color: var(--success); font-weight: bold;">${allocation.marginPercent.toFixed(3)}%</td>
+                                                        <td style="padding: 0.6rem; text-align: right; color: ${getMarginColor(allocation.marginPercent)}; font-weight: bold;">${allocation.marginPercent.toFixed(3)}%</td>
                                                     </tr>
                                                 `;
                                         }).join('')}
@@ -8349,13 +8992,31 @@
             
             const placements = Object.values(placementData);
             
-            if (placements.length === 0) {
+            // Check if we have sponsorships with media placements
+            const sponsorships = currentVersion.packages.filter(pkg => 
+                pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems
+            );
+            
+            let hasSponsorshipMedia = false;
+            if (sponsorships.length > 0) {
+                hasSponsorshipMedia = sponsorships.some(pkg =>
+                    pkg.sponsorshipLineItems.some(item =>
+                        ['PAID_MEDIA', 'CUSTOM_SOCIAL'].includes(item.placementType)
+                    )
+                );
+            }
+            
+            // Only return "no placements" if we have neither regular placements NOR sponsorship media
+            if (placements.length === 0 && !hasSponsorshipMedia) {
                 return '<p style="text-align: center; color: var(--text-muted); padding: 3rem; font-size: 1.1rem;">No media placements in this version.</p>';
             }
             
-            // FIRST TABLE: PLACEMENT BREAKDOWN
-            let html = `
-                <h3 style="color: var(--primary); margin-bottom: 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">PLACEMENT BREAKDOWN</h3>
+            let html = '';
+            
+            // FIRST TABLE: PLACEMENT BREAKDOWN (only show if we have regular placements)
+            if (placements.length > 0) {
+            html += `
+                <h3 style="color: var(--primary); margin-bottom: 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">CUSTOM CREATIVE PLACEMENT BREAKDOWN</h3>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
                         <thead>
@@ -8407,12 +9068,12 @@
                         <td style="padding: 0.75rem;">${placement.mediaType}</td>
                         <td style="padding: 0.75rem;">${handleDisplay}</td>
                         <td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(placement.investment)}</td>
-                        <td style="padding: 0.75rem; text-align: right;">${formatImpressions(placement.impressions)}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: var(--accent);">${formatImpressions(placement.impressions)}</td>
                         <td style="padding: 0.75rem; text-align: right;">${priceCPMDisplay}</td>
                         <td style="padding: 0.75rem; text-align: right;">${costCPMDisplay}</td>
-                        <td style="padding: 0.75rem; text-align: right;">$${formatNumber(placement.cost)}</td>
-                        <td style="padding: 0.75rem; text-align: right; color: ${(isBlended || isAddedValue) ? 'inherit' : 'var(--success)'}; font-weight: ${(isBlended || isAddedValue) ? 'normal' : 'bold'};">${marginDisplay}</td>
-                        <td style="padding: 0.75rem; text-align: right; color: ${(isBlended || isAddedValue) ? 'inherit' : 'var(--success)'}; font-weight: ${(isBlended || isAddedValue) ? 'normal' : 'bold'};">${marginPercentDisplay}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(placement.cost)}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: ${(isBlended || isAddedValue) ? 'inherit' : getMarginColor(marginPercent)}; font-weight: ${(isBlended || isAddedValue) ? 'normal' : 'bold'};">${marginDisplay}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: ${(isBlended || isAddedValue) ? 'inherit' : getMarginColor(marginPercent)}; font-weight: ${(isBlended || isAddedValue) ? 'normal' : 'bold'};">${marginPercentDisplay}</td>
                         <td style="padding: 0.75rem; font-size: 0.875rem;">${placement.packages.join(', ')}</td>
                     </tr>
                 `;
@@ -8450,7 +9111,7 @@
             }));
             
             html += `
-                <h3 style="color: var(--primary); margin: 3rem 0 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">PLATFORM BREAKDOWN</h3>
+                <h3 style="color: var(--primary); margin: 3rem 0 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">CUSTOM CREATIVE PLATFORM BREAKDOWN</h3>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
                         <thead>
@@ -8478,12 +9139,12 @@
                     <tr style="border-bottom: 1px solid var(--border);">
                         <td style="padding: 0.75rem;"><strong>${platform.platform}</strong></td>
                         <td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(platform.investment)}</td>
-                        <td style="padding: 0.75rem; text-align: right;">${formatImpressions(platform.impressions)}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: var(--accent);">${formatImpressions(platform.impressions)}</td>
                         <td style="padding: 0.75rem; text-align: right;">$${priceCPM.toFixed(2)}</td>
-                        <td style="padding: 0.75rem; text-align: right;">$${formatNumber(platform.cost)}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(platform.cost)}</td>
                         <td style="padding: 0.75rem; text-align: right;">$${costCPM.toFixed(2)}</td>
-                        <td style="padding: 0.75rem; text-align: right; color: var(--success); font-weight: bold;">$${formatNumber(margin)}</td>
-                        <td style="padding: 0.75rem; text-align: right; color: var(--success); font-weight: bold;">${marginPercent.toFixed(3)}%</td>
+                        <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(marginPercent)}; font-weight: bold;">$${formatNumber(margin)}</td>
+                        <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(marginPercent)}; font-weight: bold;">${marginPercent.toFixed(3)}%</td>
                     </tr>
                 `;
             });
@@ -8493,8 +9154,243 @@
                     </table>
                 </div>
             `;
+            } // Close if (placements.length > 0)
+            
+            // SPONSORSHIP SECTION: Add paid media placements from sponsorships
+            console.log('=== Paid Media Tab: Checking for sponsorships ===');
+            console.log('Found sponsorships:', sponsorships.length);
+            
+            if (sponsorships.length > 0) {
+                // Collect paid media items from all sponsorships
+                const sponsorshipPaidMedia = [];
+                
+                sponsorships.forEach(pkg => {
+                    console.log('Checking sponsorship:', pkg.title);
+                    console.log('Line items:', pkg.sponsorshipLineItems.length);
+                    
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        console.log('Item:', item.platform, 'Type:', item.placementType, 'Total Cost:', item.totalCost);
+                        
+                        // Only include PAID_MEDIA and CUSTOM_SOCIAL (actual paid media placements)
+                        if (['PAID_MEDIA', 'CUSTOM_SOCIAL'].includes(item.placementType)) {
+                            console.log('  -> Found paid media item!');
+                            sponsorshipPaidMedia.push({
+                                packageTitle: pkg.title,
+                                platform: item.platform || 'N/A',
+                                package: item.package || '',
+                                placementType: item.placementType,
+                                impressions: item.quantity || 0,
+                                costMethod: item.costMethod || 'N/A',
+                                netCost: item.netCost || 0,
+                                mediaCost: item.totalCost || 0, // This is the internal media cost
+                                margin: item.margin || 0,
+                                marginPercent: item.marginPercent || 0
+                            });
+                        }
+                    });
+                });
+                
+                console.log('Total paid media items found:', sponsorshipPaidMedia.length);
+                
+                if (sponsorshipPaidMedia.length > 0) {
+                    html += `
+                        <h3 style="color: var(--primary); margin: 3rem 0 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">SPONSORSHIP PAID MEDIA</h3>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
+                                <thead>
+                                    <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Sponsorship Package</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Platform</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Placement</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Type</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Total Investment</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Total Impressions</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">CPM Price</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">CPM Cost</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Media Budget (INTERNAL)</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    sponsorshipPaidMedia.forEach(item => {
+                        const priceCPM = item.impressions > 0 ? (item.netCost / item.impressions * 1000) : 0;
+                        const costCPM = item.impressions > 0 ? (item.mediaCost / item.impressions * 1000) : 0;
+                        
+                        // Get type label
+                        const typeLabel = item.placementType === 'PAID_MEDIA' ? 'Paid Media Distribution' : 'Custom Social Package';
+                        
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.75rem;"><strong>${escapeHtml(item.packageTitle)}</strong></td>
+                                <td style="padding: 0.75rem;">${escapeHtml(item.platform)}</td>
+                                <td style="padding: 0.75rem;">${escapeHtml(item.package)}</td>
+                                <td style="padding: 0.75rem;">${typeLabel}</td>
+                                <td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(item.netCost)}</td>
+                                <td style="padding: 0.75rem; text-align: right; color: var(--accent);">${formatImpressions(item.impressions)}</td>
+                                <td style="padding: 0.75rem; text-align: right;">$${priceCPM.toFixed(2)}</td>
+                                <td style="padding: 0.75rem; text-align: right;">$${costCPM.toFixed(2)}</td>
+                                <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(item.mediaCost)}</td>
+                                <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent)}; font-weight: bold;">$${formatNumber(item.margin)}</td>
+                                <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent)}; font-weight: bold;">${item.marginPercent.toFixed(3)}%</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+            }
             
             return html;
+        }
+        
+        function renderSponsorshipDetailsTab() {
+            // Get all detailed sponsorships from current version
+            const sponsorships = currentVersion.packages.filter(pkg => 
+                pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems
+            );
+            
+            if (sponsorships.length === 0) {
+                return '<p>No sponsorship line items available.</p>';
+            }
+            
+            let html = '<h3 style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">SPONSORSHIP LINE ITEMS</h3>';
+            
+            // Show each sponsorship package
+            sponsorships.forEach((pkg, pkgIdx) => {
+                html += `
+                    <div style="background: var(--background); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid var(--primary);">
+                        <h4 style="margin: 0 0 1rem; color: var(--primary); font-size: 1.15rem; font-weight: bold;">${escapeHtml(pkg.title)}</h4>
+                        
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem; background: white;">
+                                <thead>
+                                    <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Platform</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Package</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Type</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Impressions/Views</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Cost Method</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Net Cost</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Production & Talent (INTERNAL)</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Media Cost (INTERNAL)</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Total Cost (INTERNAL)</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin ($)</th>
+                                        <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                pkg.sponsorshipLineItems.forEach((item, idx) => {
+                    const placementTypeLabel = getPlacementTypeLabel(item.placementType);
+                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                    const metricLabel = item.costMethod === 'CPV' ? 'Views' : 'Impressions';
+                    
+                    // Calculate internal costs breakdown
+                    const placementType = item.placementType;
+                    let talentCost = 0;
+                    let mediaCost = 0;
+                    
+                    // Determine cost category based on placement type
+                    if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                        talentCost = item.totalCost || 0;
+                    } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                        mediaCost = item.totalCost || 0;
+                    } else if (placementType === 'ADDED_VALUE') {
+                        if (item.addedValueSubType === 'talent') {
+                            talentCost = item.totalCost || 0;
+                        } else {
+                            mediaCost = item.totalCost || 0;
+                        }
+                    }
+                    
+                    html += `
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.75rem;">${escapeHtml(item.platform || '')}</td>
+                            <td style="padding: 0.75rem;">${escapeHtml(item.package || '')}</td>
+                            <td style="padding: 0.75rem;">${placementTypeLabel}${addedValueSubType}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--accent);">${formatImpressions(item.quantity || 0)}</td>
+                            <td style="padding: 0.75rem;">${item.costMethod || 'N/A'}</td>
+                            <td style="padding: 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(item.netCost)}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(talentCost)}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(mediaCost)}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--danger); font-weight: 600;">$${formatNumber(item.totalCost || 0)}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent || 0)};">$${formatNumber(item.margin || 0)}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent || 0)};">${(item.marginPercent || 0).toFixed(1)}%</td>
+                        </tr>
+                    `;
+                    
+                    // Add notes row if present
+                    if (item.notes) {
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border); background: var(--background);">
+                                <td colspan="11" style="padding: 0.5rem 0.75rem; font-size: 0.8125rem; font-style: italic; color: var(--text-muted);">
+                                    📝 ${escapeHtml(item.notes)}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+        
+        function viewPackageDetails(index) {
+            const pkg = currentVersion.packages[index];
+            if (!pkg) return;
+            
+            // Set modal title
+            document.getElementById('modalPackageTitle').textContent = pkg.title + ' - Details';
+            
+            // Handle tab visibility based on package type
+            const platformTab = document.getElementById('platformBreakdownTab');
+            const sponsorshipTab = document.getElementById('sponsorshipDetailsTab');
+            
+            // Check if we need a sponsorship tab
+            const isDetailedSponsorship = pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed';
+            
+            // Create sponsorship tab if needed
+            if (isDetailedSponsorship && !sponsorshipTab) {
+                const tabContainer = platformTab.parentElement;
+                const newTab = document.createElement('button');
+                newTab.id = 'sponsorshipDetailsTab';
+                newTab.onclick = () => switchSummaryTab('sponsorshipDetails');
+                newTab.style.cssText = 'padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer;';
+                newTab.textContent = 'Sponsorship Details';
+                tabContainer.appendChild(newTab);
+            } else if (!isDetailedSponsorship && sponsorshipTab) {
+                // Remove sponsorship tab if not needed
+                sponsorshipTab.remove();
+            }
+            
+            // Show/hide platform tab based on package type
+            if (pkg.platformAllocations && pkg.platformAllocations.length > 0) {
+                platformTab.style.display = 'block';
+            } else {
+                platformTab.style.display = 'none';
+            }
+            
+            // Show modal and switch to summary tab
+            document.getElementById('packageDetailsModal').style.display = 'flex';
+            switchSummaryTab('summary');
+            
+            // Store current package for other functions
+            window.currentModalPackage = pkg;
         }
         
         function closePackageDetailsModal() {
@@ -8626,17 +9522,46 @@
             const categories = {
                 creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                sponsorships: { types: ['sponsorship'], label: 'Sponsorships', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
             packages.forEach(pkg => {
-                for (const [key, cat] of Object.entries(categories)) {
-                    if (cat.types.includes(pkg.type)) {
-                        cat.count++;
-                        cat.investment += pkg.totalInvestment;
-                        cat.cost += pkg.totalCost;
-                        cat.margin += (pkg.totalInvestment - pkg.totalCost);
+                // Special handling for detailed sponsorships - distribute line items to categories
+                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        const placementType = item.placementType;
+                        let targetCategory = null;
+                        
+                        // Map placement types to categories
+                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
+                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                            targetCategory = categories.creative;
+                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                            targetCategory = categories.oo;
+                        } else if (placementType === 'ADDED_VALUE') {
+                            targetCategory = categories.addedvalue;
+                        }
+                        
+                        if (targetCategory) {
+                            targetCategory.investment += item.netCost || 0;
+                            targetCategory.cost += item.totalCost || 0;
+                            targetCategory.margin += (item.margin || 0);
+                            targetCategory.impressions += (item.quantity || 0);
+                            
+                            // For added value, track the value provided
+                            if (placementType === 'ADDED_VALUE') {
+                                targetCategory.value += (item.netCost || 0);
+                            }
+                        }
+                    });
+                } else {
+                    // Regular package handling
+                    for (const [key, cat] of Object.entries(categories)) {
+                        if (cat.types.includes(pkg.type)) {
+                            cat.count++;
+                            cat.investment += pkg.totalInvestment;
+                            cat.cost += pkg.totalCost;
+                            cat.margin += (pkg.totalInvestment - pkg.totalCost);
                         
                         // For Added Value, track additional fields
                         if (pkg.type === 'added-value') {
@@ -8649,7 +9574,7 @@
                                 cat.mediaCost += (pkg.totalCost || 0);
                                 cat.impressions += (pkg.impressions || 0);
                             }
-                        } else if (['streaming', 'partnership', 'sponsorship', 'branded-blended'].includes(pkg.type)) {
+                        } else if (['streaming', 'partnership', 'branded-blended'].includes(pkg.type)) {
                             // Other simple packages
                             cat.impressions += (pkg.impressions || 0);
                         } else {
@@ -8659,9 +9584,10 @@
                         break;
                     }
                 }
+            }
             });
             
-            const categoriesWithData = Object.values(categories).filter(cat => cat.count > 0);
+            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
             
             if (categoriesWithData.length > 0 && yPos < 250) {
                 doc.setFontSize(12);
@@ -8680,7 +9606,8 @@
                     
                     doc.setFontSize(10);
                     doc.setTextColor(59, 130, 246);
-                    doc.text(`${cat.label} (${cat.count} package${cat.count > 1 ? 's' : ''})`, 14, yPos);
+                    const countText = cat.count > 0 ? ` (${cat.count} package${cat.count > 1 ? 's' : ''})` : '';
+                    doc.text(`${cat.label}${countText}`, 14, yPos);
                     yPos += 5;
                     
                     const catRows = [];
@@ -8835,17 +9762,43 @@
                         pkgRows.push(['  CPM', '$' + cpm.toFixed(2)]);
                     }
                     
-                    // Add production & talent cost if present
-                    if (talentCostAmount > 0) {
-                        pkgRows.push(['  Production & Talent Cost', '$' + formatNumber(talentCostAmount)]);
+                    // Special handling for sponsorships - show internal cost breakdown
+                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                        // Calculate total talent and media costs from line items
+                        let totalTalentCost = 0;
+                        let totalMediaCost = 0;
+                        
+                        pkg.sponsorshipLineItems.forEach(item => {
+                            const placementType = item.placementType;
+                            
+                            if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                                totalTalentCost += (item.totalCost || 0);
+                            } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                totalMediaCost += (item.totalCost || 0);
+                            } else if (placementType === 'ADDED_VALUE') {
+                                if (item.addedValueSubType === 'talent') {
+                                    totalTalentCost += (item.totalCost || 0);
+                                } else {
+                                    totalMediaCost += (item.totalCost || 0);
+                                }
+                            }
+                        });
+                        
+                        pkgRows.push(['  Production & Talent Cost (INTERNAL)', '$' + formatNumber(totalTalentCost)]);
+                        pkgRows.push(['  Media Cost (INTERNAL)', '$' + formatNumber(totalMediaCost)]);
+                    } else {
+                        // Regular packages - add production & talent cost if present
+                        if (talentCostAmount > 0) {
+                            pkgRows.push(['  Production & Talent Cost', '$' + formatNumber(talentCostAmount)]);
+                        }
+                        
+                        // Add media cost if present
+                        if (mediaCostAmount > 0 || pkg.type === 'branded-blended') {
+                            pkgRows.push(['  Media Cost', '$' + formatNumber(mediaCostAmount)]);
+                        }
                     }
                     
-                    // Add media cost if present (changed from "Media Placements Cost" to "Media Cost")
-                    if (mediaCostAmount > 0 || pkg.type === 'branded-blended') {
-                        pkgRows.push(['  Media Cost', '$' + formatNumber(mediaCostAmount)]);
-                    }
-                    
-                    pkgRows.push(['Total Cost', '$' + formatNumber(pkg.totalCost)]);
+                    pkgRows.push(['Total Cost' + (pkg.type === 'sponsorship' ? ' (INTERNAL)' : ''), '$' + formatNumber(pkg.totalCost)]);
                     
                     const marginAmount = pkg.totalInvestment - pkg.totalCost;
                     const marginPercent = (pkg.totalMarginPercent || 0).toFixed(3);
@@ -9062,7 +10015,7 @@
                 // FIRST TABLE: PLACEMENT BREAKDOWN
                 doc.setFontSize(14);
                 doc.setTextColor(15, 23, 42);
-                doc.text('PLACEMENT BREAKDOWN', 105, yPos, { align: 'center' });
+                doc.text('CUSTOM CREATIVE PLACEMENT BREAKDOWN', 105, yPos, { align: 'center' });
                 yPos += 10;
                 
                 const placementRows = placementEntries.map(placement => {
@@ -9125,7 +10078,7 @@
                 
                 doc.setFontSize(14);
                 doc.setTextColor(15, 23, 42);
-                doc.text('PLATFORM BREAKDOWN', 105, yPos, { align: 'center' });
+                doc.text('CUSTOM CREATIVE PLATFORM BREAKDOWN', 105, yPos, { align: 'center' });
                 yPos += 10;
                 
                 // Aggregate by platform only
@@ -9187,6 +10140,108 @@
                         7: { halign: 'right' }
                     },
                     margin: { left: 14, right: 14 }
+                });
+            }
+            
+            // SPONSORSHIP LINE ITEMS BREAKDOWN (Option B: Expandable-style with all details)
+            const sponsorships = packages.filter(pkg => 
+                pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems
+            );
+            
+            if (sponsorships.length > 0) {
+                // Add new page for sponsorship details
+                doc.addPage();
+                yPos = 20;
+                
+                doc.setFontSize(14);
+                doc.setTextColor(15, 23, 42);
+                doc.text('SPONSORSHIP LINE ITEMS BREAKDOWN', 14, yPos);
+                yPos += 8;
+                
+                sponsorships.forEach((pkg, pkgIdx) => {
+                    // Package header
+                    doc.setFontSize(11);
+                    doc.setTextColor(59, 130, 246);
+                    doc.text(pkg.title, 14, yPos);
+                    yPos += 6;
+                    
+                    // Prepare line items data
+                    const lineItemRows = pkg.sponsorshipLineItems.map(item => {
+                        const placementTypeLabel = getPlacementTypeLabel(item.placementType);
+                        const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                        
+                        // Calculate internal costs breakdown
+                        const placementType = item.placementType;
+                        let talentCost = 0;
+                        let mediaCost = 0;
+                        
+                        if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
+                            talentCost = item.totalCost || 0;
+                        } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                            mediaCost = item.totalCost || 0;
+                        } else if (placementType === 'ADDED_VALUE') {
+                            if (item.addedValueSubType === 'talent') {
+                                talentCost = item.totalCost || 0;
+                            } else {
+                                mediaCost = item.totalCost || 0;
+                            }
+                        }
+                        
+                        return [
+                            (item.platform || 'N/A').substring(0, 20), // Truncate for space
+                            placementTypeLabel.substring(0, 15) + addedValueSubType,
+                            formatImpressions(item.quantity || 0),
+                            item.costMethod || 'N/A',
+                            '$' + formatNumber(item.netCost),
+                            '$' + formatNumber(talentCost),
+                            '$' + formatNumber(mediaCost),
+                            '$' + formatNumber(item.totalCost || 0),
+                            (item.marginPercent || 0).toFixed(1) + '%'
+                        ];
+                    });
+                    
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [[
+                            'Platform',
+                            'Type',
+                            'Impr./Views',
+                            'Method',
+                            'Net Cost',
+                            'Prod. & Talent\n(INTERNAL)',
+                            'Media Cost\n(INTERNAL)',
+                            'Total Cost\n(INTERNAL)',
+                            'Margin %'
+                        ]],
+                        body: lineItemRows,
+                        theme: 'striped',
+                        headStyles: { 
+                            fillColor: [15, 23, 42], 
+                            textColor: [255, 255, 255], 
+                            fontSize: 7, 
+                            fontStyle: 'bold',
+                            halign: 'center',
+                            valign: 'middle'
+                        },
+                        styles: { fontSize: 7, cellPadding: 1.5 },
+                        columnStyles: {
+                            2: { halign: 'right' },
+                            4: { halign: 'right', fontStyle: 'bold' },
+                            5: { halign: 'right' },
+                            6: { halign: 'right' },
+                            7: { halign: 'right', fontStyle: 'bold' },
+                            8: { halign: 'right' }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+                    
+                    yPos = doc.lastAutoTable.finalY + 10;
+                    
+                    // Add page break if needed for next sponsorship
+                    if (pkgIdx < sponsorships.length - 1 && yPos > 220) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
                 });
             }
             
@@ -9951,6 +11006,1465 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             currentDistribution = null;
             currentPresentation = null;
         }
+
+        // =================================================================
+        // SPONSORSHIP IMPORT & BREAKDOWN FUNCTIONS
+        // =================================================================
+
+        let sponsorshipImportData = null;
+        let sponsorshipLineItems = [];
+        let sponsorshipColumnMapping = {};
+
+        // Show/hide file upload based on sponsorship type selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const simpleRadio = document.getElementById('sponsorshipSimple');
+            const detailedRadio = document.getElementById('sponsorshipDetailed');
+            const fileUploadDiv = document.getElementById('sponsorshipFileUpload');
+            const totalInvestmentGroup = document.getElementById('sponsorshipTotalInvestmentGroup');
+            
+            if (simpleRadio && detailedRadio && fileUploadDiv) {
+                simpleRadio.addEventListener('change', function() {
+                    fileUploadDiv.style.display = this.checked ? 'none' : 'block';
+                    if (totalInvestmentGroup) {
+                        totalInvestmentGroup.style.display = this.checked ? 'block' : 'none';
+                        document.getElementById('sponsorshipTotalInvestment').required = this.checked;
+                    }
+                });
+                detailedRadio.addEventListener('change', function() {
+                    fileUploadDiv.style.display = this.checked ? 'block' : 'none';
+                    if (totalInvestmentGroup) {
+                        totalInvestmentGroup.style.display = this.checked ? 'none' : 'block';
+                        document.getElementById('sponsorshipTotalInvestment').required = !this.checked;
+                    }
+                });
+            }
+        });
+
+        function handleSponsorshipDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Reset border style
+            event.currentTarget.style.borderColor = 'var(--border)';
+            event.currentTarget.style.background = 'var(--surface)';
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    processSponsorshipFile(file);
+                } else {
+                    customAlert('Please upload an Excel file (.xlsx or .xls)');
+                }
+            }
+        }
+
+        function handleSponsorshipFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processSponsorshipFile(file);
+            }
+        }
+
+        function processSponsorshipFile(file) {
+            // Show file name
+            document.getElementById('sponsorshipFileNameText').textContent = file.name;
+            document.getElementById('sponsorshipFileName').style.display = 'block';
+            
+            // Read file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    // Read with cellFormula to get calculated values
+                    const workbook = XLSX.read(data, { type: 'array', cellStyles: true, cellFormula: true });
+                    
+                    // Get first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Store raw data
+                    sponsorshipImportData = {
+                        workbook: workbook,
+                        worksheet: worksheet,
+                        sheetName: firstSheetName
+                    };
+                    
+                    console.log('Sponsorship file loaded successfully:', file.name);
+                    console.log('Worksheet:', worksheet);
+                    console.log('Merged cells:', worksheet['!merges']);
+                    
+                } catch (error) {
+                    console.error('Error reading sponsorship file:', error);
+                    customAlert('Error reading file. Please make sure it is a valid Excel file.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function proceedFromSponsorshipSetup() {
+            const sponsorshipType = document.querySelector('input[name="sponsorshipType"]:checked')?.value;
+            const title = document.getElementById('sponsorshipPackageTitle').value;
+            const investment = document.getElementById('sponsorshipTotalInvestment').value;
+            
+            // Validate
+            if (!title || !title.trim()) {
+                customAlert('Please enter a package title');
+                return;
+            }
+            
+            // Only validate investment for simple sponsorships
+            if (sponsorshipType === 'simple') {
+                if (!investment || parseCurrency(investment) <= 0) {
+                    customAlert('Please enter a valid investment amount');
+                    return;
+                }
+                currentPackage.totalInvestment = parseCurrency(investment);
+            }
+            
+            // Save to currentPackage
+            currentPackage.title = title.trim();
+            currentPackage.sponsorshipType = sponsorshipType;
+            
+            if (sponsorshipType === 'simple') {
+                // Simple sponsorship - proceed to normal flow (CPM entry)
+                setupPackageDetails();
+                showScreen('screen-2');
+            } else {
+                // Detailed sponsorship - check file uploaded
+                if (!sponsorshipImportData) {
+                    customAlert('Please upload an Excel file to continue with detailed sponsorship');
+                    return;
+                }
+                
+                // Total investment will be calculated from uploaded data
+                // Parse and go to column mapping screen
+                parseAndMapSponsorshipData();
+            }
+        }
+
+        function parseAndMapSponsorshipData() {
+            const ws = sponsorshipImportData.worksheet;
+            
+            // Convert worksheet to JSON to analyze
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            
+            // Find the table header row by looking for row with most non-empty cells
+            let headerRow = -1;
+            let maxNonEmpty = 0;
+            
+            for (let R = range.s.r; R <= Math.min(range.s.r + 50, range.e.r); R++) {
+                let nonEmpty = 0;
+                for (let C = range.s.c; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cellAddress];
+                    if (cell && cell.v && String(cell.v).trim() !== '') {
+                        nonEmpty++;
+                    }
+                }
+                if (nonEmpty > maxNonEmpty && nonEmpty >= 5) {
+                    maxNonEmpty = nonEmpty;
+                    headerRow = R;
+                }
+            }
+            
+            if (headerRow === -1) {
+                customAlert('Could not detect table headers. Please check your file format.');
+                return;
+            }
+            
+            // Extract headers
+            const headers = [];
+            const headerMapping = {};
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: C });
+                const cell = ws[cellAddress];
+                const headerValue = cell ? String(cell.v).trim() : '';
+                headers.push(headerValue);
+                headerMapping[C] = headerValue;
+            }
+            
+            // Extract data rows (starting after header)
+            const dataRows = [];
+            for (let R = headerRow + 1; R <= range.e.r; R++) {
+                const row = {};
+                let hasData = false;
+                for (let C = range.s.c; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cellAddress];
+                    const value = cell ? cell.v : null;
+                    row[C] = value;
+                    if (value !== null && value !== undefined && String(value).trim() !== '') {
+                        hasData = true;
+                    }
+                }
+                if (hasData) {
+                    row._rowIndex = R;
+                    dataRows.push(row);
+                }
+            }
+            
+            // Smart column detection
+            // Smart column detection - ORDER MATTERS! More specific patterns first
+            const columnPatterns = {
+                platform: ['platform', 'brand'],
+                package: ['package'],
+                description: ['description', 'desc'],
+                size: ['size', 'length', 'duration'],
+                flight: ['flight', 'date', 'period'],
+                netCost: ['net cost', 'gross cost', 'investment'],  // Check this BEFORE costMethod
+                costMethod: ['cost method', 'method', 'pricing'],
+                rate: ['rate', 'cpm', 'cpv', 'price'],
+                quantity: ['quantity', 'qty', 'impressions', 'impr', 'views']
+            };
+            
+            const detectedColumns = {};
+            for (const [key, patterns] of Object.entries(columnPatterns)) {
+                for (let C = 0; C < headers.length; C++) {
+                    const header = headers[C].toLowerCase();
+                    for (const pattern of patterns) {
+                        if (header.includes(pattern)) {
+                            detectedColumns[key] = C;
+                            break;
+                        }
+                    }
+                    if (detectedColumns[key] !== undefined) break;
+                }
+            }
+            
+            // Store parsed data
+            sponsorshipImportData.headers = headers;
+            sponsorshipImportData.headerMapping = headerMapping;
+            sponsorshipImportData.dataRows = dataRows;
+            sponsorshipImportData.headerRow = headerRow;
+            sponsorshipImportData.detectedColumns = detectedColumns;
+            sponsorshipImportData.range = range;
+            
+            // Populate column mapping UI
+            populateColumnMappingUI();
+            
+            // Show column mapping screen
+            showScreen('screen-1-sponsorship-mapping');
+        }
+        
+        function populateColumnMappingUI() {
+            const data = sponsorshipImportData;
+            const headers = data.headers;
+            
+            // Show detection info
+            document.getElementById('tableDetectionDetails').innerHTML = `
+                Found table starting at row ${data.headerRow + 1}<br>
+                ${data.dataRows.length} data rows detected<br>
+                ${headers.filter(h => h).length} columns found
+            `;
+            
+            // Populate dropdowns
+            const dropdowns = ['colPlatform', 'colPackage', 'colDescription', 'colSize', 'colFlight', 'colCostMethod', 'colRate', 'colQuantity', 'colNetCost'];
+            dropdowns.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">-- Select Column --</option>';
+                headers.forEach((header, idx) => {
+                    if (header) {
+                        select.innerHTML += `<option value="${idx}">${header}</option>`;
+                    }
+                });
+            });
+            
+            // Set detected values
+            const detected = data.detectedColumns;
+            if (detected.platform !== undefined) document.getElementById('colPlatform').value = detected.platform;
+            if (detected.package !== undefined) document.getElementById('colPackage').value = detected.package;
+            if (detected.description !== undefined) document.getElementById('colDescription').value = detected.description;
+            if (detected.size !== undefined) document.getElementById('colSize').value = detected.size;
+            if (detected.flight !== undefined) document.getElementById('colFlight').value = detected.flight;
+            if (detected.costMethod !== undefined) document.getElementById('colCostMethod').value = detected.costMethod;
+            if (detected.rate !== undefined) document.getElementById('colRate').value = detected.rate;
+            if (detected.quantity !== undefined) document.getElementById('colQuantity').value = detected.quantity;
+            if (detected.netCost !== undefined) document.getElementById('colNetCost').value = detected.netCost;
+            
+            // Update column mapping
+            updateColumnMapping();
+        }
+        
+        function updateColumnMapping() {
+            sponsorshipColumnMapping = {
+                platform: parseInt(document.getElementById('colPlatform').value),
+                package: parseInt(document.getElementById('colPackage').value),
+                description: parseInt(document.getElementById('colDescription').value),
+                size: parseInt(document.getElementById('colSize').value),
+                flight: parseInt(document.getElementById('colFlight').value),
+                costMethod: parseInt(document.getElementById('colCostMethod').value),
+                rate: parseInt(document.getElementById('colRate').value),
+                quantity: parseInt(document.getElementById('colQuantity').value),
+                netCost: parseInt(document.getElementById('colNetCost').value)
+            };
+            
+            // Update preview
+            updateDataPreview();
+            
+            // Update detection summary (7 required, 2 optional)
+            const requiredMappings = ['platform', 'package', 'description', 'rate', 'quantity', 'netCost', 'costMethod'];
+            const validRequired = requiredMappings.filter(key => !isNaN(sponsorshipColumnMapping[key])).length;
+            document.getElementById('detectionSummaryContent').innerHTML = `
+                ${validRequired} of 7 required columns mapped<br>
+                ${validRequired === 7 ? '<span style="color: var(--success-dark);">✓ All required columns mapped</span>' : '<span style="color: var(--warning);">⚠ Some required columns not mapped</span>'}
+            `;
+        }
+        
+        function updateDataPreview() {
+            const data = sponsorshipImportData;
+            const headers = data.headers;
+            const rows = data.dataRows.slice(0, 5); // First 5 rows
+            
+            // Build header
+            let headerHTML = '<tr>';
+            headers.forEach((header, idx) => {
+                if (header) {
+                    const isMapped = Object.values(sponsorshipColumnMapping).includes(idx);
+                    headerHTML += `<th style="padding: 0.75rem; border-bottom: 2px solid var(--border); text-align: left; white-space: nowrap; ${isMapped ? 'background: rgba(0, 87, 184, 0.1); color: var(--primary); font-weight: 700;' : ''}">${header}</th>`;
+                }
+            });
+            headerHTML += '</tr>';
+            document.getElementById('previewTableHead').innerHTML = headerHTML;
+            
+            // Build body
+            let bodyHTML = '';
+            rows.forEach(row => {
+                bodyHTML += '<tr>';
+                headers.forEach((header, idx) => {
+                    if (header) {
+                        const value = row[idx];
+                        const displayValue = value !== null && value !== undefined ? String(value) : '';
+                        const isMapped = Object.values(sponsorshipColumnMapping).includes(idx);
+                        bodyHTML += `<td style="padding: 0.75rem; border-bottom: 1px solid var(--border); ${isMapped ? 'background: rgba(0, 87, 184, 0.05);' : ''}">${displayValue}</td>`;
+                    }
+                });
+                bodyHTML += '</tr>';
+            });
+            document.getElementById('previewTableBody').innerHTML = bodyHTML;
+        }
+        
+        function proceedFromColumnMapping() {
+            // Validate all columns are mapped
+            const mapping = sponsorshipColumnMapping;
+            const required = ['platform', 'package', 'description', 'rate', 'quantity', 'netCost'];
+            const missing = required.filter(key => isNaN(mapping[key]));
+            
+            if (missing.length > 0) {
+                customAlert('Please map all required columns: ' + missing.join(', '));
+                return;
+            }
+            
+            // Parse line items with merged cell detection
+            parseLineItemsWithGrouping();
+        }
+        
+        function parseLineItemsWithGrouping() {
+            const data = sponsorshipImportData;
+            const mapping = sponsorshipColumnMapping;
+            const merges = data.worksheet['!merges'] || [];
+            const dataRows = data.dataRows;
+            const headerRow = data.headerRow;
+            const ws = data.worksheet;
+            
+            // Build a map of platform merges to inherit platform names
+            const platformMerges = {};
+            merges.forEach(merge => {
+                if (merge.s.c === mapping.platform && merge.e.r > merge.s.r) {
+                    const platformCell = ws[XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c })];
+                    const platformValue = platformCell ? platformCell.v : null;
+                    if (platformValue) {
+                        for (let r = merge.s.r; r <= merge.e.r; r++) {
+                            platformMerges[r] = platformValue;
+                        }
+                    }
+                }
+            });
+            
+            // Build a map of cost method merges to inherit cost method
+            const costMethodMerges = {};
+            merges.forEach(merge => {
+                if (merge.s.c === mapping.costMethod && merge.e.r > merge.s.r) {
+                    const costMethodCell = ws[XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c })];
+                    const costMethodValue = costMethodCell ? costMethodCell.v : null;
+                    if (costMethodValue) {
+                        for (let r = merge.s.r; r <= merge.e.r; r++) {
+                            costMethodMerges[r] = costMethodValue;
+                        }
+                    }
+                }
+            });
+            
+            // Build a map of which rows have merged RATE/QUANTITY/NETCOST cells
+            const financialMerges = {};
+            
+            merges.forEach(merge => {
+                const startRow = merge.s.r;
+                const endRow = merge.e.r;
+                const col = merge.s.c;
+                
+                // Only care about merges in financial columns that span multiple rows
+                if (endRow > startRow && startRow > headerRow) {
+                    const isRateCol = col === mapping.rate;
+                    const isQuantityCol = col === mapping.quantity;
+                    const isNetCostCol = col === mapping.netCost;
+                    
+                    if (isRateCol || isQuantityCol || isNetCostCol) {
+                        // Mark all rows in this range as potentially grouped
+                        for (let r = startRow; r <= endRow; r++) {
+                            if (!financialMerges[r]) {
+                                financialMerges[r] = { startRow, endRow };
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Create line items
+            sponsorshipLineItems = [];
+            const processedRows = new Set();
+            let groupId = 1;
+            let itemId = 1;
+            
+            dataRows.forEach((row, idx) => {
+                const rowIndex = row._rowIndex;
+                
+                if (processedRows.has(rowIndex)) return;
+                
+                // Get row values - inherit platform from merge if empty
+                let platform = row[mapping.platform] || '';
+                if (!platform || String(platform).trim() === '') {
+                    platform = platformMerges[rowIndex] || '';
+                }
+                
+                const packageName = row[mapping.package] || '';
+                const description = row[mapping.description] || '';
+                const size = row[mapping.size] || '';
+                const flight = row[mapping.flight] || '';
+                
+                // Inherit cost method from merge if empty
+                let costMethod = row[mapping.costMethod] || '';
+                if (!costMethod || String(costMethod).trim() === '') {
+                    costMethod = costMethodMerges[rowIndex] || '';
+                }
+                
+                let rate = row[mapping.rate];
+                let quantity = row[mapping.quantity];
+                let netCost = row[mapping.netCost];
+                
+                // Handle "AV" (Added Value) in rate column
+                const isAddedValue = rate === 'AV' || String(rate).toUpperCase() === 'AV';
+                
+                // Skip rows that are clearly headers or totals
+                const platformStr = String(platform).trim().toUpperCase();
+                const descStr = String(description).trim().toUpperCase();
+                if (platformStr === 'TOTAL' || (platformStr === '' && descStr === '')) {
+                    processedRows.add(rowIndex);
+                    return;
+                }
+                
+                // Check if row has data worth processing
+                const hasDescription = description && String(description).trim() !== '';
+                
+                // For Added Value items, set defaults
+                if (isAddedValue) {
+                    rate = 0;
+                    quantity = quantity || 0;
+                    netCost = 0; // AV items have no price
+                }
+                
+                // Parse numeric values
+                rate = parseFloat(rate) || 0;
+                quantity = parseFloat(quantity) || 0;
+                netCost = parseFloat(netCost) || 0;
+                
+                // Skip rows that look like section headers (no description and no financials)
+                if (!hasDescription && rate === 0 && quantity === 0 && netCost === 0) {
+                    processedRows.add(rowIndex);
+                    return;
+                }
+                
+                // Determine if this is part of a financial group
+                const mergeInfo = financialMerges[rowIndex];
+                const hasFinancials = rate > 0 || quantity > 0 || netCost > 0 || isAddedValue;
+                
+                if (mergeInfo && hasFinancials) {
+                    // This row has merged financial cells - it's the start of a group
+                    const groupStartRow = mergeInfo.startRow;
+                    const groupEndRow = mergeInfo.endRow;
+                    
+                    // Find all rows in this financial group
+                    const groupRows = dataRows.filter(r => 
+                        r._rowIndex >= groupStartRow && r._rowIndex <= groupEndRow
+                    );
+                    
+                    // Check if there are actually multiple descriptions (multi-line placement)
+                    const hasMultipleDescriptions = groupRows.filter(r => {
+                        const desc = r[mapping.description] || '';
+                        return String(desc).trim() !== '';
+                    }).length > 1;
+                    
+                    if (hasMultipleDescriptions) {
+                        // True multi-line group
+                        const lineItem = {
+                            id: itemId++,
+                            platform: String(platform).trim(),
+                            package: String(packageName).trim(),
+                            costMethod: String(costMethod).trim(),
+                            rate: rate,
+                            quantity: quantity,
+                            netCost: netCost,
+                            isAddedValue: isAddedValue,
+                            
+                            isGrouped: true,
+                            groupId: `group_${groupId++}`,
+                            groupItems: []
+                        };
+                        
+                        // Add all sub-items
+                        groupRows.forEach(gRow => {
+                            const gDesc = gRow[mapping.description] || '';
+                            const gSize = gRow[mapping.size] || '';
+                            const gFlight = gRow[mapping.flight] || '';
+                            
+                            if (String(gDesc).trim()) {
+                                lineItem.groupItems.push({
+                                    description: String(gDesc).trim(),
+                                    size: String(gSize).trim(),
+                                    flight: String(gFlight).trim()
+                                });
+                            }
+                            
+                            processedRows.add(gRow._rowIndex);
+                        });
+                        
+                        // Use first item's description as main
+                        if (lineItem.groupItems.length > 0) {
+                            lineItem.description = lineItem.groupItems[0].description;
+                            lineItem.size = lineItem.groupItems[0].size;
+                            lineItem.flight = lineItem.groupItems[0].flight;
+                        }
+                        
+                        sponsorshipLineItems.push(lineItem);
+                    } else {
+                        // Single item that happens to be in a merged cell
+                        const lineItem = {
+                            id: itemId++,
+                            platform: String(platform).trim(),
+                            package: String(packageName).trim(),
+                            description: String(description).trim(),
+                            size: String(size).trim(),
+                            flight: String(flight).trim(),
+                            costMethod: String(costMethod).trim(),
+                            rate: rate,
+                            quantity: quantity,
+                            netCost: netCost,
+                            isAddedValue: isAddedValue,
+                            
+                            isGrouped: false,
+                            groupId: null,
+                            groupItems: []
+                        };
+                        
+                        sponsorshipLineItems.push(lineItem);
+                        processedRows.add(rowIndex);
+                    }
+                } else if (hasFinancials || hasDescription) {
+                    // Single line item with its own financials OR just a description (AV case)
+                    const lineItem = {
+                        id: itemId++,
+                        platform: String(platform).trim(),
+                        package: String(packageName).trim(),
+                        description: String(description).trim(),
+                        size: String(size).trim(),
+                        flight: String(flight).trim(),
+                        costMethod: String(costMethod).trim(),
+                        rate: rate,
+                        quantity: quantity,
+                        netCost: netCost,
+                        isAddedValue: isAddedValue,
+                        
+                        isGrouped: false,
+                        groupId: null,
+                        groupItems: []
+                    };
+                    
+                    sponsorshipLineItems.push(lineItem);
+                    processedRows.add(rowIndex);
+                }
+            });
+            
+            console.log('Parsed line items:', sponsorshipLineItems);
+            console.log(`Total: ${sponsorshipLineItems.length} line items (${sponsorshipLineItems.filter(i => i.isGrouped).length} grouped, ${sponsorshipLineItems.filter(i => !i.isGrouped).length} single)`);
+            
+            // Calculate total investment from line items
+            currentPackage.totalInvestment = sponsorshipLineItems.reduce((sum, item) => sum + (item.netCost || 0), 0);
+            console.log('Total Investment calculated from import:', currentPackage.totalInvestment);
+            
+            // Store in currentPackage
+            currentPackage.lineItems = sponsorshipLineItems;
+            
+            // Show line items for type assignment (next screen)
+            showLineItemTypeAssignment();
+        }
+        
+        function deleteLineItem(idx) {
+            if (confirm('Are you sure you want to delete this line item?')) {
+                sponsorshipLineItems.splice(idx, 1);
+                showLineItemTypeAssignment(); // Refresh the display
+            }
+        }
+        
+        function showLineItemTypeAssignment() {
+            // Update summary banner
+            const grouped = sponsorshipLineItems.filter(i => i.isGrouped).length;
+            const single = sponsorshipLineItems.filter(i => !i.isGrouped).length;
+            document.getElementById('lineItemsSummaryTitle').textContent = `${sponsorshipLineItems.length} Line Items Parsed`;
+            document.getElementById('lineItemsSummaryDetails').textContent = `${grouped} grouped placements • ${single} single placements`;
+            
+            // Populate line items
+            const container = document.getElementById('lineItemsContainer');
+            container.innerHTML = '';
+            
+            sponsorshipLineItems.forEach((item, idx) => {
+                const itemCard = createLineItemCard(item, idx);
+                container.innerHTML += itemCard;
+            });
+            
+            // Restore form state for all items (after HTML is inserted)
+            setTimeout(() => {
+                sponsorshipLineItems.forEach((item, idx) => {
+                    // Restore placement type
+                    if (item.placementType) {
+                        const typeSelect = document.getElementById(`placementType_${idx}`);
+                        if (typeSelect) {
+                            typeSelect.value = item.placementType;
+                            // Trigger the change to show cost inputs
+                            updateLineItemType(idx, item.placementType);
+                            
+                            // Restore cost values
+                            setTimeout(() => {
+                                if (item.talentCost && document.getElementById(`talentCost_${idx}`)) {
+                                    document.getElementById(`talentCost_${idx}`).value = formatCurrency(item.talentCost);
+                                }
+                                if (item.mediaCostCPM && document.getElementById(`mediaCostRate_${idx}`)) {
+                                    document.getElementById(`mediaCostRate_${idx}`).value = item.mediaCostCPM;
+                                }
+                                if (item.mediaCostMetric && document.getElementById(`mediaCostMetric_${idx}`)) {
+                                    document.getElementById(`mediaCostMetric_${idx}`).value = item.mediaCostMetric || 'cpm';
+                                }
+                                if (item.revSharePercent && document.getElementById(`revShare_${idx}`)) {
+                                    document.getElementById(`revShare_${idx}`).value = item.revSharePercent;
+                                }
+                                if (item.addedValueSubType && document.getElementById(`addedValueSubType_${idx}`)) {
+                                    document.getElementById(`addedValueSubType_${idx}`).value = item.addedValueSubType;
+                                    updateAddedValueType(idx, item.addedValueSubType);
+                                }
+                                
+                                // Recalculate to update displays
+                                updateLineItemCost(idx);
+                            }, 10);
+                        }
+                    }
+                });
+            }, 0);
+            
+            // Update summary
+            updateSponsorshipSummary();
+            
+            // Show screen
+            showScreen('screen-1-sponsorship-types');
+        }
+        
+        function createLineItemCard(item, idx) {
+            const isGrouped = item.isGrouped;
+            const groupBadge = isGrouped ? '<span style="background: var(--primary); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">GROUPED</span>' : '';
+            
+            // Build group items display
+            let groupItemsHTML = '';
+            if (isGrouped && item.groupItems.length > 0) {
+                groupItemsHTML = `
+                    <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--background); border-radius: 4px; border-left: 3px solid var(--primary);">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem;">Includes ${item.groupItems.length} Items:</div>
+                        ${item.groupItems.map((gi, i) => `
+                            <div style="font-size: 0.875rem; padding: 0.25rem 0; color: var(--text);">
+                                ${i + 1}. ${gi.description}${gi.size ? ` (${gi.size})` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="summary-card" data-line-item="${idx}" style="padding: 1.25rem; border: 2px solid var(--border); position: relative;">
+                    <button onclick="deleteLineItem(${idx})" style="position: absolute; top: 1rem; right: 1rem; background: var(--danger); color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                        🗑️ Delete
+                    </button>
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; padding-right: 5rem;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                                ${item.platform || 'Line Item ' + (idx + 1)}${item.package ? ' - ' + item.package : ''}
+                                ${groupBadge}
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">
+                                ${item.description || ''}
+                            </div>
+                            ${groupItemsHTML}
+                        </div>
+                        <div style="text-align: right; margin-left: 1rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Net Cost</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">$${formatNumber(item.netCost)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem; padding: 0.75rem; background: var(--surface); border-radius: 4px; margin-bottom: 1rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Cost Method</div>
+                            <select id="costMethod_${idx}" onchange="updateLineItemCostMethod(${idx}, this.value)" style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; font-weight: 600; width: 100%;">
+                                <option value="">N/A</option>
+                                <option value="CPM" ${item.costMethod === 'CPM' ? 'selected' : ''}>CPM</option>
+                                <option value="CPV" ${item.costMethod === 'CPV' ? 'selected' : ''}>CPV</option>
+                                <option value="Flat Fee" ${item.costMethod === 'Flat Fee' ? 'selected' : ''}>Flat Fee</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Rate</div>
+                            <input type="number" id="rate_${idx}" value="${item.rate || 0}" step="0.01" min="0" onchange="updateLineItemRate(${idx}, this.value)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; font-weight: 600;">
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Quantity</div>
+                            <div class="quantity-display" style="font-size: 0.875rem; font-weight: 600;">${formatImpressions(item.quantity)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Placement Type <span class="required">*</span></label>
+                        <select id="placementType_${idx}" onchange="updateLineItemType(${idx}, this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.875rem;">
+                            <option value="">-- Select Type --</option>
+                            <option value="TALENT_PRODUCTION">Talent and Production</option>
+                            <option value="PAID_MEDIA">Paid Media Distribution</option>
+                            <option value="CUSTOM_SOCIAL">Custom Social Package</option>
+                            <option value="DIGITAL_OO">Digital O&O</option>
+                            <option value="ADDED_VALUE">Added Value</option>
+                            <option value="SOCIAL_VIDEO">Social Video</option>
+                            <option value="LINEAR_OO">Linear O&O</option>
+                            <option value="EXPERIENTIAL_FEE">Experiential – Fee</option>
+                            <option value="EXPERIENTIAL_BUILDOUT">Experiential Production Buildout</option>
+                            <option value="INTEGRATION_FEE">Integration – Fee</option>
+                            <option value="INTEGRATION_BUILDOUT">Integration Production Buildout</option>
+                        </select>
+                    </div>
+                    
+                    <div id="costInputs_${idx}" style="display: none;">
+                        <!-- Cost inputs will be dynamically added based on type -->
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Notes (Optional)</label>
+                        <textarea id="lineItemNotes_${idx}" onchange="updateLineItemNotes(${idx}, this.value)" placeholder="Add any notes about this placement..." style="width: 100%; min-height: 60px; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.875rem; font-family: inherit; resize: vertical;">${item.notes || ''}</textarea>
+                    </div>
+                    
+                    <div id="marginDisplay_${idx}" style="padding: 0.75rem; background: var(--background); border-radius: 4px; border-left: 3px solid var(--success);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Margin</div>
+                        <div style="font-size: 1rem; font-weight: 700; color: var(--success-dark);">$${formatNumber(item.netCost)} (100%)</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateLineItemType(idx, type) {
+            const item = sponsorshipLineItems[idx];
+            item.placementType = type;
+            
+            // Show appropriate cost inputs based on type
+            const costInputsDiv = document.getElementById(`costInputs_${idx}`);
+            
+            if (!type) {
+                costInputsDiv.style.display = 'none';
+                costInputsDiv.innerHTML = '';
+                item.talentCost = 0;
+                item.mediaCost = 0;
+                item.mediaCostCPM = 6;
+                item.mediaCostCPV = 0.03;
+                item.revSharePercent = 50;
+                updateLineItemMargin(idx);
+                return;
+            }
+            
+            costInputsDiv.style.display = 'block';
+            
+            // Build cost inputs based on type
+            let inputsHTML = '';
+            
+            if (type === 'TALENT_PRODUCTION' || type === 'EXPERIENTIAL_BUILDOUT' || type === 'INTEGRATION_BUILDOUT') {
+                // Talent cost only
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Talent & Production Cost</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="text" id="talentCost_${idx}" oninput="formatCurrencyLive(event); updateLineItemCost(${idx});" placeholder="0.00" value="0">
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'PAID_MEDIA') {
+                // Media cost only
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Media Cost (CPM or CPV)</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="number" id="mediaCostRate_${idx}" step="0.01" min="0" placeholder="6.00" value="6" oninput="updateLineItemCost(${idx});" style="width: 150px;">
+                            <select id="mediaCostMetric_${idx}" onchange="updateLineItemCost(${idx});" style="margin-left: 0.5rem; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px;">
+                                <option value="cpm">CPM</option>
+                                <option value="cpv">CPV</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">
+                            Cost: <span id="mediaCostDisplay_${idx}">$0</span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'CUSTOM_SOCIAL') {
+                // Both talent and media
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Talent & Production Cost</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="text" id="talentCost_${idx}" oninput="formatCurrencyLive(event); updateLineItemCost(${idx});" placeholder="0.00" value="0">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Media Cost (CPM or CPV)</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="number" id="mediaCostRate_${idx}" step="0.01" min="0" placeholder="6.00" value="6" oninput="updateLineItemCost(${idx});" style="width: 150px;">
+                            <select id="mediaCostMetric_${idx}" onchange="updateLineItemCost(${idx});" style="margin-left: 0.5rem; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px;">
+                                <option value="cpm">CPM</option>
+                                <option value="cpv">CPV</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">
+                            Cost: <span id="mediaCostDisplay_${idx}">$0</span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'SOCIAL_VIDEO') {
+                // Rev share
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Rev Share %</label>
+                        <div class="input-group">
+                            <input type="number" id="revShare_${idx}" step="1" min="0" max="100" placeholder="50" value="50" oninput="updateLineItemCost(${idx});" style="width: 150px;">
+                            <span class="input-addon">%</span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'ADDED_VALUE') {
+                // Added Value sub-type
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Added Value Type</label>
+                        <select id="addedValueSubType_${idx}" onchange="updateAddedValueType(${idx}, this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px;">
+                            <option value="">-- Select Type --</option>
+                            <option value="talent">Talent & Production</option>
+                            <option value="media">Paid Media Distribution</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div id="addedValueCostInputs_${idx}" style="display: none;">
+                        <!-- Sub-type cost inputs -->
+                    </div>
+                `;
+            }
+            // Digital O&O, Linear O&O, Experiential Fee, Integration Fee = no costs (100% margin)
+            
+            costInputsDiv.innerHTML = inputsHTML;
+            
+            // Initialize costs
+            item.talentCost = 0;
+            item.mediaCost = 0;
+            item.mediaCostCPM = 6;
+            item.mediaCostCPV = 0.03;
+            item.revSharePercent = 50;
+            
+            // Auto-calculate costs based on type
+            if (type === 'SOCIAL_VIDEO') {
+                // Calculate rev share cost immediately
+                item.mediaCost = item.netCost * 0.5; // 50% default
+            } else if (type === 'PAID_MEDIA' || type === 'CUSTOM_SOCIAL') {
+                // Calculate media cost immediately with default CPM
+                item.mediaCost = (item.quantity * 6) / 1000; // Default $6 CPM
+                
+                // Update display
+                setTimeout(() => {
+                    const displaySpan = document.getElementById(`mediaCostDisplay_${idx}`);
+                    if (displaySpan) {
+                        displaySpan.textContent = '$' + formatNumber(item.mediaCost);
+                    }
+                }, 0);
+            }
+            
+            updateLineItemMargin(idx);
+        }
+        
+        function updateAddedValueType(idx, subType) {
+            const item = sponsorshipLineItems[idx];
+            item.addedValueSubType = subType;
+            
+            const addedValueInputsDiv = document.getElementById(`addedValueCostInputs_${idx}`);
+            
+            if (!subType || subType === 'other') {
+                // No cost inputs for "other" - it's 100% margin
+                addedValueInputsDiv.style.display = 'none';
+                addedValueInputsDiv.innerHTML = '';
+                item.talentCost = 0;
+                item.mediaCost = 0;
+                updateLineItemMargin(idx);
+                return;
+            }
+            
+            addedValueInputsDiv.style.display = 'block';
+            
+            let inputsHTML = '';
+            if (subType === 'talent') {
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Talent & Production Cost</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="text" id="talentCost_${idx}" oninput="formatCurrencyLive(event); updateLineItemCost(${idx});" placeholder="0.00" value="0">
+                        </div>
+                    </div>
+                `;
+            } else if (subType === 'media') {
+                inputsHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Media Cost (CPM or CPV)</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="number" id="mediaCostRate_${idx}" step="0.01" min="0" placeholder="6.00" value="6" oninput="updateLineItemCost(${idx});" style="width: 150px;">
+                            <select id="mediaCostMetric_${idx}" onchange="updateLineItemCost(${idx});" style="margin-left: 0.5rem; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px;">
+                                <option value="cpm">CPM</option>
+                                <option value="cpv">CPV</option>
+                            </select>
+                        </div>
+                        <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);">
+                            Cost: <span id="mediaCostDisplay_${idx}">$0</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            addedValueInputsDiv.innerHTML = inputsHTML;
+        }
+        
+        function updateLineItemCost(idx) {
+            const item = sponsorshipLineItems[idx];
+            const type = item.placementType;
+            
+            // Reset costs
+            item.talentCost = 0;
+            item.mediaCost = 0;
+            
+            // Get talent cost if applicable
+            const talentInput = document.getElementById(`talentCost_${idx}`);
+            if (talentInput) {
+                item.talentCost = parseCurrency(talentInput.value) || 0;
+            }
+            
+            // Get media cost if applicable
+            const mediaCostRateInput = document.getElementById(`mediaCostRate_${idx}`);
+            const mediaCostMetricSelect = document.getElementById(`mediaCostMetric_${idx}`);
+            if (mediaCostRateInput && mediaCostMetricSelect) {
+                const rate = parseFloat(mediaCostRateInput.value) || 0;
+                const metric = mediaCostMetricSelect.value;
+                
+                // Store metric type for restoration
+                item.mediaCostMetric = metric;
+                
+                if (metric === 'cpm') {
+                    item.mediaCostCPM = rate;
+                    item.mediaCost = (item.quantity * rate) / 1000;
+                } else {
+                    item.mediaCostCPV = rate;
+                    item.mediaCost = item.quantity * rate;
+                }
+                
+                // Update display
+                const displaySpan = document.getElementById(`mediaCostDisplay_${idx}`);
+                if (displaySpan) {
+                    displaySpan.textContent = '$' + formatNumber(item.mediaCost);
+                }
+            }
+            
+            // Get rev share if applicable
+            const revShareInput = document.getElementById(`revShare_${idx}`);
+            if (revShareInput) {
+                item.revSharePercent = parseFloat(revShareInput.value) || 50;
+                item.mediaCost = item.netCost * (item.revSharePercent / 100);
+            }
+            
+            updateLineItemMargin(idx);
+        }
+        
+        function updateLineItemMargin(idx) {
+            const item = sponsorshipLineItems[idx];
+            const totalCost = (item.talentCost || 0) + (item.mediaCost || 0);
+            const margin = item.netCost - totalCost;
+            const marginPercent = item.netCost > 0 ? (margin / item.netCost) * 100 : 0;
+            
+            item.totalCost = totalCost;
+            item.margin = margin;
+            item.marginPercent = marginPercent;
+            
+            // Update display
+            const marginDisplay = document.getElementById(`marginDisplay_${idx}`);
+            if (marginDisplay) {
+                const color = margin >= 0 ? 'var(--success-dark)' : 'var(--danger)';
+                const borderColor = margin >= 0 ? 'var(--success)' : 'var(--danger)';
+                marginDisplay.style.borderLeftColor = borderColor;
+                marginDisplay.innerHTML = `
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Margin</div>
+                    <div style="font-size: 1rem; font-weight: 700; color: ${color};">$${formatNumber(margin)} (${marginPercent.toFixed(1)}%)</div>
+                `;
+            }
+            
+            // Update overall summary
+            updateSponsorshipSummary();
+        }
+        
+        function updateSponsorshipSummary() {
+            let totalPrice = 0;
+            let totalCost = 0;
+            let totalImpressions = 0;
+            let totalViews = 0;
+            let creativeTotal = 0;
+            let creativeCost = 0;
+            let ooTotal = 0;
+            
+            sponsorshipLineItems.forEach(item => {
+                totalPrice += item.netCost;
+                totalCost += item.totalCost || 0;
+                
+                // Count impressions vs views based on cost method
+                if (item.costMethod === 'CPV') {
+                    totalViews += item.quantity || 0;
+                } else {
+                    totalImpressions += item.quantity || 0;
+                }
+                
+                // Categorize
+                const type = item.placementType;
+                if (type) {
+                    const creativeTypes = ['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'];
+                    const ooTypes = ['DIGITAL_OO', 'LINEAR_OO'];
+                    
+                    if (creativeTypes.includes(type)) {
+                        creativeTotal += item.netCost;
+                        creativeCost += item.totalCost || 0;
+                    } else if (ooTypes.includes(type)) {
+                        ooTotal += item.netCost;
+                    } else if (type === 'ADDED_VALUE') {
+                        if (item.addedValueSubType === 'talent') {
+                            creativeTotal += item.netCost;
+                            creativeCost += item.totalCost || 0;
+                        } else {
+                            // Media or Other -> O&O
+                            ooTotal += item.netCost;
+                        }
+                    }
+                }
+            });
+            
+            const totalMargin = totalPrice - totalCost;
+            const totalMarginPercent = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
+            const cpm = totalImpressions > 0 ? (totalPrice / totalImpressions) * 1000 : 0;
+            const cpv = totalViews > 0 ? (totalPrice / totalViews) : 0;
+            const creativeMargin = creativeTotal - creativeCost;
+            const creativeMarginPercent = creativeTotal > 0 ? (creativeMargin / creativeTotal) * 100 : 0;
+            
+            document.getElementById('sponsorshipTotalPrice').textContent = '$' + formatNumber(totalPrice);
+            document.getElementById('sponsorshipTotalCost').textContent = '$' + formatNumber(totalCost);
+            document.getElementById('sponsorshipTotalMargin').textContent = '$' + formatNumber(totalMargin) + ' (' + totalMarginPercent.toFixed(1) + '%)';
+            document.getElementById('sponsorshipTotalImpressions').textContent = formatImpressions(totalImpressions);
+            document.getElementById('sponsorshipTotalViews').textContent = formatImpressions(totalViews);
+            document.getElementById('sponsorshipCPM').textContent = '$' + cpm.toFixed(2);
+            document.getElementById('sponsorshipCPV').textContent = '$' + cpv.toFixed(2);
+            document.getElementById('sponsorshipCreativeTotal').textContent = '$' + formatNumber(creativeTotal);
+            document.getElementById('sponsorshipCreativeMargin').textContent = '$' + formatNumber(creativeMargin) + ' (' + creativeMarginPercent.toFixed(1) + '%)';
+            document.getElementById('sponsorshipOOTotal').textContent = '$' + formatNumber(ooTotal);
+        }
+        
+        function updateLineItemCostMethod(idx, costMethod) {
+            sponsorshipLineItems[idx].costMethod = costMethod;
+        }
+        
+        function updateLineItemRate(idx, rate) {
+            const item = sponsorshipLineItems[idx];
+            item.rate = parseFloat(rate) || 0;
+            
+            // Recalculate quantity (impressions/views) based on rate and net cost (net cost stays fixed)
+            if (item.rate > 0) {
+                if (item.costMethod === 'CPM') {
+                    item.quantity = (item.netCost / item.rate) * 1000;
+                } else if (item.costMethod === 'CPV') {
+                    item.quantity = item.netCost / item.rate;
+                }
+                
+                // Update the quantity display in the card
+                const quantityDisplays = document.querySelectorAll(`[data-line-item="${idx}"] .quantity-display`);
+                quantityDisplays.forEach(el => {
+                    el.textContent = formatImpressions(item.quantity);
+                });
+            }
+            
+            // Update currentPackage total investment (sum of all net costs)
+            currentPackage.totalInvestment = sponsorshipLineItems.reduce((sum, i) => sum + (i.netCost || 0), 0);
+            
+            // Recalculate margin for this item
+            updateLineItemMargin(idx);
+            
+            // Update overall summary
+            updateSponsorshipSummary();
+        }
+        
+        function updateLineItemNotes(idx, notes) {
+            sponsorshipLineItems[idx].notes = notes;
+        }
+        
+        function sponsorshipGoBack() {
+            // If editing, ask for confirmation and go back to version summary
+            if (editingPackageIndex >= 0) {
+                showConfirm(
+                    'Discard changes and return to package summary?',
+                    (confirmed) => {
+                        if (confirmed) {
+                            // Reset editing state
+                            editingPackageIndex = -1;
+                            hasUnsavedChanges = false;
+                            sponsorshipLineItems = [];
+                            currentPackage = {};
+                            
+                            // Go back to version summary
+                            displayVersionSummary();
+                            showScreen('screen-6');
+                        }
+                    }
+                );
+            } else {
+                // New package - go back to column mapping screen
+                showScreen('screen-1-sponsorship-mapping');
+            }
+        }
+        
+        function proceedFromTypeAssignment() {
+            // Validate all items have types
+            const untyped = sponsorshipLineItems.filter(i => !i.placementType);
+            if (untyped.length > 0) {
+                customAlert(`Please assign a placement type to all ${untyped.length} remaining line items.`);
+                return;
+            }
+            
+            // Save sponsorship data to currentPackage
+            currentPackage.sponsorshipLineItems = sponsorshipLineItems;
+            currentPackage.sponsorshipType = 'detailed'; // Mark as detailed sponsorship
+            
+            // Calculate aggregated totals for display
+            let totalImpressions = 0;
+            let totalViews = 0;
+            let totalCost = 0;
+            
+            sponsorshipLineItems.forEach(item => {
+                if (item.costMethod === 'CPV') {
+                    totalViews += item.quantity || 0;
+                } else {
+                    totalImpressions += item.quantity || 0;
+                }
+                totalCost += item.totalCost || 0;
+            });
+            
+            currentPackage.totalImpressions = totalImpressions;
+            currentPackage.totalViews = totalViews;
+            currentPackage.totalCost = totalCost;
+            currentPackage.totalMargin = currentPackage.totalInvestment - totalCost;
+            currentPackage.totalMarginPercent = currentPackage.totalInvestment > 0 
+                ? (currentPackage.totalMargin / currentPackage.totalInvestment) * 100 
+                : 0;
+            
+            // Calculate CPM/CPV
+            if (totalImpressions > 0) {
+                currentPackage.overallCPM = (currentPackage.totalInvestment / totalImpressions) * 1000;
+            }
+            if (totalViews > 0) {
+                currentPackage.overallCPV = currentPackage.totalInvestment / totalViews;
+            }
+            
+            // Go to final summary (screen-4)
+            showFinalSummary();
+        }
+        
+        function showFinalSummary() {
+            console.log('=== showFinalSummary called ===');
+            console.log('currentPackage:', currentPackage);
+            
+            // Populate final summary fields
+            document.getElementById('packageNotes').value = currentPackage.notes || '';
+            document.getElementById('packageURL').value = currentPackage.url || '';
+            
+            // Show final summary screen FIRST so elements exist
+            console.log('Calling showScreen(screen-4)');
+            showScreen('screen-4');
+            
+            // For sponsorships, skip the cost/margin step and go straight to notes/save
+            // by triggering nextStep(4) which advances from the margin calc to final summary
+            console.log('Calling nextStep(4) to skip to final summary section');
+            nextStep(4);
+            
+            // Use requestAnimationFrame to ensure DOM is fully rendered
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    console.log('=== requestAnimationFrame executing ===');
+                
+                // Check if this is a detailed sponsorship
+                if (currentPackage.sponsorshipType === 'detailed' && currentPackage.sponsorshipLineItems) {
+                    console.log('✓ Is detailed sponsorship');
+                    console.log('Line items count:', currentPackage.sponsorshipLineItems.length);
+                    
+                    // Show sponsorship summary
+                    const lineItemsSummary = document.getElementById('sponsorshipLineItemsSummary');
+                    console.log('sponsorshipLineItemsSummary element:', lineItemsSummary);
+                    if (lineItemsSummary) {
+                        lineItemsSummary.style.display = 'block';
+                        console.log('✓ Set sponsorshipLineItemsSummary to display:block');
+                    }
+                    
+                    // Hide the cost/margin calculation sections MORE AGGRESSIVELY
+                    // Find the main card and hide everything except Overall Totals
+                    const mainCard = document.querySelector('#screen-4 .card');
+                    console.log('mainCard element:', mainCard);
+                    
+                    if (mainCard) {
+                        // First, hide card-header, alert-info, and the first few h3s
+                        const cardHeader = mainCard.querySelector('.card-header');
+                        if (cardHeader) {
+                            cardHeader.style.display = 'none';
+                            console.log('Hid card-header');
+                        }
+                        
+                        const alertInfo = mainCard.querySelector('.alert-info');
+                        if (alertInfo) {
+                            alertInfo.style.display = 'none';
+                            console.log('Hid alert-info');
+                        }
+                        
+                        // Hide all form-groups and table-containers
+                        const formGroups = mainCard.querySelectorAll('.form-group');
+                        formGroups.forEach(fg => fg.style.display = 'none');
+                        console.log('Hid', formGroups.length, 'form-groups');
+                        
+                        const tableContainers = mainCard.querySelectorAll('.table-container');
+                        tableContainers.forEach(tc => tc.style.display = 'none');
+                        console.log('Hid', tableContainers.length, 'table-containers');
+                        
+                        // Hide specific h3 sections
+                        const allH3s = mainCard.querySelectorAll('h3');
+                        console.log('Found', allH3s.length, 'h3 elements');
+                        allH3s.forEach(h3 => {
+                            const text = h3.textContent.trim();
+                            console.log('h3:', text);
+                            if (text.includes('Production & Talent') || text.includes('Media Placements')) {
+                                h3.style.display = 'none';
+                                // Hide the next sibling (the table)
+                                if (h3.nextElementSibling) {
+                                    h3.nextElementSibling.style.display = 'none';
+                                }
+                                console.log('Hid h3 and table:', text);
+                            } else if (text.includes('Overall Totals')) {
+                                h3.style.display = 'block';
+                                // Make sure the summary-grid after it is visible
+                                if (h3.nextElementSibling) {
+                                    h3.nextElementSibling.style.display = 'grid'; // Force grid display
+                                    console.log('Kept Overall Totals and summary-grid VISIBLE');
+                                }
+                            } else if (text.includes('Cost Breakdown') || text.includes('Breakdown')) {
+                                h3.style.display = 'none';
+                                // Hide the grid after it
+                                if (h3.nextElementSibling) {
+                                    h3.nextElementSibling.style.display = 'none';
+                                }
+                                const breakdownGrid = document.getElementById('summaryBreakdownGrid');
+                                if (breakdownGrid) {
+                                    breakdownGrid.style.display = 'none';
+                                }
+                                console.log('Hid Cost Breakdown');
+                            }
+                        });
+                        
+                        // Make sure sponsorship line items are visible
+                        const lineItemsSummary = document.getElementById('sponsorshipLineItemsSummary');
+                        if (lineItemsSummary) {
+                            lineItemsSummary.style.display = 'block';
+                            console.log('Made sponsorshipLineItemsSummary VISIBLE');
+                        }
+                    }
+                    
+                    // Populate line items
+                const container = document.getElementById('sponsorshipLineItemsContainer');
+                container.innerHTML = currentPackage.sponsorshipLineItems.map((item, idx) => {
+                    const placementTypeLabel = getPlacementTypeLabel(item.placementType);
+                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                    
+                    return `
+                        <div class="summary-card" style="padding: 1rem; border: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                                        ${item.platform || ''}${item.package ? ' - ' + item.package : ''}
+                                    </div>
+                                    <div style="font-size: 0.875rem; color: var(--text-muted);">
+                                        ${item.description || ''}
+                                    </div>
+                                    ${item.notes ? `<div style="margin-top: 0.5rem; font-size: 0.875rem; font-style: italic; color: var(--text-muted);">📝 ${item.notes}</div>` : ''}
+                                </div>
+                                <div style="text-align: right; margin-left: 1rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Net Cost</div>
+                                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">$${formatNumber(item.netCost)}</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; padding: 0.75rem; background: var(--surface); border-radius: 4px; margin-bottom: 0.75rem;">
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Type</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600;">${placementTypeLabel}${addedValueSubType}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${item.costMethod === 'CPV' ? 'Views' : 'Impressions'}</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--accent);">${formatImpressions(item.quantity || 0)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Cost Method</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600;">${item.costMethod || 'N/A'}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total Cost</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--danger);">$${formatNumber(item.totalCost || 0)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Margin</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--success-dark);">$${formatNumber(item.margin || 0)} (${(item.marginPercent || 0).toFixed(1)}%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Update overall summary totals
+                console.log('=== Populating Overall Summary ===');
+                console.log('Data to populate:', {
+                    totalInvestment: currentPackage.totalInvestment,
+                    totalImpressions: currentPackage.totalImpressions,
+                    totalViews: currentPackage.totalViews,
+                    overallCPM: currentPackage.overallCPM,
+                    overallCPV: currentPackage.overallCPV,
+                    totalCost: currentPackage.totalCost,
+                    totalMargin: currentPackage.totalMargin,
+                    totalMarginPercent: currentPackage.totalMarginPercent
+                });
+                
+                const priceEl = document.getElementById('summaryTotalPrice');
+                const impressEl = document.getElementById('summaryTotalImpressions');
+                const viewsEl = document.getElementById('summaryTotalViews');
+                const cpmEl = document.getElementById('summaryOverallCPM');
+                const cpvEl = document.getElementById('summaryOverallCPV');
+                const costEl = document.getElementById('summaryTotalCost');
+                const marginDollarEl = document.getElementById('summaryTotalMarginDollar');
+                const marginPercentEl = document.getElementById('summaryTotalMarginPercent');
+                
+                console.log('Elements found:', {
+                    priceEl: !!priceEl,
+                    impressEl: !!impressEl,
+                    viewsEl: !!viewsEl,
+                    cpmEl: !!cpmEl,
+                    cpvEl: !!cpvEl,
+                    costEl: !!costEl,
+                    marginDollarEl: !!marginDollarEl,
+                    marginPercentEl: !!marginPercentEl
+                });
+                
+                if (priceEl) {
+                    priceEl.textContent = '$' + formatNumber(currentPackage.totalInvestment);
+                    console.log('Set priceEl to:', priceEl.textContent);
+                }
+                if (impressEl) {
+                    impressEl.textContent = formatImpressions(currentPackage.totalImpressions || 0);
+                    console.log('Set impressEl to:', impressEl.textContent);
+                }
+                if (viewsEl) {
+                    viewsEl.textContent = formatImpressions(currentPackage.totalViews || 0);
+                    console.log('Set viewsEl to:', viewsEl.textContent);
+                }
+                if (cpmEl) {
+                    cpmEl.textContent = currentPackage.overallCPM ? '$' + currentPackage.overallCPM.toFixed(2) : 'N/A';
+                    console.log('Set cpmEl to:', cpmEl.textContent);
+                }
+                if (cpvEl) {
+                    cpvEl.textContent = currentPackage.overallCPV ? '$' + currentPackage.overallCPV.toFixed(2) : 'N/A';
+                    console.log('Set cpvEl to:', cpvEl.textContent);
+                }
+                if (costEl) {
+                    costEl.textContent = '$' + formatNumber(currentPackage.totalCost || 0);
+                    console.log('Set costEl to:', costEl.textContent);
+                }
+                if (marginDollarEl) {
+                    marginDollarEl.textContent = '$' + formatNumber(currentPackage.totalMargin || 0);
+                    console.log('Set marginDollarEl to:', marginDollarEl.textContent);
+                }
+                if (marginPercentEl) {
+                    marginPercentEl.textContent = (currentPackage.totalMarginPercent || 0).toFixed(1) + '%';
+                    console.log('Set marginPercentEl to:', marginPercentEl.textContent);
+                }
+                
+                console.log('✓ Populated all summary elements');
+                
+                // Verify values after a short delay to see if something overwrites them
+                setTimeout(() => {
+                    console.log('=== VERIFICATION: Checking if values persisted ===');
+                    if (priceEl) console.log('priceEl now shows:', priceEl.textContent);
+                    if (impressEl) console.log('impressEl now shows:', impressEl.textContent);
+                    if (viewsEl) console.log('viewsEl now shows:', viewsEl.textContent);
+                    if (cpmEl) console.log('cpmEl now shows:', cpmEl.textContent);
+                    if (cpvEl) console.log('cpvEl now shows:', cpvEl.textContent);
+                    if (costEl) console.log('costEl now shows:', costEl.textContent);
+                    if (marginDollarEl) console.log('marginDollarEl now shows:', marginDollarEl.textContent);
+                    if (marginPercentEl) console.log('marginPercentEl now shows:', marginPercentEl.textContent);
+                }, 500);
+                
+                console.log('=== showFinalSummary complete ===');
+                } // Close if (sponsorshipType === 'detailed')
+                });
+            });
+        }
+        
+        function getPlacementTypeLabel(type) {
+            const labels = {
+                'TALENT_PRODUCTION': 'Talent and Production',
+                'PAID_MEDIA': 'Paid Media Distribution',
+                'CUSTOM_SOCIAL': 'Custom Social Package',
+                'DIGITAL_OO': 'Digital O&O',
+                'ADDED_VALUE': 'Added Value',
+                'SOCIAL_VIDEO': 'Social Video',
+                'LINEAR_OO': 'Linear O&O',
+                'EXPERIENTIAL_FEE': 'Experiential – Fee',
+                'EXPERIENTIAL_BUILDOUT': 'Experiential Production Buildout',
+                'INTEGRATION_FEE': 'Integration – Fee',
+                'INTEGRATION_BUILDOUT': 'Integration Production Buildout'
+            };
+            return labels[type] || type;
+        }
+
+
+
 
     </script>
 
