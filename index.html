@@ -1730,7 +1730,7 @@
 
                 <!-- File Upload Section (shown when detailed is selected) -->
                 <div id="sponsorshipFileUpload" style="display: none;">
-                    <div style="margin-top: 2rem; padding: 3rem; border: 2px dashed var(--border); border-radius: 8px; text-align: center; background: var(--surface); cursor: pointer;" 
+                    <div id="sponsorshipUploadBox" style="margin-top: 2rem; padding: 3rem; border: 2px dashed var(--border); border-radius: 8px; text-align: center; background: var(--surface); cursor: pointer;" 
                          onclick="document.getElementById('sponsorshipFileInput').click();"
                          ondrop="handleSponsorshipDrop(event)" 
                          ondragover="event.preventDefault(); event.currentTarget.style.borderColor = 'var(--primary)'; event.currentTarget.style.background = 'rgba(0, 87, 184, 0.05)';"
@@ -1742,7 +1742,21 @@
                         <input type="file" id="sponsorshipFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleSponsorshipFileSelect(event)">
                     </div>
                     <div id="sponsorshipFileName" style="margin-top: 1rem; text-align: center; color: var(--text-muted); display: none;">
-                        <strong>Selected:</strong> <span id="sponsorshipFileNameText"></span>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+                            <div>
+                                <strong>Selected:</strong> <span id="sponsorshipFileNameText"></span>
+                            </div>
+                            <button onclick="removeSponsorshipFile()" style="padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>🗑️</span> Remove File
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Success Message -->
+                    <div id="sponsorshipUploadSuccess" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); border: 2px solid #10b981; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 0.75rem;">✅</div>
+                        <h3 style="margin: 0 0 0.5rem 0; color: #047857; font-size: 1.25rem;">File Uploaded Successfully!</h3>
+                        <p style="margin: 0; color: #065f46; font-size: 0.95rem;">Your sponsorship plan has been loaded. Fill in the details below and click <strong>"Next"</strong> to continue.</p>
                     </div>
                 </div>
 
@@ -11096,6 +11110,12 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             document.getElementById('sponsorshipFileNameText').textContent = file.name;
             document.getElementById('sponsorshipFileName').style.display = 'block';
             
+            // Hide success message initially
+            const successMessage = document.getElementById('sponsorshipUploadSuccess');
+            if (successMessage) {
+                successMessage.style.display = 'none';
+            }
+            
             // Read file
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -11119,12 +11139,43 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     console.log('Worksheet:', worksheet);
                     console.log('Merged cells:', worksheet['!merges']);
                     
+                    // Hide the upload box
+                    document.getElementById('sponsorshipUploadBox').style.display = 'none';
+                    
+                    // Show success message
+                    const successMsg = document.getElementById('sponsorshipUploadSuccess');
+                    if (successMsg) {
+                        successMsg.style.display = 'block';
+                        // Smooth scroll to success message
+                        successMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    
                 } catch (error) {
                     console.error('Error reading sponsorship file:', error);
                     customAlert('Error reading file. Please make sure it is a valid Excel file.');
+                    // Hide success message on error
+                    const successMsg = document.getElementById('sponsorshipUploadSuccess');
+                    if (successMsg) {
+                        successMsg.style.display = 'none';
+                    }
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+        
+        function removeSponsorshipFile() {
+            // Clear the file input
+            document.getElementById('sponsorshipFileInput').value = '';
+            
+            // Clear stored data
+            sponsorshipImportData = null;
+            
+            // Hide success message and file name
+            document.getElementById('sponsorshipUploadSuccess').style.display = 'none';
+            document.getElementById('sponsorshipFileName').style.display = 'none';
+            
+            // Show the upload box again
+            document.getElementById('sponsorshipUploadBox').style.display = 'block';
         }
 
         function proceedFromSponsorshipSetup() {
