@@ -6428,18 +6428,41 @@
         }
 
         function savePackage() {
+            console.log('=== savePackage CALLED ===');
+            console.log('currentPackage BEFORE sync:', JSON.parse(JSON.stringify(currentPackage)));
+            console.log('sponsorshipLineItems array:', JSON.parse(JSON.stringify(sponsorshipLineItems)));
+            
             // Save notes and URL from Final Summary screen
             currentPackage.notes = (document.getElementById('packageNotes').value || '').trim();
             currentPackage.url = (document.getElementById('packageURL').value || '').trim();
             
+            // For sponsorships, update the sponsorshipLineItems with current cost data
+            if (currentPackage.type === 'sponsorship' && currentPackage.sponsorshipType === 'detailed') {
+                const itemsCopy = JSON.parse(JSON.stringify(sponsorshipLineItems));
+                currentPackage.sponsorshipLineItems = itemsCopy;
+                currentPackage.lineItems = itemsCopy; // Also save as lineItems for compatibility
+                console.log('✓ Synced sponsorshipLineItems to currentPackage');
+                console.log('currentPackage.sponsorshipLineItems[0]:', currentPackage.sponsorshipLineItems[0]);
+            }
+            
+            console.log('currentPackage AFTER sync:', JSON.parse(JSON.stringify(currentPackage)));
+            
             if (editingPackageIndex >= 0) {
                 // Update existing package
                 currentVersion.packages[editingPackageIndex] = {...currentPackage};
+                console.log('✓ Updated packages[' + editingPackageIndex + ']');
+                console.log('Saved package:', JSON.parse(JSON.stringify(currentVersion.packages[editingPackageIndex])));
                 editingPackageIndex = -1;
             } else {
                 // Add new package
                 currentVersion.packages.push({...currentPackage});
+                console.log('✓ Added new package');
+                console.log('Saved package:', JSON.parse(JSON.stringify(currentVersion.packages[currentVersion.packages.length - 1])));
             }
+            
+            saveProjects();
+            console.log('✓ Called saveProjects()');
+            console.log('=== savePackage COMPLETE ===');
             
             saveProjects();
             
@@ -7443,8 +7466,10 @@
             if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
                 console.log('Editing detailed sponsorship package:', pkg);
                 
-                // Restore sponsorship line items
-                sponsorshipLineItems = JSON.parse(JSON.stringify(pkg.sponsorshipLineItems || []));
+                // Restore sponsorship line items (handle both lineItems and sponsorshipLineItems)
+                sponsorshipLineItems = JSON.parse(JSON.stringify(pkg.sponsorshipLineItems || pkg.lineItems || []));
+                console.log('Loaded sponsorshipLineItems:', sponsorshipLineItems);
+                console.log('First item talentCost:', sponsorshipLineItems[0]?.talentCost);
                 
                 // Mark as editing
                 hasUnsavedChanges = true;
@@ -11639,30 +11664,87 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         const typeSelect = document.getElementById(`placementType_${idx}`);
                         if (typeSelect) {
                             typeSelect.value = item.placementType;
-                            // Trigger the change to show cost inputs
+                            
+                            // SAVE costs before updateLineItemType resets them
+                            const savedTalentCost = item.talentCost;
+                            const savedMediaCost = item.mediaCost;
+                            const savedMediaCostCPM = item.mediaCostCPM;
+                            const savedMediaCostCPV = item.mediaCostCPV;
+                            const savedMediaCostMetric = item.mediaCostMetric;
+                            const savedRevSharePercent = item.revSharePercent;
+                            const savedAddedValueSubType = item.addedValueSubType;
+                            
+                            console.log(`Item ${idx} BEFORE updateLineItemType - talentCost:`, savedTalentCost);
+                            
+                            // Trigger the change to show cost inputs (this will reset costs to 0!)
                             updateLineItemType(idx, item.placementType);
+                            
+                            // RESTORE costs after updateLineItemType
+                            item.talentCost = savedTalentCost || 0;
+                            item.mediaCost = savedMediaCost || 0;
+                            item.mediaCostCPM = savedMediaCostCPM || item.mediaCostCPM;
+                            item.mediaCostCPV = savedMediaCostCPV || item.mediaCostCPV;
+                            item.mediaCostMetric = savedMediaCostMetric || item.mediaCostMetric;
+                            item.revSharePercent = savedRevSharePercent || item.revSharePercent;
+                            item.addedValueSubType = savedAddedValueSubType || item.addedValueSubType;
+                            
+                            console.log(`Item ${idx} AFTER restore - talentCost:`, item.talentCost);
                             
                             // Restore cost values
                             setTimeout(() => {
-                                if (item.talentCost && document.getElementById(`talentCost_${idx}`)) {
-                                    document.getElementById(`talentCost_${idx}`).value = formatCurrency(item.talentCost);
-                                }
+                                console.log(`=== Restoring costs for item ${idx} ===`);
+                                console.log('Item data:', item);
+                                console.log('talentCost:', item.talentCost);
+                                console.log('mediaCost:', item.mediaCost);
+                                console.log('placementType:', item.placementType);
+                                console.log('addedValueSubType:', item.addedValueSubType);
+                                
+                                // Restore media cost values first (these won't be affected by updateAddedValueType)
                                 if (item.mediaCostCPM && document.getElementById(`mediaCostRate_${idx}`)) {
                                     document.getElementById(`mediaCostRate_${idx}`).value = item.mediaCostCPM;
+                                    console.log('Restored mediaCostCPM:', item.mediaCostCPM);
                                 }
                                 if (item.mediaCostMetric && document.getElementById(`mediaCostMetric_${idx}`)) {
                                     document.getElementById(`mediaCostMetric_${idx}`).value = item.mediaCostMetric || 'cpm';
+                                    console.log('Restored mediaCostMetric:', item.mediaCostMetric);
                                 }
                                 if (item.revSharePercent && document.getElementById(`revShare_${idx}`)) {
                                     document.getElementById(`revShare_${idx}`).value = item.revSharePercent;
-                                }
-                                if (item.addedValueSubType && document.getElementById(`addedValueSubType_${idx}`)) {
-                                    document.getElementById(`addedValueSubType_${idx}`).value = item.addedValueSubType;
-                                    updateAddedValueType(idx, item.addedValueSubType);
+                                    console.log('Restored revSharePercent:', item.revSharePercent);
                                 }
                                 
-                                // Recalculate to update displays
-                                updateLineItemCost(idx);
+                                // Handle Added Value sub-type
+                                if (item.addedValueSubType && document.getElementById(`addedValueSubType_${idx}`)) {
+                                    console.log('Setting addedValueSubType to:', item.addedValueSubType);
+                                    document.getElementById(`addedValueSubType_${idx}`).value = item.addedValueSubType;
+                                    updateAddedValueType(idx, item.addedValueSubType);
+                                    
+                                    // Restore talentCost AFTER updateAddedValueType creates the input
+                                    setTimeout(() => {
+                                        console.log('Attempting to restore talentCost after updateAddedValueType');
+                                        const talentInput = document.getElementById(`talentCost_${idx}`);
+                                        console.log('talentInput element:', talentInput);
+                                        if (item.talentCost && talentInput) {
+                                            talentInput.value = formatNumber(item.talentCost);
+                                            console.log('Set talentInput.value to:', talentInput.value);
+                                        }
+                                        // Recalculate to update displays
+                                        console.log('Calling updateLineItemCost');
+                                        updateLineItemCost(idx);
+                                    }, 50); // Increased timeout
+                                } else {
+                                    console.log('No addedValueSubType, checking for direct talentCost input');
+                                    // No Added Value, restore talentCost directly if input exists
+                                    const talentInput = document.getElementById(`talentCost_${idx}`);
+                                    console.log('talentInput element:', talentInput);
+                                    if (item.talentCost && talentInput) {
+                                        talentInput.value = formatNumber(item.talentCost);
+                                        console.log('Set talentInput.value to:', talentInput.value);
+                                    }
+                                    // Recalculate to update displays
+                                    console.log('Calling updateLineItemCost');
+                                    updateLineItemCost(idx);
+                                }
                             }, 10);
                         }
                     }
@@ -11964,14 +12046,21 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             const item = sponsorshipLineItems[idx];
             const type = item.placementType;
             
+            console.log(`=== updateLineItemCost called for item ${idx} ===`);
+            console.log('Current item.talentCost:', item.talentCost);
+            console.log('Current item.mediaCost:', item.mediaCost);
+            
             // Reset costs
             item.talentCost = 0;
             item.mediaCost = 0;
             
             // Get talent cost if applicable
             const talentInput = document.getElementById(`talentCost_${idx}`);
+            console.log('talentInput element:', talentInput);
             if (talentInput) {
-                item.talentCost = parseCurrency(talentInput.value) || 0;
+                const parsedValue = parseCurrency(talentInput.value) || 0;
+                item.talentCost = parsedValue;
+                console.log('Read talentInput.value:', talentInput.value, '→ parsed to:', parsedValue);
             }
             
             // Get media cost if applicable
