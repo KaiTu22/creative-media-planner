@@ -4472,6 +4472,7 @@
                 
                 // Route to sponsorship setup if sponsorship selected
                 if (packageType === 'sponsorship') {
+                    clearSponsorshipScreen(); // Clear previous data
                     showScreen('screen-1-sponsorship');
                     return;
                 }
@@ -6706,7 +6707,7 @@
                         if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
                              'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
                             targetCategory = categories.creative;
-                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
                             targetCategory = categories.oo;
                         } else if (placementType === 'ADDED_VALUE') {
                             targetCategory = categories.addedvalue;
@@ -7110,7 +7111,7 @@
                                                         // Determine cost category based on placement type
                                                         if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
                                                             talentCost = item.totalCost || 0;
-                                                        } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                                        } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
                                                             mediaCost = item.totalCost || 0;
                                                         } else if (placementType === 'ADDED_VALUE') {
                                                             if (item.addedValueSubType === 'talent') {
@@ -8713,7 +8714,7 @@
                         if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
                              'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
                             targetCategory = categories.creative;
-                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
                             targetCategory = categories.oo;
                         } else if (placementType === 'ADDED_VALUE') {
                             targetCategory = categories.addedvalue;
@@ -9645,7 +9646,7 @@
                         if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
                              'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'].includes(placementType)) {
                             targetCategory = categories.creative;
-                        } else if (['DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
                             targetCategory = categories.oo;
                         } else if (placementType === 'ADDED_VALUE') {
                             targetCategory = categories.addedvalue;
@@ -11233,6 +11234,32 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             reader.readAsArrayBuffer(file);
         }
         
+        function clearSponsorshipScreen() {
+            // Clear form inputs
+            document.getElementById('sponsorshipPackageTitle').value = '';
+            document.getElementById('sponsorshipTotalInvestment').value = '';
+            
+            // Reset radio to simple (default)
+            document.getElementById('sponsorshipSimple').checked = true;
+            document.getElementById('sponsorshipDetailed').checked = false;
+            
+            // Hide file upload section
+            document.getElementById('sponsorshipFileUpload').style.display = 'none';
+            
+            // Clear file input
+            document.getElementById('sponsorshipFileInput').value = '';
+            
+            // Clear stored data
+            sponsorshipImportData = null;
+            
+            // Hide success message and file name
+            document.getElementById('sponsorshipUploadSuccess').style.display = 'none';
+            document.getElementById('sponsorshipFileName').style.display = 'none';
+            
+            // Show the upload box (in case it was hidden)
+            document.getElementById('sponsorshipUploadBox').style.display = 'block';
+        }
+
         function removeSponsorshipFile() {
             // Clear the file input
             document.getElementById('sponsorshipFileInput').value = '';
@@ -11948,6 +11975,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             <option value="PAID_MEDIA">Paid Media Distribution</option>
                             <option value="CUSTOM_SOCIAL">Custom Social Package</option>
                             <option value="DIGITAL_OO">Digital O&O</option>
+                            <option value="ADD_INNOVATION">Add Innovation</option>
                             <option value="ADDED_VALUE">Added Value</option>
                             <option value="SOCIAL_VIDEO">Social Video</option>
                             <option value="LINEAR_OO">Linear O&O</option>
@@ -12081,7 +12109,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     </div>
                 `;
             }
-            // Digital O&O, Linear O&O, Experiential Fee, Integration Fee = no costs (100% margin)
+            // Digital O&O, Add Innovation, Linear O&O, Experiential Fee, Integration Fee = no costs (100% margin)
             
             costInputsDiv.innerHTML = inputsHTML;
             
@@ -12269,7 +12297,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 const type = item.placementType;
                 if (type) {
                     const creativeTypes = ['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT'];
-                    const ooTypes = ['DIGITAL_OO', 'LINEAR_OO'];
+                    const ooTypes = ['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'];
                     
                     if (creativeTypes.includes(type)) {
                         creativeTotal += item.netCost;
@@ -12662,6 +12690,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 'PAID_MEDIA': 'Paid Media Distribution',
                 'CUSTOM_SOCIAL': 'Custom Social Package',
                 'DIGITAL_OO': 'Digital O&O',
+                'ADD_INNOVATION': 'Add Innovation',
                 'ADDED_VALUE': 'Added Value',
                 'SOCIAL_VIDEO': 'Social Video',
                 'LINEAR_OO': 'Linear O&O',
