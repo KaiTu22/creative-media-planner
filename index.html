@@ -399,10 +399,15 @@
 
         .button-group {
             display: flex;
-            gap: 0.5rem;  /* Ultra-compact */
-            margin-top: 1rem;  /* Ultra-compact */
-            padding-top: 1rem;  /* Ultra-compact */
-            border-top: 1px solid var(--border);
+            gap: 0.5rem;
+            padding: 1rem;
+            background: white;
+            border-top: 2px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+            margin-top: 2rem;
         }
 
         button {
@@ -417,6 +422,8 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-primary {
@@ -729,6 +736,8 @@
             padding: 0.65rem 0.85rem;  /* Ultra-compact */
             border-radius: 6px;  /* Smaller */
             border: 1px solid var(--border);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .summary-label {
@@ -814,6 +823,8 @@
             padding: 0.75rem;  /* Very compact */
             margin-bottom: 0.75rem;  /* Tighter spacing */
             transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .package-card:hover {
@@ -952,15 +963,19 @@
         
         .column-left, .column-right {
             min-width: 0;  /* Prevent overflow */
+            background: #F8FAFB;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid #E2E8F0;
         }
         
         .column-header {
             font-weight: 600;
             font-size: 0.875rem;
-            color: var(--primary);
+            color: #1e293b;
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border);
+            border-bottom: 2px solid #CBD5E1;
         }
         
         @media (max-width: 1024px) {
@@ -1285,6 +1300,9 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
         .radio-option:hover {
@@ -2452,9 +2470,9 @@
                 </div>
 
                 <!-- Production & Talent Markup Section -->
-                <div id="talentMarkupSection" style="margin-bottom: 3rem;">
+                <div id="talentMarkupSection" style="margin-bottom: 3rem; background: #F8FAFB; padding: 1.25rem; border-radius: 8px; border: 1px solid #E2E8F0;">
                     <div style="margin: 0 0 1rem;">
-                        <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text); font-weight: 700;">Production & Talent</h2>
+                        <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: #1e293b; font-weight: 700;">Production & Talent</h2>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Production & Talent Markup (%) (☑ to edit)<br>Default is 25%. This determines the margin on production costs.</p>
                             <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
@@ -2485,30 +2503,30 @@
                     </div>
                 </div>
 
-                <div style="margin: 1.5rem 0 1rem;">
-                    <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text); font-weight: 700;">Media Placement Pricing & Premiums</h2>
-                    <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Set the CPM pricing and apply premiums for each placement</p>
-                </div>
+                <div style="background: #F8FAFB; padding: 1.25rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                    <div style="margin: 0 0 1rem;">
+                        <h2 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: #1e293b; font-weight: 700;">Media Placement Pricing & Premiums</h2>
+                        <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Set the CPM pricing and apply premiums for each placement</p>
+                    </div>
 
                 <div class="table-container">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Platform</th>
-                                <th>Media Type</th>
-                                <th>Handle Type</th>
-                                <th>Base Price CPM <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(☑ to edit)</span></th>
-                                <th>Premium (%)</th>
-                                <th>Final Price CPM</th>
-                                <th>Base Cost CPM <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(☑ to edit)</span></th>
-                                <th>Final Cost CPM</th>
-                                <th>Margin</th>
-                                <th>Impressions</th>
+                            <tr style="background: #475569 !important;">
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Platform</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Media Type</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Handle Type</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Final Price CPM</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Final Cost CPM</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Margin</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;">Impressions</th>
+                                <th style="background: #475569 !important; color: white !important; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px;"></th>
                             </tr>
                         </thead>
                         <tbody id="cpmPricingTable">
                         </tbody>
                     </table>
+                </div>
                 </div>
 
                 <div id="pricingTotals" style="margin-top: 1.5rem; padding: 1rem; background: var(--background); border-radius: 8px; border: 1px solid var(--border);"></div>
@@ -2553,7 +2571,8 @@
                     ℹ️ The tool uses inverse markup calculation: Cost = Investment / (1 + Markup%)
                 </div>
 
-                <h3 style="margin: 1.5rem 0 1rem; font-size: 1.1rem; color: var(--primary);">Production & Talent</h3>
+                <div style="background: #F8FAFB; padding: 1.25rem; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 2rem;">
+                    <h3 style="margin: 0 0 1rem; font-size: 1.1rem; color: #1e293b; font-weight: 600;">Production & Talent</h3>
                 
                 <div class="form-group">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
@@ -2593,8 +2612,10 @@
                         </tbody>
                     </table>
                 </div>
+                </div>
 
-                <h3 style="margin: 2rem 0 1rem; font-size: 1.1rem; color: var(--primary);">Media Placements</h3>
+                <div style="background: #F8FAFB; padding: 1.25rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                    <h3 style="margin: 0 0 1rem; font-size: 1.1rem; color: #1e293b; font-weight: 600;">Media Placements</h3>
 
                 <div class="table-container">
                     <table>
@@ -2612,6 +2633,7 @@
                         <tbody id="costMarginTable">
                         </tbody>
                     </table>
+                </div>
                 </div>
 
                 <div class="button-group">
@@ -5889,55 +5911,73 @@
                 const isCostEditing = allocation.isCostEditing || false;
                 
                 return `
-                    <tr>
-                        <td><strong>${allocation.platform}</strong></td>
-                        <td>${allocation.mediaType || 'N/A'}</td>
-                        <td>${handleType === 'paramount' ? 'Paramount' : 'Influencer'}</td>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox" 
-                                    ${isPriceEditing ? 'checked' : ''} 
-                                    onchange="togglePriceEdit(${allocation.id}, this.checked)"
-                                    style="width: auto; height: auto;">
-                                <input type="number" 
-                                    value="${allocation.cpmPrice.toFixed(2)}" 
-                                    step="0.01"
-                                    style="width: 100px; font-size: 0.875rem; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
-                                    ${isPriceEditing ? '' : 'disabled'}
-                                    onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
-                                    onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
+                    <tr style="background: white; border-bottom: 1px solid #e2e8f0; transition: background 0.2s;" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='white'">
+                        <td style="padding: 12px; font-weight: 600; color: #1e293b; font-size: 14px;">${allocation.platform}</td>
+                        <td style="padding: 12px; font-size: 14px;">${allocation.mediaType || 'N/A'}</td>
+                        <td style="padding: 12px; font-size: 14px;">${handleType === 'paramount' ? 'Paramount' : 'Influencer'}</td>
+                        <td style="padding: 12px; color: #0057B8; font-weight: 600; font-size: 14px;">$${finalCPM.toFixed(2)}</td>
+                        <td style="padding: 12px; color: #dc2626; font-weight: 600; font-size: 14px;">$${costCPM.toFixed(2)}</td>
+                        <td style="padding: 12px; font-size: 14px;">
+                            <div style="color: ${marginCPM >= 0 ? '#10b981' : '#ef4444'}; font-weight: 700;">
+                                $${marginCPM.toFixed(2)}
+                                <div style="font-size: 12px; font-weight: 500; margin-top: 2px;">(${marginPercent.toFixed(1)}%)</div>
                             </div>
                         </td>
-                        <td>
-                            <input type="text" value="${allocation.cpmPremium}" 
-                                style="width: 80px; font-size: 0.875rem;" 
-                                onchange="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)"
-                                onblur="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)">
+                        <td style="padding: 12px; font-size: 14px; font-weight: 500;">${formatImpressions(impressions)}</td>
+                        <td style="padding: 12px;">
+                            <button onclick="toggleCPMAdjustments(${allocation.id})" 
+                                    id="adjustBtn${allocation.id}"
+                                    style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; color: #475569; font-weight: 500;">
+                                ⚙️ Adjust
+                            </button>
                         </td>
-                        <td style="background: rgba(0, 40, 104, 0.05);"><span style="color: var(--primary);">$${finalCPM.toFixed(2)}</span></td>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="checkbox" 
-                                    ${isCostEditing ? 'checked' : ''} 
-                                    onchange="toggleCostEdit(${allocation.id}, this.checked)"
-                                    style="width: auto; height: auto;">
-                                <input type="number" 
-                                    value="${allocation.baseCostCPM.toFixed(2)}" 
-                                    step="0.01"
-                                    style="width: 100px; font-size: 0.875rem; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
-                                    ${isCostEditing ? '' : 'disabled'}
-                                    onchange="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)"
-                                    onblur="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)">
+                    </tr>
+                    <tr id="adjustRow${allocation.id}" style="display: none;">
+                        <td colspan="8" style="padding: 0; background: #f8fafb; border-bottom: 1px solid #e2e8f0;">
+                            <div style="padding: 16px 20px;">
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em; display: flex; align-items: center; gap: 6px;">
+                                            <input type="checkbox" 
+                                                ${isPriceEditing ? 'checked' : ''} 
+                                                onchange="togglePriceEdit(${allocation.id}, this.checked)"
+                                                style="width: 16px; height: 16px;">
+                                            Base Price CPM
+                                        </label>
+                                        <input type="number" 
+                                            value="${allocation.cpmPrice.toFixed(2)}" 
+                                            step="0.01"
+                                            style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                            ${isPriceEditing ? '' : 'disabled'}
+                                            onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em;">Premium (%)</label>
+                                        <input type="text" value="${allocation.cpmPremium}" 
+                                            style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500;" 
+                                            onchange="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em; display: flex; align-items: center; gap: 6px;">
+                                            <input type="checkbox" 
+                                                ${isCostEditing ? 'checked' : ''} 
+                                                onchange="toggleCostEdit(${allocation.id}, this.checked)"
+                                                style="width: 16px; height: 16px;">
+                                            Base Cost CPM
+                                        </label>
+                                        <input type="number" 
+                                            value="${allocation.baseCostCPM.toFixed(2)}" 
+                                            step="0.01"
+                                            style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
+                                            ${isCostEditing ? '' : 'disabled'}
+                                            onchange="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)">
+                                    </div>
+                                </div>
                             </div>
                         </td>
-                        <td style="background: rgba(239, 68, 68, 0.05);"><span style="color: var(--primary);">$${costCPM.toFixed(2)}</span></td>
-                        <td>
-                            <div style="color: ${marginCPM >= 0 ? '#10b981' : '#ef4444'};">
-                                <strong>$${marginCPM.toFixed(2)}</strong>
-                                <div style="font-size: 0.75rem;">(${marginPercent.toFixed(1)}%)</div>
-                            </div>
-                        </td>
-                        <td>${formatImpressions(impressions)}</td>
                     </tr>
                 `;
             }).join('');
@@ -6009,6 +6049,19 @@
             if (allocation) {
                 allocation.isCostEditing = checked;
                 setupCPMPricing();  // Re-render
+            }
+        }
+        
+        function toggleCPMAdjustments(id) {
+            const adjustRow = document.getElementById('adjustRow' + id);
+            const btn = document.getElementById('adjustBtn' + id);
+            
+            if (adjustRow.style.display === 'none') {
+                adjustRow.style.display = 'table-row';
+                btn.textContent = '▲ Close';
+            } else {
+                adjustRow.style.display = 'none';
+                btn.textContent = '⚙️ Adjust';
             }
         }
 
@@ -6564,31 +6617,30 @@
                 ? (totalCPVInvestment / totalViews)
                 : 0;
             
-            // Build summary cards HTML with reversed gradient (light to dark) and no icon
+            // Build summary cards HTML with gray-blue unified design
             let summaryHTML = `
-                <div style="background: linear-gradient(135deg, #F0F7FF 0%, #0057B8 100%); padding: 1rem 1.25rem; border-radius: 12px 12px 0 0; margin: -2rem -2rem 0 -2rem; box-shadow: 0 2px 8px rgba(0, 87, 184, 0.15);">
-                    <div>
-                        <h3 style="margin: 0; color: #003366; font-size: 1.1rem; font-weight: 700;">Package Summary</h3>
-                        <p style="margin: 0.25rem 0 0 0; color: #003366; font-size: 0.8rem; opacity: 0.8;">Combined totals across all packages in this version</p>
+                <div style="background: linear-gradient(to right, #E2E8F0 0%, #F1F5F9 100%); padding: 1rem 1.25rem; border-radius: 8px; margin: 0 0 1.5rem 0; border: 2px solid #CBD5E1; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);">
+                    <div style="margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem; font-weight: 700;">Package Summary</h3>
+                        <p style="margin: 0.25rem 0 0 0; color: #475569; font-size: 0.85rem;">Combined totals across all ${packages.length} package${packages.length !== 1 ? 's' : ''} in this version</p>
                     </div>
-                </div>
-                <div class="summary-grid" style="margin-top: 1.5rem;">
-                <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <div class="summary-label" style="color: var(--primary); font-weight: 600;">Total Price</div>
-                    <div class="summary-value" style="font-size: 0.9rem; font-weight: 700;">$${formatNumber(totalPrice)}</div>
+                <div class="summary-grid">
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Price</div>
+                    <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalPrice)}</div>
                 </div>
             `;
             
             // Add impressions card (only show if there are CPM packages)
             if (totalImpressions > 0) {
                 summaryHTML += `
-                    <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <div class="summary-label" style="color: var(--primary); font-weight: 600;">Total Impressions</div>
-                        <div class="summary-value accent" style="font-size: 0.9rem; font-weight: 700;">${formatImpressions(totalImpressions)}</div>
+                    <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                        <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Impressions</div>
+                        <div class="summary-value accent" style="font-size: 18px; font-weight: 700; color: var(--accent); margin-top: 6px;">${formatImpressions(totalImpressions)}</div>
                     </div>
-                    <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <div class="summary-label" style="color: var(--primary); font-weight: 600;">Overall CPM</div>
-                        <div class="summary-value" style="font-size: 0.9rem; font-weight: 700;">${overallCPM > 0 ? '$' + overallCPM.toFixed(2) : 'N/A'}</div>
+                    <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                        <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Overall CPM</div>
+                        <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">${overallCPM > 0 ? '$' + overallCPM.toFixed(2) : 'N/A'}</div>
                     </div>
                 `;
             }
@@ -6596,30 +6648,30 @@
             // Add views and CPV cards (only if there are CPV packages)
             if (hasCPVPackages && totalViews > 0) {
                 summaryHTML += `
-                    <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <div class="summary-label" style="color: var(--primary); font-weight: 600;">Total Views</div>
-                        <div class="summary-value accent" style="font-size: 0.9rem; font-weight: 700;">${formatImpressions(totalViews)}</div>
+                    <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                        <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Views</div>
+                        <div class="summary-value accent" style="font-size: 18px; font-weight: 700; color: var(--accent); margin-top: 6px;">${formatImpressions(totalViews)}</div>
                     </div>
-                    <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <div class="summary-label" style="color: var(--primary); font-weight: 600;">Overall CPV</div>
-                        <div class="summary-value" style="font-size: 0.9rem; font-weight: 700;">${overallCPV > 0 ? '$' + overallCPV.toFixed(2) : 'N/A'}</div>
+                    <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                        <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Overall CPV</div>
+                        <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">${overallCPV > 0 ? '$' + overallCPV.toFixed(2) : 'N/A'}</div>
                     </div>
                 `;
             }
             
             // Add remaining cards
             summaryHTML += `
-                <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <div class="summary-label" style="color: var(--primary); font-weight: 600;">Total Cost</div>
-                    <div class="summary-value" style="font-size: 0.9rem; font-weight: 700;">$${formatNumber(totalCost)}</div>
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Cost</div>
+                    <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalCost)}</div>
                 </div>
-                <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <div class="summary-label" style="color: var(--primary); font-weight: 600;">Total Margin</div>
-                    <div class="summary-value success" style="font-size: 0.9rem; font-weight: 700;">$${formatNumber(totalMarginDollar)}</div>
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Margin</div>
+                    <div class="summary-value success" style="font-size: 18px; font-weight: 700; color: var(--success); margin-top: 6px;">$${formatNumber(totalMarginDollar)}</div>
                 </div>
-                <div class="summary-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <div class="summary-label" style="color: var(--primary); font-weight: 600;">Margin %</div>
-                    <div class="summary-value success" style="font-size: 0.9rem; font-weight: 700;">${totalMarginPercent.toFixed(3)}%</div>
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Margin %</div>
+                    <div class="summary-value success" style="font-size: 18px; font-weight: 700; color: var(--success); margin-top: 6px;">${totalMarginPercent.toFixed(3)}%</div>
                 </div>
                 </div>
             `;
@@ -6728,12 +6780,12 @@
                     }
                     
                     return `
-                        <div style="margin-bottom: 1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                <strong style="font-size: 1.1rem; color: var(--primary);">${labels[key]}</strong>
-                                ${countText ? `<span class="badge badge-primary">${countText}</span>` : ''}
+                        <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.95); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.5);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0;">
+                                <strong style="font-size: 15px; color: #0057B8; font-weight: 600;">${labels[key]}</strong>
+                                ${countText ? `<span class="badge" style="padding: 4px 10px; background: rgba(0, 87, 184, 0.1); color: #0057B8; border-radius: 4px; font-size: 11px; font-weight: 500;">${countText}</span>` : ''}
                             </div>
-                            <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                            <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
                                 ${key === 'addedvalue' ? `
                                     <div class="summary-card">
                                         <div class="summary-label">Client Price</div>
@@ -6791,11 +6843,12 @@
                 }).join('');
             
             if (categoryHTML) {
-                document.getElementById('investmentCategoryBreakdown').innerHTML = `
-                    <div style="background: rgba(59, 130, 246, 0.05); padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 1px 3px rgba(59, 130, 246, 0.08);">
+                // Append breakdown to the summary HTML (integrate inside the gray-blue container)
+                const breakdownHTML = `
+                    <div style="margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid #CBD5E1;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                            <h3 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 700;">Investment Category Breakdown</h3>
-                            <button class="btn-secondary btn-sm" onclick="toggleCategoryBreakdown()" id="toggleCategoryBtn">
+                            <h4 style="margin: 0; font-size: 14px; color: #1e293b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Investment Category Breakdown</h4>
+                            <button class="btn-secondary btn-sm" onclick="toggleCategoryBreakdown()" id="toggleCategoryBtn" style="background: white; border: 1px solid #94A3B8; color: #475569;">
                                 ▼ Show Details
                             </button>
                         </div>
@@ -6804,13 +6857,28 @@
                         </div>
                     </div>
                 `;
+                // Inject the breakdown into the summary container by updating the HTML
+                document.getElementById('versionSummaryOverall').innerHTML = summaryHTML.replace('</div>', breakdownHTML + '</div>');
             } else {
-                document.getElementById('investmentCategoryBreakdown').innerHTML = '';
+                // No breakdown to show
+                document.getElementById('versionSummaryOverall').innerHTML = summaryHTML;
             }
             
             // Display individual packages
             const container = document.getElementById('packagesList');
-            container.innerHTML = packages.map((pkg, index) => {
+            
+            // Add section header for packages
+            let packagesHTML = `
+                <div style="margin: 2.5rem 0 1.5rem 0; padding-bottom: 0.75rem; border-bottom: 2px solid #e2e8f0;">
+                    <h3 style="margin: 0; color: #334155; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">📦</span>
+                        Individual Packages
+                        <span style="font-size: 0.875rem; font-weight: 500; color: #64748b; margin-left: 0.25rem;">(${packages.length})</span>
+                    </h3>
+                </div>
+            `;
+            
+            packagesHTML += packages.map((pkg, index) => {
                 const hasMedia = pkg.platformAllocations && pkg.platformAllocations.length > 0;
                 const hasTalent = (pkg.talentInvestment || 0) > 0;
                 const isSimplePackage = ['streaming', 'fees', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type);
@@ -7265,6 +7333,8 @@
                     ` : ''}
                 </div>
             `}).join('');
+            
+            container.innerHTML = packagesHTML;
         }
 
         // Event delegation for package action buttons
@@ -11830,10 +11900,10 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             
             return `
                 <div class="summary-card" data-line-item="${idx}" style="padding: 1.25rem; border: 2px solid var(--border); position: relative;">
-                    <button onclick="deleteLineItem(${idx})" style="position: absolute; top: 1rem; right: 1rem; background: var(--danger); color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                        🗑️ Delete
+                    <button onclick="deleteLineItem(${idx})" class="btn-danger btn-sm" style="position: absolute; top: 1rem; right: 1rem;">
+                        × Delete
                     </button>
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; padding-right: 5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; padding-right: 7rem;">
                         <div style="flex: 1;">
                             <div style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
                                 ${item.platform || 'Line Item ' + (idx + 1)}${item.package ? ' - ' + item.package : ''}
