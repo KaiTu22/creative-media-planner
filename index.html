@@ -1541,6 +1541,11 @@
                     <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
+                    <input type="url" id="mediaPlanLink" placeholder="https://drive.google.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
                 <div class="button-group">
                     <button class="btn-secondary" id="projectFormCancelBtn" onclick="cancelNewProject()">Cancel</button>
                     <button class="btn-primary" id="projectFormSaveBtn" onclick="createProject()">Create Project</button>
@@ -1595,6 +1600,11 @@
                 <div style="margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
                     <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
+                    <input type="url" id="editMediaPlanLink" placeholder="https://drive.google.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -4047,6 +4057,7 @@
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
                             ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none;" onclick="event.stopPropagation();">🔗 Salesforce</a>` : ''}
+                            ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none;" onclick="event.stopPropagation();">📄 Media Plan</a>` : ''}
                             <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
                             <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate</button>
                             <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
@@ -4072,6 +4083,7 @@
             const campaignStartDate = document.getElementById('campaignStartDate').value;
             const campaignEndDate = document.getElementById('campaignEndDate').value;
             const salesforceLink = document.getElementById('salesforceLink').value;
+            const mediaPlanLink = document.getElementById('mediaPlanLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -4087,6 +4099,7 @@
                 campaignStartDate,
                 campaignEndDate,
                 salesforceLink,
+                mediaPlanLink,
                 versions: [],
                 createdAt: new Date().toISOString()
             };
@@ -4102,6 +4115,7 @@
             document.getElementById('campaignStartDate').value = '';
             document.getElementById('campaignEndDate').value = '';
             document.getElementById('salesforceLink').value = '';
+            document.getElementById('mediaPlanLink').value = '';
 
             displayProjects();
             showScreen('screen-0');
@@ -4149,6 +4163,7 @@
             document.getElementById('editCampaignStartDate').value = currentProject.campaignStartDate || '';
             document.getElementById('editCampaignEndDate').value = currentProject.campaignEndDate || '';
             document.getElementById('editSalesforceLink').value = currentProject.salesforceLink || '';
+            document.getElementById('editMediaPlanLink').value = currentProject.mediaPlanLink || '';
             
             showScreen('screen-0-6');
         }
@@ -4167,6 +4182,7 @@
             const campaignStartDate = document.getElementById('editCampaignStartDate').value;
             const campaignEndDate = document.getElementById('editCampaignEndDate').value;
             const salesforceLink = document.getElementById('editSalesforceLink').value;
+            const mediaPlanLink = document.getElementById('editMediaPlanLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -4181,6 +4197,7 @@
             currentProject.campaignStartDate = campaignStartDate;
             currentProject.campaignEndDate = campaignEndDate;
             currentProject.salesforceLink = salesforceLink;
+            currentProject.mediaPlanLink = mediaPlanLink;
 
             saveProjects();
             
@@ -7963,6 +7980,9 @@
             if (currentProject.salesforceLink) {
                 summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
             }
+            if (currentProject.mediaPlanLink) {
+                summaryData.push(['Media Plan Link:', currentProject.mediaPlanLink]);
+            }
             summaryData.push([]);
             summaryData.push(['OVERALL TOTALS']);
             summaryData.push(['Metric', 'Value']);
@@ -9814,6 +9834,9 @@
             if (currentProject?.salesforceLink) {
                 projectInfo.push(['Salesforce Link:', currentProject.salesforceLink]);
             }
+            if (currentProject?.mediaPlanLink) {
+                projectInfo.push(['Media Plan Link:', currentProject.mediaPlanLink]);
+            }
             
             doc.autoTable({
                 startY: yPos,
@@ -11639,41 +11662,70 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             // Convert worksheet to JSON to analyze
             const range = XLSX.utils.decode_range(ws['!ref']);
             
-            // Find the table header row - first look for a row containing known header keywords,
-            // then fall back to the row with the most non-empty cells
-            const HEADER_KEYWORDS = ['platform', 'package', 'description', 'cost method', 'cpm', 'cpv', 'rate', 'quantity', 'net cost', 'gross cost', 'flight', 'size'];
+            // Find the table header row using a 3-tier strategy:
+            // 1. Look for a row containing 'PLATFORM' or 'PLATFORM / BRAND' as a cell value (definitive anchor)
+            // 2. Look for a row with 2+ known header keywords that are NOT metadata keywords
+            // 3. Fall back to the row with the most non-empty cells
+            
+            const HEADER_KEYWORDS = ['cost method', 'cpm', 'cpv', 'rate', 'quantity', 'net cost', 'gross cost', 'flight', 'size'];
+            const METADATA_KEYWORDS = ['pricing', 'notes', 'package info', 'key contacts', 'guidelines', 'requirements', 'investment', 'strategy', 'contacts', 'incumbents', 'restrictions', 'expiration', 'lead time', 'available', 'sponsor logo', 'internal', 'costs and margin'];
+            
             let headerRow = -1;
+            let keywordHeaderRow = -1;
             let maxNonEmpty = 0;
             let maxNonEmptyRow = -1;
             
-            for (let R = range.s.r; R <= Math.min(range.s.r + 50, range.e.r); R++) {
+            for (let R = range.s.r; R <= Math.min(range.s.r + 60, range.e.r); R++) {
                 let nonEmpty = 0;
                 let keywordMatches = 0;
+                let isMetadataRow = false;
+                let hasPlatformBrand = false;
+                
                 for (let C = range.s.c; C <= range.e.c; C++) {
                     const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
                     const cell = ws[cellAddress];
                     if (cell && cell.v && String(cell.v).trim() !== '') {
                         nonEmpty++;
                         const cellText = String(cell.v).toLowerCase().trim();
+                        
+                        // Tier 1: Check for definitive PLATFORM / BRAND anchor
+                        if (cellText === 'platform / brand' || cellText === 'platform/brand' || cellText === 'platform') {
+                            hasPlatformBrand = true;
+                        }
+                        
+                        // Tier 2: Count keyword matches (excluding 'package' and 'description' which appear in metadata)
                         if (HEADER_KEYWORDS.some(kw => cellText.includes(kw))) {
                             keywordMatches++;
                         }
+                        
+                        // Check if this row looks like a metadata row
+                        if (METADATA_KEYWORDS.some(kw => cellText.includes(kw))) {
+                            isMetadataRow = true;
+                        }
                     }
                 }
-                // Prefer a row that matches 2+ known header keywords
-                if (keywordMatches >= 2 && headerRow === -1) {
+                
+                // Tier 1: PLATFORM / BRAND anchor wins immediately
+                if (hasPlatformBrand && headerRow === -1) {
                     headerRow = R;
+                    break; // This is definitely the header row
                 }
-                if (nonEmpty > maxNonEmpty && nonEmpty >= 5) {
+                
+                // Tier 2: Multiple header keywords and not a metadata row
+                if (keywordMatches >= 2 && !isMetadataRow && keywordHeaderRow === -1) {
+                    keywordHeaderRow = R;
+                }
+                
+                // Tier 3: Track max non-empty for fallback
+                if (nonEmpty > maxNonEmpty && nonEmpty >= 5 && !isMetadataRow) {
                     maxNonEmpty = nonEmpty;
                     maxNonEmptyRow = R;
                 }
             }
             
-            // Fall back to max non-empty row if no keyword match found
-            if (headerRow === -1) {
-                headerRow = maxNonEmptyRow;
-            }
+            // Apply tier fallbacks
+            if (headerRow === -1) headerRow = keywordHeaderRow;
+            if (headerRow === -1) headerRow = maxNonEmptyRow;
             
             if (headerRow === -1) {
                 customAlert('Could not detect table headers. Please check your file format.');
