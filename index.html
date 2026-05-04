@@ -860,6 +860,25 @@
             transition: all 0.2s;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            position: relative; /* Required for stretched-link overlay */
+        }
+
+        /* Stretched-link overlay: makes the entire card clickable */
+        /* Buttons sit above this via position:relative + z-index */
+        .package-card .card-click-target::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 0;
+        }
+
+        /* All interactive elements inside the card sit above the overlay */
+        .package-card button,
+        .package-card a {
+            position: relative;
+            z-index: 1;
         }
 
         .package-card:hover {
@@ -4063,23 +4082,24 @@
                 }
                 
                 return `
-                <div class="package-card" style="cursor: pointer;">
+                <div class="package-card">
                     <div class="package-header">
-                        <div onclick="selectProject(${index})" style="flex: 1; cursor: pointer;">
+                        <button class="card-click-target" onclick="selectProject(${index})" style="position:absolute; inset:0; width:100%; height:100%; background:none; border:none; cursor:pointer; border-radius:8px; z-index:0;" aria-label="Open ${escapeHtml(project.projectName)}"></button>
+                        <div style="flex: 1; pointer-events: none;">
                             <div class="package-title">${project.projectName}</div>
                             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
                                 ${brandLine}${dateLine ? '<br>' + dateLine : ''}${exportLine}
                             </p>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; position: relative; z-index: 1;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
-                                ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : ''}
-                                ${project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : ''}
-                                ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : ''}
-                                <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
-                                <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
-                                <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                                ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : ''}
+                                ${project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : ''}
+                                ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : ''}
+                                <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
+                                <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
+                                <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
                             </div>
                         </div>
                     </div>
@@ -4599,7 +4619,11 @@
                 
                 // Route to sponsorship setup if sponsorship selected
                 if (packageType === 'sponsorship') {
-                    clearSponsorshipScreen(); // Clear previous data
+                    // Only clear if we're not already mid-sponsorship setup (e.g. coming from screen-1 fresh)
+                    // Don't clear if we already have a title set (returning from screen-2 back to screen-1)
+                    if (!currentPackage.title) {
+                        clearSponsorshipScreen();
+                    }
                     showScreen('screen-1-sponsorship');
                     return;
                 }
@@ -4743,7 +4767,12 @@
             const packageType = currentPackage.type;
             
             if (step === 2) {
-                showScreen('screen-1');
+                // Sponsorship came from screen-1-sponsorship, not screen-1
+                if (packageType === 'sponsorship') {
+                    showScreen('screen-1-sponsorship');
+                } else {
+                    showScreen('screen-1');
+                }
             } else if (step === 3) {
                 // From CPM Pricing (3), go back to Setup & Distribution (2)
                 showScreen('screen-2');
@@ -11695,8 +11724,11 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             currentPackage.sponsorshipType = sponsorshipType;
             
             if (sponsorshipType === 'simple') {
-                // Simple sponsorship - proceed to normal flow (CPM entry)
+                // Simple sponsorship - proceed to normal flow
                 setupPackageDetails();
+                // Pre-populate screen-2 fields with data already entered on screen-1-sponsorship
+                document.getElementById('packageTitle').value = currentPackage.title || '';
+                document.getElementById('totalInvestment').value = currentPackage.totalInvestment || '';
                 showScreen('screen-2');
             } else {
                 // Detailed sponsorship - check file uploaded
