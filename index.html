@@ -254,7 +254,9 @@
         }
 
         .card-header h2 {
-            font-family: 'Inter', sans-serif; font-weight: 700;
+            font-family: 'PeakSans', sans-serif;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
             font-size: 1.1rem;  /* Ultra-compact */
             color: var(--primary);
             font-weight: 400;
@@ -390,8 +392,8 @@
 
         .radio-option:hover,
         .checkbox-option:hover {
-            border-color: var(--accent);
-            background: rgba(59, 130, 246, 0.02);
+            border-color: #000a3c;
+            background: rgba(0,10,60,0.03);
         }
 
         .radio-option input:checked + label,
@@ -851,7 +853,7 @@
 
         .package-card {
             background: var(--surface);
-            border: 1px solid var(--border);  /* Thinner */
+            border: 2px solid #cbd5e1;
             border-radius: 8px;  /* Smaller radius */
             padding: 0.75rem;  /* Very compact */
             margin-bottom: 0.75rem;  /* Tighter spacing */
@@ -873,10 +875,12 @@
         }
 
         .package-title {
-            font-size: 1rem;  /* Much smaller */
-            font-weight: 600;
+            font-size: 1.15rem;
+            font-weight: 700;
             color: var(--primary);
-            font-family: 'Inter', sans-serif; font-weight: 700;
+            font-family: 'PeakSans', sans-serif;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
         }
 
         .grid-2 {
@@ -1339,9 +1343,12 @@
         }
 
         .radio-option:hover {
-            border-color: var(--primary);
-            background: var(--background);
+            border-color: #000a3c;
+            background: rgba(0,10,60,0.03);
         }
+
+        .radio-option input[type="radio"]:focus {
+            box-shadow: none;
 
         .radio-option input[type="radio"] {
             margin-right: 0.75rem;
@@ -1542,8 +1549,13 @@
                 </div>
 
                 <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Budget Sheet (Optional)</label>
+                    <input type="url" id="budgetSheetLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
+                <div style="margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
-                    <input type="url" id="mediaPlanLink" placeholder="https://drive.google.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                    <input type="url" id="mediaPlanLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -1603,8 +1615,13 @@
                 </div>
 
                 <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Budget Sheet (Optional)</label>
+                    <input type="url" id="editBudgetSheetLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
+                <div style="margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
-                    <input type="url" id="editMediaPlanLink" placeholder="https://drive.google.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                    <input type="url" id="editMediaPlanLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -1779,7 +1796,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="btn-secondary" onclick="displayVersionSummary(); showScreen('screen-6');">← Back to Package Summary</button>
+                    <button class="btn-secondary" onclick="displayVersionSummary(); showScreen('screen-6');">← Back to Plan Summary</button>
                     <button class="btn-primary" onclick="nextStep(1)">Next: Package Details →</button>
                 </div>
             </div>
@@ -1968,7 +1985,7 @@
                 <div style="margin-top: 2rem; padding: 1.5rem; background: var(--surface); border-radius: 8px; border: 2px solid var(--primary);">
                     <h3 style="margin: 0 0 1rem 0; color: var(--primary);">Overall Summary</h3>
                     
-                    <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 1rem;">
+                    <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 1rem;">
                         <div class="summary-card">
                             <div class="summary-label">Total Price</div>
                             <div class="summary-value" id="sponsorshipTotalPrice">$0</div>
@@ -2440,7 +2457,7 @@
                                         </div>
                                         <div class="radio-option" style="flex: 1;">
                                             <input type="radio" id="mediaTypePercent" name="mediaType" value="percent" checked onchange="updateInvestmentSplit()">
-                                            <label for="mediaTypePercent">Percentage</label>
+                                            <label for="mediaTypePercent">% Percentage</label>
                                         </div>
                                     </div>
                                 </div>
@@ -2761,7 +2778,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 id="summaryPackageTitle" style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Package Summary</h2>
+                    <h2 id="summaryPackageTitle" style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Plan Summary</h2>
                     <p>Complete breakdown of pricing, costs, and margins</p>
                 </div>
 
@@ -2771,7 +2788,7 @@
 
                 <h3 style="margin: 1rem 0 0.75rem; font-size: 1rem; color: var(--primary); font-weight: 700;">Overall Totals</h3>
                 
-                <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
                     <div class="summary-card">
                         <div class="summary-label">Total Price</div>
                         <div class="summary-value" id="summaryTotalPrice">$0</div>
@@ -4046,21 +4063,24 @@
                 }
                 
                 return `
-                <div class="package-card" style="cursor: pointer;" onclick="if(!event.target.closest('button') && !event.target.closest('a')) selectProject(${index})">
+                <div class="package-card" style="cursor: pointer;">
                     <div class="package-header">
-                        <div style="flex: 1; cursor: pointer;">
+                        <div onclick="selectProject(${index})" style="flex: 1; cursor: pointer;">
                             <div class="package-title">${project.projectName}</div>
                             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
                                 ${brandLine}${dateLine ? '<br>' + dateLine : ''}${exportLine}
                             </p>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
-                            ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none;" onclick="event.stopPropagation();">🔗 Salesforce</a>` : ''}
-                            ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none;" onclick="event.stopPropagation();">📄 Media Plan</a>` : ''}
-                            <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
-                            <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate</button>
-                            <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
+                                ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : ''}
+                                ${project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : ''}
+                                ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : ''}
+                                <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
+                                <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
+                                <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4083,6 +4103,7 @@
             const campaignStartDate = document.getElementById('campaignStartDate').value;
             const campaignEndDate = document.getElementById('campaignEndDate').value;
             const salesforceLink = document.getElementById('salesforceLink').value;
+            const budgetSheetLink = document.getElementById('budgetSheetLink').value;
             const mediaPlanLink = document.getElementById('mediaPlanLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
@@ -4099,6 +4120,7 @@
                 campaignStartDate,
                 campaignEndDate,
                 salesforceLink,
+                budgetSheetLink,
                 mediaPlanLink,
                 versions: [],
                 createdAt: new Date().toISOString()
@@ -4115,6 +4137,7 @@
             document.getElementById('campaignStartDate').value = '';
             document.getElementById('campaignEndDate').value = '';
             document.getElementById('salesforceLink').value = '';
+            document.getElementById('budgetSheetLink').value = '';
             document.getElementById('mediaPlanLink').value = '';
 
             displayProjects();
@@ -4163,6 +4186,7 @@
             document.getElementById('editCampaignStartDate').value = currentProject.campaignStartDate || '';
             document.getElementById('editCampaignEndDate').value = currentProject.campaignEndDate || '';
             document.getElementById('editSalesforceLink').value = currentProject.salesforceLink || '';
+            document.getElementById('editBudgetSheetLink').value = currentProject.budgetSheetLink || '';
             document.getElementById('editMediaPlanLink').value = currentProject.mediaPlanLink || '';
             
             showScreen('screen-0-6');
@@ -4182,6 +4206,7 @@
             const campaignStartDate = document.getElementById('editCampaignStartDate').value;
             const campaignEndDate = document.getElementById('editCampaignEndDate').value;
             const salesforceLink = document.getElementById('editSalesforceLink').value;
+            const budgetSheetLink = document.getElementById('editBudgetSheetLink').value;
             const mediaPlanLink = document.getElementById('editMediaPlanLink').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
@@ -4197,6 +4222,7 @@
             currentProject.campaignStartDate = campaignStartDate;
             currentProject.campaignEndDate = campaignEndDate;
             currentProject.salesforceLink = salesforceLink;
+            currentProject.budgetSheetLink = budgetSheetLink;
             currentProject.mediaPlanLink = mediaPlanLink;
 
             saveProjects();
@@ -7032,30 +7058,47 @@
                                         <div class="summary-label">Cost</div>
                                         <div class="summary-value">$${formatNumber(cat.cost)}</div>
                                     </div>
-                                    <div class="summary-card">
-                                        <div class="summary-label">${key === 'creative' ? 'Overall Creative Margin' : 'Margin'}</div>
-                                        <div class="summary-value success">$${formatNumber(cat.margin)}</div>
-                                    </div>
-                                    <div class="summary-card">
-                                        <div class="summary-label">${key === 'creative' ? 'Overall Creative Margin %' : 'Margin %'}</div>
-                                        <div class="summary-value success">${marginPercent.toFixed(3)}%</div>
-                                    </div>
-                                    ${key === 'creative' ? (() => {
-                                        const mNF = cat.marginNoFees || 0;
-                                        const mNFPct = (cat.investmentNoFees || 0) > 0 ? (mNF / cat.investmentNoFees * 100) : 0;
-                                        return `
-                                            <div class="summary-card">
-                                                <div class="summary-label">Creative Margin w/o Fees</div>
-                                                <div class="summary-value success">$${formatNumber(mNF)}</div>
-                                            </div>
-                                            <div class="summary-card">
-                                                <div class="summary-label">Creative Margin w/o Fees %</div>
-                                                <div class="summary-value success">${mNFPct.toFixed(3)}%</div>
-                                            </div>
-                                        `;
-                                    })() : ''}
                                 `}
                             </div>
+                            ${key === 'creative' ? (() => {
+                                const mNF = cat.marginNoFees || 0;
+                                const mNFPct = (cat.investmentNoFees || 0) > 0 ? (mNF / cat.investmentNoFees * 100) : 0;
+                                const marginPercent2 = cat.investment > 0 ? ((cat.margin / cat.investment) * 100) : 0;
+                                return `
+                                    <div class="summary-grid" style="grid-template-columns: repeat(4, minmax(210px, 1fr)); margin-top: 0.5rem;">
+                                        <div class="summary-card">
+                                            <div class="summary-label" style="white-space: nowrap;">Overall Creative Margin $</div>
+                                            <div class="summary-value success">$${formatNumber(cat.margin)}</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label" style="white-space: nowrap;">Overall Creative Margin %</div>
+                                            <div class="summary-value success">${marginPercent2.toFixed(3)}%</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label" style="white-space: nowrap;">Creative Margin w/o Fees $</div>
+                                            <div class="summary-value success">$${formatNumber(mNF)}</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label" style="white-space: nowrap;">Creative Margin w/o Fees %</div>
+                                            <div class="summary-value success">${mNFPct.toFixed(3)}%</div>
+                                        </div>
+                                    </div>
+                                `;
+                            })() : (() => {
+                                const marginPercent3 = cat.investment > 0 ? ((cat.margin / cat.investment) * 100) : 0;
+                                return `
+                                    <div class="summary-grid" style="grid-template-columns: repeat(2, minmax(160px, 1fr)); margin-top: 0.5rem;">
+                                        <div class="summary-card">
+                                            <div class="summary-label">Margin</div>
+                                            <div class="summary-value success">$${formatNumber(cat.margin)}</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label">Margin %</div>
+                                            <div class="summary-value success">${marginPercent3.toFixed(3)}%</div>
+                                        </div>
+                                    </div>
+                                `;
+                            })()}
                         </div>
                     `;
                 }).join('');
@@ -7980,8 +8023,14 @@
             if (currentProject.salesforceLink) {
                 summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
             }
+            if (currentProject.budgetSheetLink) {
+                summaryData.push(['Budget Sheet:', currentProject.budgetSheetLink]);
+            }
             if (currentProject.mediaPlanLink) {
                 summaryData.push(['Media Plan Link:', currentProject.mediaPlanLink]);
+            }
+            if (currentProject.budgetSheetLink) {
+                summaryData.push(['Media Plan Link:', currentProject.budgetSheetLink]);
             }
             summaryData.push([]);
             summaryData.push(['OVERALL TOTALS']);
@@ -9834,8 +9883,14 @@
             if (currentProject?.salesforceLink) {
                 projectInfo.push(['Salesforce Link:', currentProject.salesforceLink]);
             }
+            if (currentProject?.budgetSheetLink) {
+                projectInfo.push(['Budget Sheet:', currentProject.budgetSheetLink]);
+            }
             if (currentProject?.mediaPlanLink) {
                 projectInfo.push(['Media Plan Link:', currentProject.mediaPlanLink]);
+            }
+            if (currentProject?.budgetSheetLink) {
+                projectInfo.push(['Media Plan Link:', currentProject.budgetSheetLink]);
             }
             
             doc.autoTable({
