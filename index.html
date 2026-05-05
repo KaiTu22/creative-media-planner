@@ -6934,6 +6934,10 @@
                     types: ['streaming', 'linear'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
                 },
+                tbdsponsorship: {
+                    types: [], // handled separately - simple sponsorships only
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
+                },
                 addedvalue: { 
                     types: ['added-value'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
@@ -6984,6 +6988,13 @@
                         }
                     });
                     // Don't break - we've handled all line items, continue to next package
+                } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                    // Simple sponsorship - TBD lump sum, not yet categorized
+                    categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                    categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                    categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                    categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                    categories.tbdsponsorship.count++;
                 } else {
                     // Regular package handling
                     for (const [key, category] of Object.entries(categories)) {
@@ -7029,7 +7040,8 @@
                         creative: 'Creative',
                         oo: 'O&O',
                         partnerships: 'Social Partnerships',
-                        addedvalue: 'Added Value'
+                        addedvalue: 'Added Value',
+                        tbdsponsorship: 'TBD Sponsorship'
                     };
                     
                     // Calculate display text for package count
@@ -7067,6 +7079,25 @@
                                     <div class="summary-card">
                                         <div class="summary-label">Margin</div>
                                         <div class="summary-value" style="color: var(--danger);">$${formatNumber(cat.margin)}</div>
+                                    </div>
+                                ` : key === 'tbdsponsorship' ? `
+                                    <div class="summary-card">
+                                        <div class="summary-label">Total Investment</div>
+                                        <div class="summary-value">$${formatNumber(cat.investment)}</div>
+                                    </div>
+                                    ${cat.impressions > 0 ? `
+                                        <div class="summary-card">
+                                            <div class="summary-label">Impressions</div>
+                                            <div class="summary-value accent">${formatImpressions(cat.impressions)}</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label">CPM</div>
+                                            <div class="summary-value">${cpm > 0 ? '$' + cpm.toFixed(2) : 'N/A'}</div>
+                                        </div>
+                                    ` : ''}
+                                    <div class="summary-card">
+                                        <div class="summary-label">Margin</div>
+                                        <div class="summary-value" style="color: var(--text-muted); font-style: italic;">TBD</div>
                                     </div>
                                 ` : `
                                     <div class="summary-card">
@@ -9004,6 +9035,11 @@
                      label: 'O&O', 
                      investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
                  },
+                 tbdsponsorship: {
+                     types: [],
+                     label: 'TBD Sponsorship',
+                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
+                 },
                  addedvalue: { 
                      types: ['added-value'], 
                      label: 'Added Value', 
@@ -9047,6 +9083,13 @@
                              }
                          }
                      });
+                 } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                     // Simple sponsorship - TBD lump sum
+                     categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                     categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                     categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                     categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                     categories.tbdsponsorship.count++;
                  } else {
                      // Regular package handling
                      for (const [key, cat] of Object.entries(categories)) {
@@ -9111,6 +9154,11 @@
                                     ${cat.mediaCost > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Media Cost</td><td style="padding: 0.5rem; text-align: right; color: var(--danger);">$${formatNumber(cat.mediaCost)}</td></tr>` : ''}
                                     ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right;">${formatImpressions(cat.impressions)}</td></tr>` : ''}
                                     ${cat.impressions > 0 && mediaCPM > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Media CPM</td><td style="padding: 0.5rem; text-align: right;">$${mediaCPM.toFixed(2)}</td></tr>` : ''}
+                                ` : cat.label === 'TBD Sponsorship' ? `
+                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 150px;">Total Investment</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
+                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right; color: var(--accent);">${formatImpressions(cat.impressions)}</td></tr>` : ''}
+                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">CPM</td><td style="padding: 0.5rem; text-align: right;">$${cpm.toFixed(2)}</td></tr>` : ''}
+                                    <tr><td style="padding: 0.5rem; color: var(--text-muted); font-style: italic;">Margin</td><td style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-style: italic;">TBD — package details pending</td></tr>
                                 ` : `
                                     <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 150px;">Investment</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
                                     ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right; color: var(--accent);">${formatImpressions(cat.impressions)}</td></tr>` : ''}
@@ -9972,6 +10020,7 @@
             const categories = {
                 creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0, investmentNoFees: 0, costNoFees: 0, marginNoFees: 0 },
                 oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                tbdsponsorship: { types: [], label: 'TBD Sponsorship', investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
@@ -10011,6 +10060,13 @@
                             }
                         }
                     });
+                } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                    // Simple sponsorship - TBD lump sum
+                    categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                    categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                    categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                    categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                    categories.tbdsponsorship.count++;
                 } else {
                     // Regular package handling
                     for (const [key, cat] of Object.entries(categories)) {
@@ -10091,6 +10147,13 @@
                                 catRows.push(['Media CPM', '$' + mediaCPM.toFixed(2)]);
                             }
                         }
+                    } else if (cat.label === 'TBD Sponsorship') {
+                        catRows.push(['Total Investment', '$' + formatNumber(cat.investment)]);
+                        if (cat.impressions > 0) {
+                            catRows.push(['Impressions', formatImpressions(cat.impressions)]);
+                            catRows.push(['CPM', '$' + cpm.toFixed(2)]);
+                        }
+                        catRows.push(['Margin', 'TBD — package details pending']);
                     } else {
                         // Regular categories
                         catRows.push(['Investment', '$' + formatNumber(cat.investment)]);
