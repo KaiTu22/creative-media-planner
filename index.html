@@ -860,6 +860,25 @@
             transition: all 0.2s;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            position: relative; /* Required for stretched-link overlay */
+        }
+
+        /* Stretched-link overlay: makes the entire card clickable */
+        /* Buttons sit above this via position:relative + z-index */
+        .package-card .card-click-target::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 0;
+        }
+
+        /* All interactive elements inside the card sit above the overlay */
+        .package-card button,
+        .package-card a {
+            position: relative;
+            z-index: 1;
         }
 
         .package-card:hover {
@@ -1396,17 +1415,57 @@
 </head>
 <body>
     <div class="app-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 1.5rem; margin-left: 1.5rem;">
-            <div style="cursor: pointer;" onclick="navigateToProjectsHome()">
-                <div style="font-family: 'ParamountVistaSans', 'Fjalla One', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.08em; color: #001d48; white-space: nowrap;">MEDIA PLANNER</div>
+        <div style="display: flex; align-items: center; gap: 0; margin-left: -3.5rem;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; cursor: pointer;" onclick="navigateToProjectsHome()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1289.28 886" style="width: 110px; display: block;">
+                    <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #001d48;
+      }
+    </style>
+  </defs>
+  <g>
+    <path class="st0" d="M639.8,440.7c-3.04-1.13-7.88-6.75.36-22.48l19.1-40.09c.4-.64.2-1.49-.44-1.89-.44-.28-1.01-.28-1.45,0l-16.85,16.85c-7.88,8.24-21.29,31.48-23.97,35.95l-20.23,33.7c1.67.13,2.93,1.59,2.8,3.26-.02.29-.08.57-.19.84l-18.74,31.48c-4.5,7.88,3.74,13.11,4.87,11.22,29.23-47.2,46.44-43.46,46.44-43.46l9.73-22.84c.36-.76-.36-2.25-1.49-2.62"/>
+    <path class="st0" d="M706.49,45.83c-167.64.03-303.51,135.94-303.49,303.58.01,64.78,20.74,127.85,59.17,180.01,9.78-4.44,18.29-11.27,24.73-19.86l56.57-72.29c1.16-1.52,2.71-2.69,4.5-3.38l8.61-3.74,92.92-118.01,13.47-10.49,27.71-38.6c.68-1.05,1.57-1.94,2.62-2.62l11.98-8.61c3-2.26,7.13-2.26,10.13,0l14.6,10.13c7.79,5.43,14.07,12.76,18.25,21.29l59,103.23c.88,2.01,2.49,3.62,4.5,4.5,11.62,5.63,18.25,6.75,33.7,23.24,7.12,7.48,37.84,41.94,80.9,95.53,6.16,8.7,14.57,15.57,24.33,19.86,99.44-134.96,70.65-324.98-64.31-424.42-52.13-38.41-115.17-59.14-179.91-59.17M484.71,366.16l-19.86-6.36-11.98,16.85v-20.59l-19.86-6.36,19.86-6.36v-20.74l11.98,16.85,19.86-6.36-11.98,16.88,11.98,16.18ZM480.21,433.95l-6.36,19.86-6.36-19.86h-20.53l16.85-11.98-6.36-19.86,16.85,11.98,16.85-11.98-6.36,19.86,16.85,11.98h-21.44ZM483.95,276.98l6.36,19.86-16.85-11.98-16.85,11.98,6.36-19.86-16.85-11.98h20.59l6.36-19.86,6.36,19.86h20.59l-16.06,11.98ZM517.41,232.39l-11.98-16.85-19.86,6.36,11.98-16.85-11.98-16.85,19.86,6.36,11.98-16.85v20.59l19.86,6.36-19.86,6.36v21.38ZM569.11,160.1l-6.57,19.89-6.36-19.86h-20.59l16.85-11.98-6.36-19.86,16.85,11.98,16.85-11.98-6.36,19.86,16.85,11.98-21.17-.03ZM634.29,126.64l-11.98,16.85v-20.59l-19.86-6.36,19.86-6.36v-20.59l11.98,16.85,19.86-6.36-11.98,16.85,11.98,16.85-19.86-7.15ZM717.08,107.91l6.36,19.86-16.94-11.98-16.88,12.17,6.36-19.86-16.85-11.98h20.59l6.39-19.86,6.36,19.86h20.59l-15.97,11.8ZM791.26,122.9v20.59l-11.98-16.85-19.86,6.36,11.98-16.85-11.98-16.85,19.86,6.36,11.98-16.85v20.89l19.86,6.36-19.86,6.84ZM928.37,332.76l19.86,6.36,11.98-16.85v20.59l19.86,6.36-19.86,6.36v20.59l-11.98-16.85-19.86,6.36,11.98-16.85-11.98-16.06ZM850.44,179.93l-6.36-19.86h-20.59l16.85-11.98-6.36-19.86,16.85,11.98,16.85-11.98-6.36,19.86,16.85,11.98h-20.62l-7.12,19.86ZM895.76,232.36v-20.59l-19.95-6.33,19.86-6.36v-20.59l11.98,16.85,19.86-6.36-11.98,16.85,11.98,16.85-19.86-6.36-11.89,16.03ZM933.23,264.97l6.36-19.86,6.36,19.86h20.59l-16.94,12.01,6.36,19.86-16.85-11.98-16.85,11.98,6.36-19.86-16.85-11.98,21.47-.03ZM945.76,433.95l-6.36,19.86-6.36-19.86h-20.59l16.85-11.98-6.36-19.86,16.85,11.98,16.85-11.98-6.36,19.86,16.85,11.98h-21.38Z"/>
+    <path class="st0" d="M816.62,524.98c1.49-2.25,3.74-7.88-.76-18.74l-13.47-35.95c-1.89-4.5,2.25-7.48,4.87-4.5,0,0,25.49,29.23,31.84,41.58l12.35,20.59c10.86.76,40.45,1.49,69.31,1.49-2.93-2.85-5.57-5.99-7.88-9.37-48.66-60.83-79.78-94.28-80.17-94.28-5.8-7.25-13.44-12.81-22.11-16.12-1.13-.36-2.25-1.13-3.38-1.49v9.37c.01.69-.54,1.26-1.23,1.27-.4,0-.78-.18-1.02-.51l-71.93-126.25-.36-.36c-2.98-5.95-7.35-11.1-12.74-14.99l-7.12-4.87-34.09,79.08c4.13.05,7.44,3.45,7.38,7.58-.01,1-.23,2-.63,2.91l-31.48,72.99h29.23c11.18,0,22.24,2.17,32.6,6.36l7.48,3.04s-23.24,47.57-23.24,72.66c.08,4.55.71,9.08,1.89,13.47h53.19l-2.62-14.99c.76-.36,32.6,7.12,64.05,10.13"/>
+  </g>
+  <path class="st0" d="M411.66,609.26c0-53.95-56.94-79.78-125.12-79.78-72.66,0-139.36,32.21-163.69,82.12-6.73,13.35-10.2,28.11-10.13,43.07-.34,12.86,3.18,25.52,10.13,36.35,10.49,15.21,29.23,25.09,56.57,25.09,33.7,0,60.31-18.25,60.31-50.58,0,0,.36-9.12-10.13-9.12-8.61,0-10.86,6.08-10.49,9.12,1.13,25.09-13.87,45.32-40.45,45.32-29.96,0-42.34-25.49-42.34-52.43,0-55.45,41.94-92.52,85.4-108.64,20.32-7.8,41.95-11.61,63.72-11.22,49.45,0,89.9,19.1,89.9,69.68,0,42.34-35.58,78.65-78.29,81.66l1.89-5.63c8.61-31.08,19.47-65.18,37.08-90.66,1.44-2.25,3.07-4.38,4.87-6.36l-2.62-3.04c-3.74,2.25-7.12,4.87-10.86,7.48-81.66,63.69-84.28,243.5-193.28,243.5-3.74,0-7.48-.36-11.22-.76-22.9-3.89-34.82-19.1-34.82-40.09,0-4.11,1.49-10.13,1.49-13.11.15-6.05-4.63-11.07-10.67-11.22-.06,0-.12,0-.19,0h-.36c-9.73,0-13.87,7.88-13.87,18.74-.76,31.84,22.84,50.18,58.82,53.56,4.11.36,7.88.36,12.35.36,85.16,0,137.11-64.42,159.22-142.34,11.36-1.25,22.57-3.63,33.46-7.12,38.96-10.86,83.55-37.47,83.55-83.91"/>
+  <path class="st0" d="M1221.92,627.99h-29.96l-6.75,15.72-11.62,26.58h-13.87l-4.11,9.12h14.6l-17.64,38.57c-12.35,27.37-31.84,53.95-43.07,53.95-2.62,0-4.11-1.13-4.11-3.38s.76-4.87,3.38-11.62c3.38-8.24,9.37-20.23,13.47-28.83,6.36-12.74,16.12-32.6,16.12-42.34s-6.36-17.61-18.25-17.61c-13.87,0-26.22,8.24-37.84,20.23l7.48-17.97h-28.1l-22.84,52.43c-9.37,18.25-28.1,49.06-39.72,49.06-2.62,0-3.38-1.49-3.38-4.11.28-2.21.92-4.35,1.89-6.36,1.13-2.25,14.6-34.46,14.6-34.46l25.09-56.94h-30.41l-24.33,55.45c-7.48,17.24-26.58,46.44-38.6,46.44-1.92.32-3.74-.98-4.06-2.9-.03-.16-.04-.32-.05-.48v-1.13c.62-4.33,2.02-8.51,4.11-12.35l12.74-28.1,26.22-56.94h-30.41l-6.08,13.11c-4.5,8.61-11.98,19.1-23.97,19.1-5.63,0-8.61-2.25-9.73-4.5-1.89-19.1-13.87-29.59-31.84-29.59-25.09,0-42.58,14.6-54.32,32.6-7.8,12.35-13.85,25.71-17.97,39.72-10.86,17.61-22.11,31.48-31.08,31.48-2.25,0-3.74-1.13-3.74-4.11.8-4.28,2.18-8.44,4.11-12.35l19.86-41.94c5.63-13.11,9.37-21.29,9.37-29.96s-6.36-15.21-16.48-15.21c-14.23,0-29.59,8.24-41.94,21.72.31-2.1.43-4.23.36-6.36,0-10.13-4.87-15.21-15.21-15.21-13.11,0-26.58,7.88-38.6,21.72l7.88-19.47h-27.37l-23.24,52.43c-10.86,24.73-28.83,49.06-38.6,49.06-2.25,0-3.74-1.13-3.74-4.11,0-4.87,5.23-16.48,7.12-21.29l30.72-69.68c2.25-5.23-12.35-8.61-31.08-8.61s-38.96,9.37-53.19,21.72c-10.13,8.61-17.61,12.74-21.29,12.74-1.89,0-2.62-1.13-2.62-2.25,0-4.11,10.13-16.12,10.13-25.49,0-4.11-2.25-7.12-7.88-7.12-10.86,0-23.97,10.49-33.46,21.29l7.88-19.1h-26.95l-23.24,52.43c-10.86,24.73-29.23,50.58-39.33,50.58-2.25,0-3.74-1.13-3.74-4.11,0-4.87,4.87-16.12,7.88-22.11l30.72-69.68c2.25-5.23-12.35-8.61-31.08-8.61-27.71,0-54.75,18.74-68.92,37.84-15.72,20.59-26.58,42.58-26.58,60.83-.36,14.6,7.12,23.6,22.11,23.6,16.85,0,30.41-13.11,37.84-23.24-.36,1.89-.76,4.11-1.13,6.08,0,10.13,4.11,17.24,16.12,17.24,10.86,0,25.09-9.12,36.35-23.24l-9.37,21.29h29.23l28.83-65.18c9.37-21.29,20.23-32.21,23.24-32.21,1.13,0,1.49.36,1.49,1.13,0,2.25-4.5,8.24-4.5,13.87s3.04,9.73,10.86,9.73c7.03-.51,13.77-2.97,19.47-7.12-14.6,19.86-24.73,40.85-24.73,58.06-.36,14.6,7.12,23.6,22.11,23.6s30.41-14.99,38.6-25.09c-.32,2.36-.44,4.74-.36,7.12,0,9.73,5.63,17.97,16.85,17.97,12.35,0,22.48-7.88,34.82-22.84l-9.37,20.99h30.08l27.37-62.2c11.98-26.98,28.1-41.58,36.35-41.58,2.04-.23,3.87,1.24,4.1,3.28,0,.03,0,.06,0,.1v.76c-.3,3.01-1.19,5.94-2.62,8.61l-39.33,91.03h30.72l28.1-63.32c11.98-27.37,25.09-40.45,35.22-40.45,3.04,0,4.11,1.49,4.11,4.87-.29,3.5-1.18,6.92-2.62,10.13l-27.13,56.66c-2.59,5.54-4.11,11.51-4.5,17.61,0,8.61,4.87,16.48,18.25,16.48,17.61,0,30.72-13.11,45.62-32.97v4.11c1.13,15.72,10.13,29.59,33.46,29.59,27.37,0,49.45-19.1,62.93-49.06,5.05-10.63,8.34-22.01,9.73-33.7,3,1.55,6.37,2.21,9.73,1.89,4.58-.01,9.09-1.17,13.11-3.38l-4.87,10.13c-5.63,11.62-11.62,24.33-16.12,34.82-3.05,6.34-4.82,13.21-5.23,20.23,0,10.86,6.08,18.25,18.25,18.25s28.83-11.62,40.85-27.71h.36c-.74,3.32-1.12,6.72-1.13,10.13,0,9.12,2.62,17.61,15.21,17.61,14.6,0,25.85-10.49,36.71-23.6l-9.37,20.99h30.41l24.33-54.75c13.87-31.08,27.37-49.45,40.09-49.45,2.13-.14,3.96,1.48,4.1,3.61,0,.04,0,.09,0,.13v.76c0,5.23-7.48,19.47-14.23,33.7-6.36,13.11-10.86,22.84-14.23,30.72-3.05,6.46-4.82,13.46-5.23,20.59,0,9.37,5.23,16.85,16.85,16.85,17.61,0,35.22-16.85,44.59-29.59-2.24,6.12-3.38,12.58-3.38,19.1,0,17.61,10.49,26.22,25.09,26.22,9.84-.2,19.38-3.39,27.37-9.12,11.62-7.88,20.59-19.86,28.47-31.08l-5.23-4.87c-6.48,9.79-14.45,18.51-23.6,25.85-4.29,3.6-9.62,5.73-15.21,6.08-6.36,0-10.13-3.38-10.13-11.22s3.74-18.74,9.37-33.46c.36-.36,8.61-18.74,16.12-36.35,6.36-14.99,13.11-29.59,14.23-32.6h19.86l4.11-9.12h-19.47l16.58-42.67ZM370.93,771.85c-4.11,0-7.12-1.49-7.12-7.12.36-14.6,12.35-40.85,27.71-61.8,10.86-14.6,24.73-25.09,39.72-25.09l-19.1,42.34c-14.23,31.84-29.59,51.7-41.21,51.7M557.49,771.88c-3.59.52-6.92-1.97-7.44-5.56-.07-.52-.09-1.04-.04-1.56.36-14.6,12.35-40.85,27.71-61.8,10.86-14.6,24.73-25.09,39.72-25.09l-19.1,42.34c-14.23,32.6-28.83,51.7-40.85,51.7M889.01,689.49c-.76,16.12-14.99,55.45-31.84,78.65-6.75,9.37-12.35,12.35-17.61,12.35-7.12,0-9.12-5.63-7.88-14.23,1.49-14.6,13.87-49.06,30.72-72.66,7.88-10.86,13.11-15.21,19.1-15.21s7.48,4.87,7.48,11.22"/>
+  <g>
+    <path class="st0" d="M270.7,885.17v-1.6c3.67-.46,4.2-.92,3.44-3.15-.76-2.23-1.92-5.32-3.2-8.81h-12.41c-.93,2.57-1.81,4.98-2.56,7.38-1.28,3.6-.76,4.18,3.61,4.58v1.6h-12.65v-1.6c3.67-.51,4.49-.86,6.53-5.89l12.06-30.03,1.81-.51c3.61,9.84,7.52,20.7,11.25,30.66,1.86,4.92,2.62,5.43,6.41,5.78v1.6h-14.28ZM264.99,854.57h-.12c-1.86,4.92-3.73,9.89-5.48,14.58h10.72l-5.13-14.58Z"/>
+    <path class="st0" d="M335.48,856.69c-1.05-3.66-2.56-7.61-7.63-7.61-4.49,0-6.47,3.2-6.47,6.29,0,4.17,2.8,6.12,7.4,8.46,4.55,2.29,10.08,4.98,10.08,11.38,0,6-5.19,10.81-12.94,10.81-2.39,0-4.25-.46-5.71-.86-1.46-.51-2.33-.92-2.86-1.2-.47-1.2-1.22-6.12-1.57-8.87l1.69-.4c.93,3.49,3.55,9.27,9.56,9.27,4.37,0,6.99-2.69,6.99-6.86s-3.21-6.23-7.58-8.52c-3.73-1.95-9.62-4.8-9.62-11.27,0-5.49,4.49-10.18,12-10.18,2.68,0,5.13.63,7.34,1.32.23,2.06.52,4.29.99,7.89l-1.69.34Z"/>
+    <path class="st0" d="M377.64,885.17c-4.49-4.98-9.21-10.58-14.45-16.64-1.34-1.54-2.16-1.77-3.15-1.6v10.87c0,5.03.58,5.43,5.36,5.78v1.6h-15.15v-1.6c4.43-.34,4.95-.74,4.95-5.78v-22.36c0-5.2-.52-5.49-5.13-5.83v-1.6h15.03v1.6c-4.49.34-5.07.74-5.07,5.83v10.01c1.28-.34,2.45-1.14,4.08-2.63,3.2-3.03,7.17-6.98,9.79-10.12,1.69-2.06,1.69-2.63-.99-2.92l-1.28-.17v-1.6h13.99v1.6c-4.43.4-5.77.97-9.5,4.29-2.21,2-6.35,6.06-10.31,10.01,4.43,5.38,10.78,12.47,13.69,15.56,3.09,3.26,4.25,3.78,7.11,4.12v1.6h-8.97Z"/>
+    <path class="st0" d="M429.68,849.6c-4.02.46-4.66,1.03-6.93,4.52-2.62,4.18-4.6,7.49-7.4,12.53-.76,1.49-.93,2.12-.93,3.6v7.78c0,4.8.47,5.2,5.83,5.55v1.6h-16.49v-1.6c5.19-.34,5.71-.69,5.71-5.55v-7.61c0-1.14-.23-1.66-1.22-3.37-2.04-3.55-4.14-7.26-7.34-12.58-2.33-3.89-2.97-4.52-6.47-4.86v-1.6h13.93v1.6c-4.14.51-4.02,1.2-2.91,3.09,2.45,4.58,5.3,9.27,7.81,13.56,2.16-3.78,5.3-9.38,6.94-12.87,1.34-2.86,1.17-3.32-3.38-3.77v-1.6h12.88v1.6Z"/>
+    <path class="st0" d="M455.91,847.99c7.4,0,12.88,1.49,16.49,4.86,2.86,2.75,4.9,6.92,4.9,12.3,0,6.86-2.68,11.95-7.17,15.27-4.37,3.32-10.14,4.75-17.31,4.75h-13.81v-1.54c5.01-.34,5.48-.69,5.48-5.55v-22.94c0-4.92-.47-5.15-4.95-5.49v-1.66h16.38ZM449.5,877.68c0,4.35,1.92,5.43,6.18,5.43,10.9,0,15.91-8.01,15.91-17.16,0-5.89-2.21-10.98-6.88-13.67-2.62-1.66-6-2.35-9.91-2.35-2.45,0-3.96.29-4.55.69-.58.4-.76,1.03-.76,3.26v23.79Z"/>
+    <path class="st0" d="M509.35,885.17v-1.6c3.67-.46,4.2-.92,3.44-3.15-.76-2.23-1.92-5.32-3.21-8.81h-12.41c-.93,2.57-1.81,4.98-2.56,7.38-1.28,3.6-.76,4.18,3.61,4.58v1.6h-12.65v-1.6c3.67-.51,4.49-.86,6.53-5.89l12.06-30.03,1.81-.51c3.61,9.84,7.52,20.7,11.25,30.66,1.86,4.92,2.62,5.43,6.41,5.78v1.6h-14.28ZM503.64,854.57h-.12c-1.86,4.92-3.73,9.89-5.48,14.58h10.72l-5.13-14.58Z"/>
+    <path class="st0" d="M573.17,849.6c-3.26.17-4.66.91-4.9,3.43-.23,1.72-.35,4.29-.35,9.61v23.05h-1.81l-24.83-29.97h-.12v14.36c0,5.26.18,8.01.35,9.67.29,2.92,1.63,3.6,5.59,3.83v1.6h-13.81v-1.6c3.38-.17,4.84-.92,5.13-3.72.17-1.77.35-4.52.35-9.78v-12.58c0-4.17-.12-4.4-1.17-5.78-1.17-1.43-2.45-1.89-5.19-2.12v-1.6h8.62l24.3,28.71h.17v-14.07c0-5.26-.23-7.89-.41-9.49-.29-2.57-1.69-3.32-5.71-3.55v-1.6h13.75v1.6Z"/>
+    <path class="st0" d="M620.91,875.73c-.82,2.63-2.27,6.86-3.32,8.75-1.63.4-6.53,1.54-10.72,1.54-14.51,0-20.86-9.84-20.86-18.93,0-12.01,9.44-19.96,22.44-19.96,4.72,0,8.68,1.26,10.31,1.54.47,3.26.82,5.55,1.17,8.64l-1.75.4c-1.52-6.06-5.01-8.52-11.31-8.52-9.73,0-14.92,8.06-14.92,16.76,0,10.7,6.41,18.02,15.27,18.02,5.94,0,9.09-3.15,12-8.87l1.69.63Z"/>
+    <path class="st0" d="M659.7,876.13c-.35,1.89-1.52,7.26-2.04,9.04h-28.09v-1.6c5.3-.4,5.77-.86,5.77-5.49v-22.76c0-5.15-.47-5.32-5.01-5.72v-1.6h25.99c0,1.43.29,5.32.47,8.24l-1.69.29c-.52-2.4-1.11-3.66-1.86-4.92-.82-1.2-2.39-1.6-6.58-1.6h-4.43c-1.81,0-1.92.11-1.92,1.83v12.98h5.48c5.24,0,5.54-.46,6.29-4.29h1.69v10.98h-1.69c-.76-4.12-1.17-4.46-6.24-4.46h-5.54v10.81c0,2.69.35,3.89,1.4,4.63,1.11.69,3.15.74,6.06.74,4.43,0,6.06-.46,7.34-1.95.99-1.14,2.1-3.09,2.86-5.38l1.75.23Z"/>
+    <path class="st0" d="M725.69,875.73c-.82,2.63-2.27,6.86-3.32,8.75-1.63.4-6.53,1.54-10.72,1.54-14.51,0-20.86-9.84-20.86-18.93,0-12.01,9.44-19.96,22.44-19.96,4.72,0,8.68,1.26,10.31,1.54.47,3.26.82,5.55,1.17,8.64l-1.75.4c-1.52-6.06-5.01-8.52-11.31-8.52-9.73,0-14.92,8.06-14.92,16.76,0,10.7,6.41,18.02,15.27,18.02,5.94,0,9.09-3.15,12.01-8.87l1.69.63Z"/>
+    <path class="st0" d="M775.13,866.12c0,12.35-8.8,19.9-19.46,19.9s-18.94-8.06-18.94-19.05c0-10.3,7.34-19.85,19.58-19.85,9.91,0,18.82,7.55,18.82,18.99ZM742.67,865.38c0,10.75,6,18.59,14.22,18.59,6.47,0,12.3-5.32,12.3-16.3,0-12.07-6.41-18.47-14.04-18.47-6.53,0-12.47,5.49-12.47,16.19Z"/>
+    <path class="st0" d="M821.92,885.63c-.7,0-1.34,0-2.04-.06-4.37-.23-6.82-1.49-9.44-5.2-2.04-2.8-4.14-6.35-5.89-9.15-.99-1.6-1.98-2.29-5.01-2.29h-1.86v9.09c0,4.86.52,5.2,5.19,5.55v1.6h-15.33v-1.6c4.78-.34,5.3-.69,5.3-5.55v-22.99c0-4.86-.47-5.03-5.01-5.43v-1.6h14.45c4.25,0,7.11.51,9.32,1.94,2.33,1.49,3.85,4.06,3.85,7.49,0,4.92-3.09,7.95-7.4,9.78.99,1.89,3.44,5.72,5.19,8.29,2.1,2.97,3.32,4.46,4.72,5.95,1.57,1.72,2.91,2.35,4.2,2.69l-.23,1.49ZM800.47,867.04c2.97,0,4.89-.46,6.35-1.6,2.27-1.72,3.21-4,3.21-7.09,0-6.18-4.14-8.47-8.57-8.47-1.69,0-2.68.23-3.15.57-.41.29-.64.97-.64,2.52v14.07h2.8Z"/>
+    <path class="st0" d="M844.94,847.99c4.14,0,7.46.69,9.79,2.4,2.27,1.66,3.79,4.29,3.79,8.06,0,7.38-5.71,10.98-11.36,11.73-.87.06-1.98.06-2.62,0l-4.31-1.09v8.98c0,4.86.53,5.15,5.77,5.49v1.6h-15.79v-1.6c4.66-.34,5.13-.8,5.13-5.55v-22.88c0-5.03-.47-5.26-4.78-5.55v-1.6h14.39ZM840.22,867.21c.76.29,2.33.69,4.25.69,3.79,0,8.45-2,8.45-9.27,0-6.18-4.02-8.81-8.8-8.81-1.63,0-2.86.29-3.26.69-.47.4-.64,1.09-.64,2.69v14.01Z"/>
+    <path class="st0" d="M908.11,866.12c0,12.35-8.8,19.9-19.46,19.9s-18.94-8.06-18.94-19.05c0-10.3,7.34-19.85,19.58-19.85,9.91,0,18.82,7.55,18.82,18.99ZM875.65,865.38c0,10.75,6,18.59,14.22,18.59,6.47,0,12.3-5.32,12.3-16.3,0-12.07-6.41-18.47-14.04-18.47-6.53,0-12.47,5.49-12.47,16.19Z"/>
+    <path class="st0" d="M954.02,885.63c-.7,0-1.34,0-2.04-.06-4.37-.23-6.82-1.49-9.44-5.2-2.04-2.8-4.14-6.35-5.89-9.15-.99-1.6-1.98-2.29-5.01-2.29h-1.86v9.09c0,4.86.52,5.2,5.19,5.55v1.6h-15.33v-1.6c4.78-.34,5.3-.69,5.3-5.55v-22.99c0-4.86-.47-5.03-5.01-5.43v-1.6h14.45c4.25,0,7.11.51,9.32,1.94,2.33,1.49,3.85,4.06,3.85,7.49,0,4.92-3.09,7.95-7.4,9.78.99,1.89,3.44,5.72,5.19,8.29,2.1,2.97,3.32,4.46,4.72,5.95,1.57,1.72,2.91,2.35,4.2,2.69l-.23,1.49ZM932.57,867.04c2.97,0,4.89-.46,6.35-1.6,2.27-1.72,3.21-4,3.21-7.09,0-6.18-4.14-8.47-8.57-8.47-1.69,0-2.68.23-3.15.57-.41.29-.64.97-.64,2.52v14.07h2.8Z"/>
+    <path class="st0" d="M984.64,885.17v-1.6c3.67-.46,4.2-.92,3.44-3.15-.76-2.23-1.92-5.32-3.21-8.81h-12.41c-.93,2.57-1.81,4.98-2.56,7.38-1.28,3.6-.76,4.18,3.61,4.58v1.6h-12.65v-1.6c3.67-.51,4.49-.86,6.53-5.89l12.06-30.03,1.81-.51c3.61,9.84,7.52,20.7,11.25,30.66,1.87,4.92,2.62,5.43,6.41,5.78v1.6h-14.28ZM978.93,854.57h-.12c-1.86,4.92-3.73,9.89-5.48,14.58h10.72l-5.13-14.58Z"/>
+    <path class="st0" d="M1034.55,856.86c-.64-2.75-1.17-4.18-1.86-5.09-.93-1.37-1.92-1.77-6.29-1.77h-4.14v28.14c0,4.52.47,5.09,6,5.43v1.6h-16.72v-1.6c5.3-.34,5.77-.92,5.77-5.43v-28.14h-3.61c-4.84,0-6,.46-6.76,1.77-.7.97-1.17,2.57-1.86,5.09h-1.69c.29-3.43.58-7.15.7-10.3h1.17c.82,1.32,1.57,1.43,3.21,1.43h23.02c1.57,0,2.04-.34,2.97-1.43h1.22c0,2.63.29,6.81.58,10.12l-1.69.17Z"/>
+    <path class="st0" d="M1047.53,885.17v-1.6c4.78-.34,5.24-.69,5.24-5.55v-22.88c0-4.86-.47-5.2-5.24-5.55v-1.6h15.44v1.6c-4.78.34-5.24.69-5.24,5.55v22.88c0,4.92.47,5.2,5.24,5.55v1.6h-15.44Z"/>
+    <path class="st0" d="M1110.8,866.12c0,12.35-8.8,19.9-19.46,19.9s-18.94-8.06-18.94-19.05c0-10.3,7.34-19.85,19.58-19.85,9.91,0,18.82,7.55,18.82,18.99ZM1078.34,865.38c0,10.75,6,18.59,14.22,18.59,6.47,0,12.3-5.32,12.3-16.3,0-12.07-6.41-18.47-14.04-18.47-6.53,0-12.47,5.49-12.47,16.19Z"/>
+    <path class="st0" d="M1162.45,849.6c-3.26.17-4.66.91-4.9,3.43-.23,1.72-.35,4.29-.35,9.61v23.05h-1.81l-24.82-29.97h-.12v14.36c0,5.26.17,8.01.35,9.67.29,2.92,1.63,3.6,5.59,3.83v1.6h-13.81v-1.6c3.38-.17,4.84-.92,5.13-3.72.18-1.77.35-4.52.35-9.78v-12.58c0-4.17-.12-4.4-1.17-5.78-1.17-1.43-2.45-1.89-5.19-2.12v-1.6h8.63l24.3,28.71h.18v-14.07c0-5.26-.23-7.89-.41-9.49-.29-2.57-1.69-3.32-5.71-3.55v-1.6h13.75v1.6Z"/>
+  </g>
+  <rect class="st0" x="249.49" y="826.52" width="916.83" height="3.21"/>
+                </svg>
+                <div style="font-family: 'ParamountVistaSans', 'Fjalla One', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.06em; color: #001d48; margin-top: -0.3rem; white-space: nowrap; width: 310px; text-align: center;">MEDIA PLANNER</div>
             </div>
-            <div style="width: 2px; height: 50px; background: #000a3c; opacity: 0.25; flex-shrink: 0;"></div>
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.3rem;">
+            <div style="width: 2px; height: 85px; background: #000a3c; opacity: 0.25; flex-shrink: 0; margin: 0 1rem 0 -3.75rem;"></div>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.3rem; margin-left: 0.75rem;">
                 <span class="alpha-badge">[ALPHA]</span>
                 <p class="subtitle" style="margin: 0;">Proprietary Media Planning Tool</p>
             </div>
         </div>
-                <button id="projectsHomeBtn" class="btn-secondary" onclick="navigateToProjectsHome()" style="display: none;">
+        <button id="projectsHomeBtn" class="btn-secondary" onclick="navigateToProjectsHome()" style="display: none;">
             ← Projects Home
         </button>
     </div>
@@ -1428,6 +1487,7 @@
                 <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; padding-left: 1rem; padding-right: 1rem;">
                     <button class="btn-secondary" onclick="importProject()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Import Project</button>
                     <div style="flex: 1;"></div>
+                    <button class="btn-secondary" onclick="createProjectFolder()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg> New Folder</button>
                     <button class="btn-primary" onclick="showNewProjectForm()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid #d9dae2;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Create New Project</button>
                 </div>
             </div>
@@ -1467,7 +1527,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none;">
                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                        <input type="text" id="projectSearch" placeholder="Search projects..." oninput="displayProjects()"
+                        <input type="text" id="projectSearch" placeholder="Search projects, brands, agencies..." oninput="displayProjects()"
                             style="width: 100%; padding: 0.6rem 0.75rem 0.6rem 2.5rem; border: 2px solid var(--border); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s;">
                     </div>
                 </div>
@@ -1620,6 +1680,7 @@
                     <div style="flex: 1;"></div>
                     <button id="exportProjectBtn" class="btn-success" onclick="exportProject()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; color: #ffffff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Export Project</button>
                     <button class="btn-primary" onclick="createNewVersion()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid #d9dae2; margin-right: 1rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Create New Version</button>
+                    <button class="btn-secondary" onclick="createNewFolder()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 1rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg> New Folder</button>
                 </div>
             </div>
             
@@ -1646,6 +1707,17 @@
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Version Search -->
+                <div style="margin-bottom: 0.75rem;">
+                    <div style="position: relative;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" id="versionSearch" placeholder="Search versions by name or notes..." oninput="displayVersions()"
+                            style="width: 100%; padding: 0.6rem 0.75rem 0.6rem 2.5rem; border: 2px solid var(--border); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s;">
                     </div>
                 </div>
 
@@ -1728,7 +1800,7 @@
                     <div class="radio-option" onclick="document.getElementById('packageStreaming').click();">
                         <input type="radio" id="packageStreaming" name="packageType" value="streaming">
                         <label for="packageStreaming">
-                            <strong>Streaming Video</strong>
+                            <strong>Paramount Streaming</strong>
                             <span class="hint">O&O Media - Streaming placements (100% margin)</span>
                         </label>
                     </div>
@@ -2193,7 +2265,7 @@
                                 <option value="">Select Type</option>
                                 <option value="talent">Talent and Production</option>
                                 <option value="distribution">Paid Distribution</option>
-                                <option value="streaming">Streaming Video</option>
+                                <option value="streaming">Paramount Streaming</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -2265,7 +2337,7 @@
                             </div>
                         </div>
                         
-                        <!-- Streaming Video Fields -->
+                        <!-- Paramount Streaming Fields -->
                         <div id="addedValueStreamingFields" style="display: none;">
                             <div class="form-group">
                                 <label>Impressions <span class="required">*</span></label>
@@ -2415,17 +2487,6 @@
                                 <input type="text" id="packageTitleComplex" placeholder="e.g., Summer Influencer Campaign" required>
                             </div>
 
-                            <div class="form-group" id="packageTypeDropdownSection" style="display: none;">
-                                <label>Package Type</label>
-                                <select id="packageTypeDropdown">
-                                    <option value="">Select Package Type</option>
-                                    <option value="influencer-paramount-produced">Influencer - Paramount Produced</option>
-                                    <option value="influencer-hybrid">Influencer - Hybrid</option>
-                                    <option value="influencer-talent-captured">Influencer - Talent Captured</option>
-                                    <option value="branded-content">Branded Content</option>
-                                </select>
-                            </div>
-
                             <div class="form-group">
                                 <label>Total Package Investment <span class="required">*</span>
                                 </label>
@@ -2496,9 +2557,9 @@
                                 </select>
                             </div>
                             
-                            <!-- Production Fee Presentation (Influencer & Branded Content) -->
+                            <!-- Production Presentation (Influencer & Branded Content) -->
                             <div id="productionPresentationSection" class="form-group" style="margin-top: 1.5rem; display: none;">
-                                <label>Production Fee Presentation (Optional)</label>
+                                <label>Production Presentation (Optional)</label>
                                 <select id="productionPresentation">
                                     <option value="">Select Presentation</option>
                                     <option value="broken-out">Broken Out</option>
@@ -2868,7 +2929,6 @@
                     <button class="btn-secondary" onclick="backToVersions()" style="padding: 0.6rem 1.25rem 0.6rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem; margin-left: 1rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to Versions</button>
                     <div style="flex: 1;"></div>
                     <button id="viewSummaryBtn" class="btn-accent" onclick="viewVersionSummary()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid #000a3c;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:relative;top:-1px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> View Summary</button>
-                    <button id="exportProjectBtn" class="btn-success" onclick="exportProject()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; color: #ffffff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Export Project</button>
                     <div style="flex: 1;"></div>
                     <button class="btn-primary" onclick="addAnotherPackage()" style="padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid #d9dae2; margin-right: 1rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Package</button>
                 </div>
@@ -4015,108 +4075,9 @@
             }
         }
 
-        function displayProjects() {
-            // Data status banner removed - using per-project export only
-            
-            const container = document.getElementById('projectsList');
-            
-            if (projects.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📁</div>
-                        <p>No projects yet. Create your first project to get started.</p>
-                    </div>
-                `;
-                updateSortButtons();
-                return;
-            }
-
-            // Build sorted index list
-            let sortedIndices = projects.map((_, i) => i);
-            if (projectSortOrder === 'alpha') {
-                sortedIndices.sort((a, b) => projects[a].projectName.localeCompare(projects[b].projectName));
-            } else if (projectSortOrder === 'date') {
-                sortedIndices.sort((a, b) => new Date(projects[b].createdAt || 0) - new Date(projects[a].createdAt || 0));
-            }
-
-            // Filter by search query
-            const searchEl = document.getElementById('projectSearch');
-            const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
-            if (query) {
-                sortedIndices = sortedIndices.filter(i => {
-                    const p = projects[i];
-                    return (p.projectName || '').toLowerCase().includes(query) ||
-                           (p.brandName || '').toLowerCase().includes(query) ||
-                           (p.subBrandName || '').toLowerCase().includes(query) ||
-                           (p.agencyName || '').toLowerCase().includes(query);
-                });
-            }
-
-            if (sortedIndices.length === 0) {
-                container.innerHTML = `<div class="empty-state"><p>No projects match "${escapeHtml(query)}".</p></div>`;
-                updateSortButtons();
-                return;
-            }
-
-            container.innerHTML = sortedIndices.map((index, sortedPos) => {
-                const project = projects[index];
-                // Build brand line with sub-brand
-                const brandLine = project.subBrandName 
-                    ? `${project.brandName} • ${project.subBrandName} • ${project.agencyName}`
-                    : `${project.brandName} • ${project.agencyName}`;
-                
-                // Build date line - show only if dates exist
-                let dateLine = '';
-                if (project.campaignStartDate && project.campaignEndDate) {
-                    dateLine = `${new Date(project.campaignStartDate).toLocaleDateString()} - ${new Date(project.campaignEndDate).toLocaleDateString()}`;
-                } else if (project.campaignStartDate) {
-                    dateLine = `Start: ${new Date(project.campaignStartDate).toLocaleDateString()}`;
-                } else if (project.campaignEndDate) {
-                    dateLine = `End: ${new Date(project.campaignEndDate).toLocaleDateString()}`;
-                }
-                
-                // Build export timestamp line
-                let exportLine = '';
-                if (project.lastExportedAt) {
-                    const exportDate = new Date(project.lastExportedAt);
-                    exportLine = `<br><span style="color: var(--success-dark); font-size: 0.8rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;position:relative;top:-1px;margin-right:2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Last exported: ${exportDate.toLocaleDateString()} at ${exportDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>`;
-                }
-
-                const manualButtons = projectSortOrder === 'manual' ? `
-                    <div style="display: flex; flex-direction: column; gap: 2px; margin-right: 0.25rem;">
-                        <button onclick="event.stopPropagation(); moveProject(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem; line-height: 1;" title="Move up">▲</button>
-                        <button onclick="event.stopPropagation(); moveProject(${index}, 1)" ${index === projects.length - 1 ? 'disabled' : ''} class="btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem; line-height: 1;" title="Move down">▼</button>
-                    </div>` : '';
-                
-                return `
-                <div class="package-card" style="cursor: pointer;">
-                    <div class="package-header">
-                        <div onclick="selectProject(${index})" style="flex: 1; cursor: pointer;">
-                            <div class="package-title">${project.projectName}</div>
-                            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-                                ${brandLine}${dateLine ? '<br>' + dateLine : ''}${exportLine}
-                            </p>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                ${manualButtons}
-                                <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
-                                ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : ''}
-                                ${project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : ''}
-                                ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : ''}
-                                <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
-                                <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
-                                <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-
-            updateSortButtons();
-        }
-
+        // ── Project sort & folder state ──
         let projectSortOrder = localStorage.getItem('projectSortOrder') || 'date';
+        let collapsedProjectFolders = {};
 
         function setProjectSort(order) {
             projectSortOrder = order;
@@ -4148,6 +4109,251 @@
             projects[newIndex] = temp;
             saveProjects();
             displayProjects();
+        }
+
+        function toggleProjectFolder(folderId) {
+            collapsedProjectFolders[folderId] = !collapsedProjectFolders[folderId];
+            displayProjects();
+        }
+
+        function createProjectFolder() {
+            showRename('Name this folder:', 'New Folder', (name) => {
+                if (!name || !name.trim()) return;
+                if (!window.projectFolders) window.projectFolders = JSON.parse(localStorage.getItem('projectFolders') || '[]');
+                window.projectFolders.push({ id: 'pfolder_' + Date.now(), name: name.trim(), createdAt: new Date().toISOString() });
+                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                displayProjects();
+            }, 'Create Project Folder', 'Create');
+        }
+
+        function renameProjectFolder(folderId) {
+            if (!window.projectFolders) return;
+            const folder = window.projectFolders.find(f => f.id === folderId);
+            if (!folder) return;
+            showRename('Rename folder:', folder.name, (name) => {
+                if (!name || !name.trim()) return;
+                folder.name = name.trim();
+                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                displayProjects();
+            }, 'Rename Folder', 'Save');
+        }
+
+        function deleteProjectFolder(folderId) {
+            if (!window.projectFolders) return;
+            const folder = window.projectFolders.find(f => f.id === folderId);
+            if (!folder) return;
+            const count = projects.filter(p => p.projectFolderId === folderId).length;
+            const msg = count > 0
+                ? `Delete folder "${folder.name}"? The ${count} project${count !== 1 ? 's' : ''} inside will be moved to Uncategorized.`
+                : `Delete folder "${folder.name}"?`;
+            showConfirm(msg, (confirmed) => {
+                if (!confirmed) return;
+                projects.forEach(p => { if (p.projectFolderId === folderId) p.projectFolderId = null; });
+                window.projectFolders = window.projectFolders.filter(f => f.id !== folderId);
+                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                delete collapsedProjectFolders[folderId];
+                saveProjects();
+                displayProjects();
+            });
+        }
+
+        function moveProjectToFolder(projectIndex, folderId) {
+            if (projects[projectIndex]) {
+                projects[projectIndex].projectFolderId = folderId === '__none__' ? null : folderId || null;
+                saveProjects();
+                displayProjects();
+            }
+        }
+
+        function renderProjectCard(project, index, folders, query) {
+            const brandLine = project.subBrandName
+                ? `${project.brandName} • ${project.subBrandName} • ${project.agencyName}`
+                : `${project.brandName} • ${project.agencyName}`;
+
+            let dateLine = '';
+            if (project.campaignStartDate && project.campaignEndDate) {
+                dateLine = `${new Date(project.campaignStartDate).toLocaleDateString()} - ${new Date(project.campaignEndDate).toLocaleDateString()}`;
+            } else if (project.campaignStartDate) {
+                dateLine = `Start: ${new Date(project.campaignStartDate).toLocaleDateString()}`;
+            } else if (project.campaignEndDate) {
+                dateLine = `End: ${new Date(project.campaignEndDate).toLocaleDateString()}`;
+            }
+
+            let exportLine = '';
+            if (project.lastExportedAt) {
+                const exportDate = new Date(project.lastExportedAt);
+                exportLine = `<br><span style="color: var(--success-dark); font-size: 0.8rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;position:relative;top:-1px;margin-right:2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Last exported: ${exportDate.toLocaleDateString()} at ${exportDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>`;
+            }
+
+            const manualButtons = projectSortOrder === 'manual' ? `
+                <div style="display: flex; flex-direction: column; gap: 2px; margin-right: 0.25rem; position:relative; z-index:1;">
+                    <button onclick="event.stopPropagation(); moveProject(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem; line-height: 1;" title="Move up">▲</button>
+                    <button onclick="event.stopPropagation(); moveProject(${index}, 1)" ${index === projects.length - 1 ? 'disabled' : ''} class="btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem; line-height: 1;" title="Move down">▼</button>
+                </div>` : '';
+
+            const folderOptions = folders.map(f =>
+                `<option value="${f.id}" ${project.projectFolderId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`
+            ).join('');
+
+            const folderSelect = folders.length > 0 ? `
+                <select onchange="moveProjectToFolder(${index}, this.value)" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-muted); cursor: pointer; max-width: 110px; position:relative; z-index:1;" title="Move to folder">
+                    <option value="">📁 Move to...</option>
+                    <option value="__none__" ${!project.projectFolderId ? 'disabled' : ''}>No folder</option>
+                    ${folderOptions}
+                </select>` : '';
+
+            // Version search — show matching version names if query matches versions
+            let versionMatchHtml = '';
+            if (query && project.versions) {
+                const matchingVersions = project.versions.filter(v =>
+                    (v.name || '').toLowerCase().includes(query) ||
+                    (v.notes || '').toLowerCase().includes(query)
+                );
+                if (matchingVersions.length > 0) {
+                    versionMatchHtml = `<div style="margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                        ${matchingVersions.map(v => `<span style="font-size: 0.72rem; padding: 2px 7px; background: #EFF6FF; color: #1D4ED8; border-radius: 10px; border: 1px solid #BFDBFE;">📄 ${escapeHtml(v.name || 'Untitled version')}</span>`).join('')}
+                    </div>`;
+                }
+            }
+
+            return `
+                <div class="package-card" style="margin-bottom: 0.5rem;">
+                    <div class="package-header">
+                        <button class="card-click-target" onclick="selectProject(${index})" style="position:absolute; inset:0; width:100%; height:100%; background:none; border:none; cursor:pointer; border-radius:8px; z-index:0;" aria-label="Open ${escapeHtml(project.projectName)}"></button>
+                        <div style="flex: 1; pointer-events: none;">
+                            <div class="package-title">${project.projectName}</div>
+                            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                                ${brandLine}${dateLine ? '<br>' + dateLine : ''}${exportLine}
+                            </p>
+                            ${versionMatchHtml}
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; position: relative; z-index: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                ${manualButtons}
+                                <span class="badge badge-primary">${project.versions.length} version${project.versions.length !== 1 ? 's' : ''}</span>
+                                ${project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : ''}
+                                ${project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : ''}
+                                ${project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration: none; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; line-height: 1.25; box-sizing: border-box; font-family: inherit; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : ''}
+                                ${folderSelect}
+                                <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
+                                <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
+                                <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; position:relative; z-index:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayProjects() {
+            const container = document.getElementById('projectsList');
+
+            // Load project folders from localStorage
+            if (!window.projectFolders) {
+                window.projectFolders = JSON.parse(localStorage.getItem('projectFolders') || '[]');
+            }
+            const folders = window.projectFolders;
+
+            if (projects.length === 0 && folders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>No projects yet. Create your first project to get started.</p>
+                    </div>
+                `;
+                updateSortButtons();
+                return;
+            }
+
+            // Search query
+            const searchEl = document.getElementById('projectSearch');
+            const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+            // Build sorted index list
+            let sortedIndices = projects.map((_, i) => i);
+            if (projectSortOrder === 'alpha') {
+                sortedIndices.sort((a, b) => projects[a].projectName.localeCompare(projects[b].projectName));
+            } else if (projectSortOrder === 'date') {
+                sortedIndices.sort((a, b) => new Date(projects[b].createdAt || 0) - new Date(projects[a].createdAt || 0));
+            }
+
+            // Filter by search — matches project fields AND version names/notes
+            let filteredIndices = sortedIndices;
+            if (query) {
+                filteredIndices = sortedIndices.filter(i => {
+                    const p = projects[i];
+                    const projectMatch = (p.projectName || '').toLowerCase().includes(query) ||
+                           (p.brandName || '').toLowerCase().includes(query) ||
+                           (p.subBrandName || '').toLowerCase().includes(query) ||
+                           (p.agencyName || '').toLowerCase().includes(query);
+                    const versionMatch = (p.versions || []).some(v =>
+                        (v.name || '').toLowerCase().includes(query) ||
+                        (v.notes || '').toLowerCase().includes(query)
+                    );
+                    return projectMatch || versionMatch;
+                });
+            }
+
+            if (filteredIndices.length === 0 && folders.filter(f => !query).length === 0) {
+                container.innerHTML = `<div class="empty-state"><p>No projects match "${escapeHtml(query)}".</p></div>`;
+                updateSortButtons();
+                return;
+            }
+
+            let html = '';
+
+            // When searching, skip folder structure and show flat results
+            if (query) {
+                html = filteredIndices.map(i => renderProjectCard(projects[i], i, folders, query)).join('');
+            } else {
+                // Render folders
+                folders.forEach(folder => {
+                    const folderIndices = filteredIndices.filter(i => projects[i].projectFolderId === folder.id);
+                    const isCollapsed = collapsedProjectFolders[folder.id];
+                    const totalVersions = folderIndices.reduce((sum, i) => sum + projects[i].versions.length, 0);
+
+                    html += `
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer;"
+                                 onclick="toggleProjectFolder('${folder.id}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                     style="flex-shrink:0; transition: transform 0.15s; transform: rotate(${isCollapsed ? '0' : '90'}deg)">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#185FA5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); flex: 1;">${escapeHtml(folder.name)}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">${folderIndices.length} project${folderIndices.length !== 1 ? 's' : ''} · ${totalVersions} version${totalVersions !== 1 ? 's' : ''}</span>
+                                <div style="display: flex; gap: 0.35rem;" onclick="event.stopPropagation()">
+                                    <button class="btn-secondary btn-sm" onclick="renameProjectFolder('${folder.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">Rename</button>
+                                    <button class="btn-danger btn-sm" onclick="deleteProjectFolder('${folder.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">Delete</button>
+                                </div>
+                            </div>
+                            ${isCollapsed ? '' : `
+                            <div style="padding-left: 1.25rem; border-left: 2px solid #b5d4f4; margin-left: 0.5rem; margin-top: 0.35rem;">
+                                ${folderIndices.length === 0
+                                    ? `<div style="padding: 0.75rem 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No projects in this folder yet.</div>`
+                                    : folderIndices.map(i => renderProjectCard(projects[i], i, folders, query)).join('')
+                                }
+                            </div>
+                            `}
+                        </div>
+                    `;
+                });
+
+                // Uncategorized projects
+                const uncategorized = filteredIndices.filter(i => !projects[i].projectFolderId);
+                if (uncategorized.length > 0) {
+                    if (folders.length > 0) {
+                        html += `<div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 0.5rem 0 0.35rem; border-top: 0.5px solid var(--border); margin-top: 0.25rem;">Uncategorized</div>`;
+                    }
+                    html += uncategorized.map(i => renderProjectCard(projects[i], i, folders, query)).join('');
+                }
+            }
+
+            container.innerHTML = html;
+            updateSortButtons();
         }
 
         function showNewProjectForm() {
@@ -4344,14 +4550,33 @@
         }
 
         // Version Management
+        // Folder collapse state (session only)
+        let collapsedFolders = {};
+
         function displayVersions() {
             document.getElementById('versionProjectName').textContent = currentProject.projectName;
             const container = document.getElementById('versionsList');
-            
-            // Show data safety banner if applicable
             showDataSafetyBanner();
-            
-            if (currentProject.versions.length === 0) {
+
+            // Ensure folders array exists
+            if (!currentProject.folders) currentProject.folders = [];
+
+            const versions = currentProject.versions;
+            const folders = currentProject.folders;
+
+            // Search query
+            const searchEl = document.getElementById('versionSearch');
+            const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+            // Filter versions by search query
+            const filteredVersions = query
+                ? versions.filter(v =>
+                    (v.name || '').toLowerCase().includes(query) ||
+                    (v.notes || '').toLowerCase().includes(query)
+                  )
+                : versions;
+
+            if (filteredVersions.length === 0 && folders.length === 0 && versions.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📄</div>
@@ -4361,32 +4586,193 @@
                 return;
             }
 
-            container.innerHTML = currentProject.versions.map((version, index) => `
-                <div class="package-card" style="cursor: pointer;" onclick="selectVersion(${index})">
+            if (query && filteredVersions.length === 0) {
+                container.innerHTML = `<div class="empty-state"><p>No versions match "${escapeHtml(query)}".</p></div>`;
+                return;
+            }
+
+            let html = '';
+
+            if (query) {
+                // Flat search results — skip folder structure
+                html = filteredVersions.map(v => renderVersionCard(v, versions.indexOf(v))).join('');
+            } else {
+                // Render folders
+                folders.forEach((folder, fi) => {
+                    const folderVersions = versions.filter(v => v.folderId === folder.id);
+                    const isCollapsed = collapsedFolders[folder.id];
+                    const totalInvestment = folderVersions.reduce((sum, v) => sum + calculateVersionTotal(v), 0);
+
+                    html += `
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer;"
+                                 onclick="toggleFolder('${folder.id}')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                     style="flex-shrink:0; transition: transform 0.15s; transform: rotate(${isCollapsed ? '0' : '90'}deg)">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#185FA5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); flex: 1;">${escapeHtml(folder.name)}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">${folderVersions.length} version${folderVersions.length !== 1 ? 's' : ''}${totalInvestment > 0 ? ' · $' + formatNumber(totalInvestment) : ''}</span>
+                                <div style="display: flex; gap: 0.35rem;" onclick="event.stopPropagation()">
+                                    <button class="btn-secondary btn-sm" onclick="renameFolderPrompt('${folder.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">Rename</button>
+                                    <button class="btn-secondary btn-sm" onclick="createVersionInFolder('${folder.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">+ Version</button>
+                                    <button class="btn-danger btn-sm" onclick="deleteFolderPrompt('${folder.id}')" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">Delete</button>
+                                </div>
+                            </div>
+                            ${isCollapsed ? '' : `
+                            <div style="padding-left: 1.25rem; border-left: 2px solid #b5d4f4; margin-left: 0.5rem; margin-top: 0.35rem;">
+                                ${folderVersions.length === 0 ? `
+                                    <div style="padding: 0.75rem 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No versions in this folder yet.</div>
+                                ` : folderVersions.map(v => renderVersionCard(v, versions.indexOf(v))).join('')}
+                            </div>
+                            `}
+                        </div>
+                    `;
+                });
+
+                // Uncategorized versions
+                const uncategorized = versions.filter(v => !v.folderId);
+                if (uncategorized.length > 0) {
+                    if (folders.length > 0) {
+                        html += `<div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 0.5rem 0 0.35rem; border-top: 0.5px solid var(--border); margin-top: 0.25rem;">Uncategorized</div>`;
+                    }
+                    html += uncategorized.map(v => renderVersionCard(v, versions.indexOf(v))).join('');
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderVersionCard(version, index) {
+            const folders = currentProject.folders || [];
+            const moveOptions = folders.map(f =>
+                `<option value="${f.id}" ${version.folderId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`
+            ).join('');
+
+            return `
+                <div class="package-card" style="margin-bottom: 0.5rem; position: relative;">
+                    <button class="card-click-target" onclick="selectVersion(${index})" style="position:absolute; inset:0; width:100%; height:100%; background:none; border:none; cursor:pointer; border-radius:8px; z-index:0;" aria-label="Open ${escapeHtml(version.name || 'Version ' + (index+1))}"></button>
                     <div class="package-header">
-                        <div style="flex: 1;">
+                        <div style="flex: 1; pointer-events: none;">
                             <div class="package-title">${version.name || 'Version ' + (index + 1)}</div>
                             <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
-                                ${version.packages.length} package${version.packages.length !== 1 ? 's' : ''} • 
+                                ${version.packages.length} package${version.packages.length !== 1 ? 's' : ''} •
                                 Created ${new Date(version.createdAt).toLocaleDateString()} at ${new Date(version.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </p>
                             ${version.notes ? `
-                                <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--background); border-left: 3px solid var(--primary); border-radius: 4px;">
+                                <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--background); border-left: 3px solid var(--primary); border-radius: 4px; pointer-events: none;">
                                     <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">Notes</div>
                                     <div style="font-size: 0.875rem; color: var(--text); white-space: pre-wrap;">${escapeHtml(version.notes)}</div>
                                 </div>
                             ` : ''}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; position: relative; z-index: 1;">
                             <span class="badge badge-success">$${formatNumber(calculateVersionTotal(version))}</span>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); renameVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editVersionNotes(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Notes</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); duplicateVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate</button>
-                            <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                            ${folders.length > 0 ? `
+                                <select onchange="moveVersionToFolder(${index}, this.value)" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-muted); cursor: pointer; max-width: 110px;" title="Move to folder">
+                                    <option value="">📁 Move to...</option>
+                                    <option value="__none__" ${!version.folderId ? 'disabled' : ''}>No folder</option>
+                                    ${moveOptions}
+                                </select>
+                            ` : ''}
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); renameVersion(${index});">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename
+                            </button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editVersionNotes(${index});">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Notes
+                            </button>
+                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); duplicateVersion(${index});">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate
+                            </button>
+                            <button class="btn-danger btn-sm" onclick="event.stopPropagation(); deleteVersion(${index});">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete
+                            </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+        }
+
+        function toggleFolder(folderId) {
+            collapsedFolders[folderId] = !collapsedFolders[folderId];
+            displayVersions();
+        }
+
+        function createNewFolder() {
+            showRename('Name this folder:', 'New Folder', (name) => {
+                if (!name || !name.trim()) return;
+                if (!currentProject.folders) currentProject.folders = [];
+                currentProject.folders.push({
+                    id: 'folder_' + Date.now(),
+                    name: name.trim(),
+                    createdAt: new Date().toISOString()
+                });
+                saveProjects();
+                displayVersions();
+            }, 'Create Folder', 'Create');
+        }
+
+        function renameFolderPrompt(folderId) {
+            const folder = currentProject.folders.find(f => f.id === folderId);
+            if (!folder) return;
+            showRename('Rename folder:', folder.name, (name) => {
+                if (!name || !name.trim()) return;
+                folder.name = name.trim();
+                saveProjects();
+                displayVersions();
+            }, 'Rename Folder', 'Save');
+        }
+
+        function deleteFolderPrompt(folderId) {
+            const folder = currentProject.folders.find(f => f.id === folderId);
+            if (!folder) return;
+            const folderVersions = currentProject.versions.filter(v => v.folderId === folderId);
+            const msg = folderVersions.length > 0
+                ? `Delete folder "${folder.name}"? The ${folderVersions.length} version${folderVersions.length !== 1 ? 's' : ''} inside will be moved to Uncategorized.`
+                : `Delete folder "${folder.name}"?`;
+            showConfirm(msg, (confirmed) => {
+                if (!confirmed) return;
+                // Unassign versions
+                currentProject.versions.forEach(v => { if (v.folderId === folderId) v.folderId = null; });
+                // Remove folder
+                currentProject.folders = currentProject.folders.filter(f => f.id !== folderId);
+                delete collapsedFolders[folderId];
+                saveProjects();
+                displayVersions();
+            });
+        }
+
+        function moveVersionToFolder(versionIndex, folderId) {
+            const version = currentProject.versions[versionIndex];
+            if (!version) return;
+            version.folderId = folderId === '__none__' ? null : folderId || null;
+            saveProjects();
+            displayVersions();
+        }
+
+        function createVersionInFolder(folderId) {
+            const defaultName = `Version ${currentProject.versions.length + 1}`;
+            showRename('Enter a name for this version:', defaultName, (versionName) => {
+                if (versionName === null) return;
+                const finalName = versionName && versionName.trim() ? versionName.trim() : defaultName;
+                showNotesPrompt('Add notes for this version (optional):', '', (notes) => {
+                    const version = {
+                        id: Date.now(),
+                        name: finalName,
+                        packages: [],
+                        createdAt: new Date().toISOString(),
+                        notes: notes || '',
+                        folderId: folderId
+                    };
+                    currentProject.versions.push(version);
+                    currentVersion = version;
+                    saveProjects();
+                    showScreen('screen-1');
+                });
+            }, 'Enter Version Name', 'Create');
         }
 
         function createNewVersion() {
@@ -4491,7 +4877,7 @@
                 'branded-blended': 'Branded Content',
                 talent: 'Talent and Production',
                 media: 'Paid Media',
-                streaming: 'Streaming Video',
+                streaming: 'Paramount Streaming',
                 fees: 'Fees',
                 partnership: 'Social Partnerships',
                 sponsorship: 'Sponsorship Packages',
@@ -4662,7 +5048,11 @@
                 
                 // Route to sponsorship setup if sponsorship selected
                 if (packageType === 'sponsorship') {
-                    clearSponsorshipScreen(); // Clear previous data
+                    // Only clear if we're not already mid-sponsorship setup (e.g. coming from screen-1 fresh)
+                    // Don't clear if we already have a title set (returning from screen-2 back to screen-1)
+                    if (!currentPackage.title) {
+                        clearSponsorshipScreen();
+                    }
                     showScreen('screen-1-sponsorship');
                     return;
                 }
@@ -4806,7 +5196,12 @@
             const packageType = currentPackage.type;
             
             if (step === 2) {
-                showScreen('screen-1');
+                // Sponsorship came from screen-1-sponsorship, not screen-1
+                if (packageType === 'sponsorship') {
+                    showScreen('screen-1-sponsorship');
+                } else {
+                    showScreen('screen-1');
+                }
             } else if (step === 3) {
                 // From CPM Pricing (3), go back to Setup & Distribution (2)
                 showScreen('screen-2');
@@ -5029,10 +5424,6 @@
                 } else {
                     currentPackage.title = document.getElementById('packageTitleComplex').value;
                     currentPackage.totalInvestment = parseCurrency(document.getElementById('totalInvestmentComplex').value);
-                    // Save package sub-type for talent packages
-                    if (packageType === 'talent') {
-                        currentPackage.packageSubType = document.getElementById('packageTypeDropdown').value;
-                    }
                 }
                 
                 // Save fields based on package type
@@ -5156,7 +5547,7 @@
                         currentPackage.campaignType = document.getElementById('campaignType').value || '';
                     }
                     
-                    // Save Production Fee Presentation (Influencer & Branded Content)
+                    // Save Production Presentation (Influencer & Branded Content)
                     if (packageType === 'influencer' || packageType === 'branded') {
                         currentPackage.productionPresentation = document.getElementById('productionPresentation').value || '';
                     }
@@ -5173,7 +5564,7 @@
                 'branded-blended': 'Branded Content - Blended Package',
                 talent: 'Talent & Production Package',
                 media: 'Paid Distribution Package',
-                streaming: 'Streaming Video',
+                streaming: 'Paramount Streaming',
                 fees: 'Fee Package',
                 partnership: 'Social Partnership',
                 sponsorship: 'Sponsorship Package',
@@ -5271,16 +5662,8 @@
                 } else {
                     campaignTypeSection.style.display = 'none';
                 }
-
-                // Show/hide Package Type dropdown (Talent only)
-                const packageTypeDropdownSection = document.getElementById('packageTypeDropdownSection');
-                if (type === 'talent') {
-                    packageTypeDropdownSection.style.display = 'block';
-                } else {
-                    packageTypeDropdownSection.style.display = 'none';
-                }
                 
-                // Show/hide Production Fee Presentation section (Influencer & Branded Content)
+                // Show/hide Production Presentation section (Influencer & Branded Content)
                 const productionPresentationSection = document.getElementById('productionPresentationSection');
                 if (type === 'influencer' || type === 'branded') {
                     productionPresentationSection.style.display = 'block';
@@ -5355,10 +5738,6 @@
                     // Complex packages
                     document.getElementById('packageTitleComplex').value = pkg.title;
                     document.getElementById('totalInvestmentComplex').value = pkg.totalInvestment.toLocaleString('en-US');
-                    // Restore package sub-type for talent packages
-                    if (type === 'talent' && pkg.packageSubType) {
-                        document.getElementById('packageTypeDropdown').value = pkg.packageSubType;
-                    }
                     
                     // Restore media input type and value
                     if (pkg.mediaInputType === 'dollar') {
@@ -5396,7 +5775,7 @@
                         document.getElementById('campaignType').value = pkg.campaignType;
                     }
                     
-                    // Restore Production Fee Presentation (Influencer & Branded Content)
+                    // Restore Production Presentation (Influencer & Branded Content)
                     if ((type === 'influencer' || type === 'branded') && pkg.productionPresentation) {
                         document.getElementById('productionPresentation').value = pkg.productionPresentation;
                     }
@@ -5817,8 +6196,8 @@
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Handle</label>
                             <select onchange="updateAllocation(${allocation.id}, 'handleType', this.value)" style="width: 100%; font-size: 0.875rem;">
-                                <option value="paramount" ${(!allocation.handleType || allocation.handleType === 'paramount') ? 'selected' : ''}>Paramount</option>
                                 <option value="influencer" ${allocation.handleType === 'influencer' ? 'selected' : ''}>Influencer</option>
+                                <option value="paramount" ${allocation.handleType === 'paramount' ? 'selected' : ''}>Paramount</option>
                             </select>
                         </div>
                         <div>
@@ -5862,12 +6241,10 @@
         
         // Add a new platform allocation
         function addPlatformAllocation() {
-            const packageType = document.querySelector('input[name="packageType"]:checked')?.value || '';
-            const defaultHandle = (packageType === 'branded' || packageType === 'branded_blended') ? 'paramount' : 'influencer';
             const allocation = {
                 id: Date.now() + platformAllocations.length,
                 mediaType: '',
-                handleType: defaultHandle,
+                handleType: 'influencer',
                 platform: '',
                 percentage: 0
             };
@@ -5920,15 +6297,13 @@
                             </select>
                         </div>
                     `;
-                    // Default to paramount if not set (branded content)
-                    if (!allocation.handleType) {
-                        allocation.handleType = 'paramount';
-                    }
-                } else {
-                    // For influencer packages, default to influencer handles
+                    // Default to influencer if not set
                     if (!allocation.handleType) {
                         allocation.handleType = 'influencer';
                     }
+                } else {
+                    // For influencer packages, default to influencer handles
+                    allocation.handleType = 'influencer';
                 }
                 
                 return `
@@ -6988,6 +7363,10 @@
                     types: ['streaming', 'linear'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
                 },
+                tbdsponsorship: {
+                    types: [], // handled separately - simple sponsorships only
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
+                },
                 addedvalue: { 
                     types: ['added-value'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
@@ -7038,6 +7417,13 @@
                         }
                     });
                     // Don't break - we've handled all line items, continue to next package
+                } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                    // Simple sponsorship - TBD lump sum, not yet categorized
+                    categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                    categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                    categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                    categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                    categories.tbdsponsorship.count++;
                 } else {
                     // Regular package handling
                     for (const [key, category] of Object.entries(categories)) {
@@ -7083,7 +7469,8 @@
                         creative: 'Creative',
                         oo: 'O&O',
                         partnerships: 'Social Partnerships',
-                        addedvalue: 'Added Value'
+                        addedvalue: 'Added Value',
+                        tbdsponsorship: 'TBD Sponsorship'
                     };
                     
                     // Calculate display text for package count
@@ -7121,6 +7508,25 @@
                                     <div class="summary-card">
                                         <div class="summary-label">Margin</div>
                                         <div class="summary-value" style="color: var(--danger);">$${formatNumber(cat.margin)}</div>
+                                    </div>
+                                ` : key === 'tbdsponsorship' ? `
+                                    <div class="summary-card">
+                                        <div class="summary-label">Total Investment</div>
+                                        <div class="summary-value">$${formatNumber(cat.investment)}</div>
+                                    </div>
+                                    ${cat.impressions > 0 ? `
+                                        <div class="summary-card">
+                                            <div class="summary-label">Impressions</div>
+                                            <div class="summary-value accent">${formatImpressions(cat.impressions)}</div>
+                                        </div>
+                                        <div class="summary-card">
+                                            <div class="summary-label">CPM</div>
+                                            <div class="summary-value">${cpm > 0 ? '$' + cpm.toFixed(2) : 'N/A'}</div>
+                                        </div>
+                                    ` : ''}
+                                    <div class="summary-card">
+                                        <div class="summary-label">Margin</div>
+                                        <div class="summary-value" style="color: var(--text-muted); font-style: italic;">TBD</div>
                                     </div>
                                 ` : `
                                     <div class="summary-card">
@@ -7215,7 +7621,7 @@
             let packagesHTML = `
                 <div style="margin: 2.5rem 0 1.5rem 0; padding-bottom: 0.75rem; border-bottom: 2px solid #e2e8f0;">
                     <h3 style="margin: 0; color: #334155; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem; display:inline-flex; align-items:center;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:relative;top:-1px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+                        <span style="font-size: 1.5rem;">📦</span>
                         Individual Packages
                         <span style="font-size: 0.875rem; font-weight: 500; color: #64748b; margin-left: 0.25rem;">(${packages.length})</span>
                     </h3>
@@ -7264,16 +7670,6 @@
                         <div>
                             <div class="package-title">${escapeHtml(pkg.title)}</div>
                             <span class="badge badge-primary">${getTypeLabel(pkg.type)}</span>
-                            ${pkg.type === 'talent' && pkg.packageSubType ? (() => {
-                                const subTypeLabels = {
-                                    'influencer-paramount-produced': 'INF - PP',
-                                    'influencer-hybrid': 'INF - HYB',
-                                    'influencer-talent-captured': 'INF - TC',
-                                    'branded-content': 'BC'
-                                };
-                                const label = subTypeLabels[pkg.packageSubType];
-                                return label ? `<span class="badge" style="background: rgba(0,10,60,0.08); color: #000a3c; border: 1.5px solid #000a3c; margin-left: 0.4rem;">${label}</span>` : '';
-                            })() : ''}
                             ${pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems ? `
                                 <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); margin-left: 0.5rem;">
                                     ${pkg.sponsorshipLineItems.length} Line Items
@@ -7382,12 +7778,12 @@
                             const typeLabels = {
                                 'talent': 'Talent and Production',
                                 'distribution': 'Paid Distribution',
-                                'streaming': 'Streaming Video'
+                                'streaming': 'Paramount Streaming'
                             };
                             calloutLabel = typeLabels[pkg.addedValueType] || 'Added Value';
                             mediaInvestmentPercent = null; // Don't show percentage for Added Value
                         }
-                        // Note: Streaming Video, Sponsorships, and Social Partnerships (single platform, no talent) will NOT show a badge
+                        // Note: Paramount Streaming, Sponsorships, and Social Partnerships (single platform, no talent) will NOT show a badge
                         
                         if (showCallout) {
                             return `
@@ -8187,7 +8583,7 @@
                 'branded-blended': 'Branded Content',  // Export as 'Branded Content' to group with Creative
                 'talent': 'Talent and Production',
                 'media': 'Paid Media',
-                'streaming': 'Streaming Video',
+                'streaming': 'Paramount Streaming',
                 'fees': 'Fees',
                 'partnership': 'Social Partnerships',
                 'sponsorship': 'Sponsorship Packages'
@@ -9068,6 +9464,11 @@
                      label: 'O&O', 
                      investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
                  },
+                 tbdsponsorship: {
+                     types: [],
+                     label: 'TBD Sponsorship',
+                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
+                 },
                  addedvalue: { 
                      types: ['added-value'], 
                      label: 'Added Value', 
@@ -9111,6 +9512,13 @@
                              }
                          }
                      });
+                 } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                     // Simple sponsorship - TBD lump sum
+                     categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                     categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                     categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                     categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                     categories.tbdsponsorship.count++;
                  } else {
                      // Regular package handling
                      for (const [key, cat] of Object.entries(categories)) {
@@ -9175,6 +9583,11 @@
                                     ${cat.mediaCost > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Media Cost</td><td style="padding: 0.5rem; text-align: right; color: var(--danger);">$${formatNumber(cat.mediaCost)}</td></tr>` : ''}
                                     ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right;">${formatImpressions(cat.impressions)}</td></tr>` : ''}
                                     ${cat.impressions > 0 && mediaCPM > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Media CPM</td><td style="padding: 0.5rem; text-align: right;">$${mediaCPM.toFixed(2)}</td></tr>` : ''}
+                                ` : cat.label === 'TBD Sponsorship' ? `
+                                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 150px;">Total Investment</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
+                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right; color: var(--accent);">${formatImpressions(cat.impressions)}</td></tr>` : ''}
+                                    ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">CPM</td><td style="padding: 0.5rem; text-align: right;">$${cpm.toFixed(2)}</td></tr>` : ''}
+                                    <tr><td style="padding: 0.5rem; color: var(--text-muted); font-style: italic;">Margin</td><td style="padding: 0.5rem; text-align: right; color: var(--text-muted); font-style: italic;">TBD — package details pending</td></tr>
                                 ` : `
                                     <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem; width: 150px;">Investment</td><td style="padding: 0.5rem; text-align: right; font-weight: bold;">$${formatNumber(cat.investment)}</td></tr>
                                     ${cat.impressions > 0 ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.5rem;">Impressions</td><td style="padding: 0.5rem; text-align: right; color: var(--accent);">${formatImpressions(cat.impressions)}</td></tr>` : ''}
@@ -10036,6 +10449,7 @@
             const categories = {
                 creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0, investmentNoFees: 0, costNoFees: 0, marginNoFees: 0 },
                 oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
+                tbdsponsorship: { types: [], label: 'TBD Sponsorship', investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 },
                 addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
             };
             
@@ -10075,6 +10489,13 @@
                             }
                         }
                     });
+                } else if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                    // Simple sponsorship - TBD lump sum
+                    categories.tbdsponsorship.investment += pkg.totalInvestment || 0;
+                    categories.tbdsponsorship.cost += pkg.totalCost || 0;
+                    categories.tbdsponsorship.margin += (pkg.totalInvestment || 0) - (pkg.totalCost || 0);
+                    categories.tbdsponsorship.impressions += pkg.impressions || 0;
+                    categories.tbdsponsorship.count++;
                 } else {
                     // Regular package handling
                     for (const [key, cat] of Object.entries(categories)) {
@@ -10155,6 +10576,13 @@
                                 catRows.push(['Media CPM', '$' + mediaCPM.toFixed(2)]);
                             }
                         }
+                    } else if (cat.label === 'TBD Sponsorship') {
+                        catRows.push(['Total Investment', '$' + formatNumber(cat.investment)]);
+                        if (cat.impressions > 0) {
+                            catRows.push(['Impressions', formatImpressions(cat.impressions)]);
+                            catRows.push(['CPM', '$' + cpm.toFixed(2)]);
+                        }
+                        catRows.push(['Margin', 'TBD — package details pending']);
                     } else {
                         // Regular categories
                         catRows.push(['Investment', '$' + formatNumber(cat.investment)]);
@@ -11788,8 +12216,11 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             currentPackage.sponsorshipType = sponsorshipType;
             
             if (sponsorshipType === 'simple') {
-                // Simple sponsorship - proceed to normal flow (CPM entry)
+                // Simple sponsorship - proceed to normal flow
                 setupPackageDetails();
+                // Pre-populate screen-2 fields with data already entered on screen-1-sponsorship
+                document.getElementById('packageTitle').value = currentPackage.title || '';
+                document.getElementById('totalInvestment').value = currentPackage.totalInvestment || '';
                 showScreen('screen-2');
             } else {
                 // Detailed sponsorship - check file uploaded
