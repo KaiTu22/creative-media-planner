@@ -4111,6 +4111,14 @@
             displayProjects();
         }
 
+        function getProjectFolders() {
+            return JSON.parse(localStorage.getItem('projectFolders') || '[]');
+        }
+
+        function saveProjectFolders(folders) {
+            localStorage.setItem('projectFolders', JSON.stringify(folders));
+        }
+
         function toggleProjectFolder(folderId) {
             collapsedProjectFolders[folderId] = !collapsedProjectFolders[folderId];
             displayProjects();
@@ -4119,28 +4127,28 @@
         function createProjectFolder() {
             showRename('Name this folder:', 'New Folder', (name) => {
                 if (!name || !name.trim()) return;
-                if (!window.projectFolders) window.projectFolders = JSON.parse(localStorage.getItem('projectFolders') || '[]');
-                window.projectFolders.push({ id: 'pfolder_' + Date.now(), name: name.trim(), createdAt: new Date().toISOString() });
-                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                const _pf = getProjectFolders();
+                _pf.push({ id: 'pfolder_' + Date.now(), name: name.trim(), createdAt: new Date().toISOString() });
+                saveProjectFolders(_pf);
                 displayProjects();
             }, 'Create Project Folder', 'Create');
         }
 
         function renameProjectFolder(folderId) {
-            if (!window.projectFolders) return;
-            const folder = window.projectFolders.find(f => f.id === folderId);
+            const _pf2 = getProjectFolders();
+            const folder = _pf2.find(f => f.id === folderId);
             if (!folder) return;
             showRename('Rename folder:', folder.name, (name) => {
                 if (!name || !name.trim()) return;
                 folder.name = name.trim();
-                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                saveProjectFolders(_pf2);
                 displayProjects();
             }, 'Rename Folder', 'Save');
         }
 
         function deleteProjectFolder(folderId) {
-            if (!window.projectFolders) return;
-            const folder = window.projectFolders.find(f => f.id === folderId);
+            const _pf3 = getProjectFolders();
+            const folder = _pf3.find(f => f.id === folderId);
             if (!folder) return;
             const count = projects.filter(p => p.projectFolderId === folderId).length;
             const msg = count > 0
@@ -4149,8 +4157,7 @@
             showConfirm(msg, (confirmed) => {
                 if (!confirmed) return;
                 projects.forEach(p => { if (p.projectFolderId === folderId) p.projectFolderId = null; });
-                window.projectFolders = window.projectFolders.filter(f => f.id !== folderId);
-                localStorage.setItem('projectFolders', JSON.stringify(window.projectFolders));
+                saveProjectFolders(_pf3.filter(f => f.id !== folderId));
                 delete collapsedProjectFolders[folderId];
                 saveProjects();
                 displayProjects();
@@ -4248,11 +4255,8 @@
         function displayProjects() {
             const container = document.getElementById('projectsList');
 
-            // Load project folders from localStorage
-            if (!window.projectFolders) {
-                window.projectFolders = JSON.parse(localStorage.getItem('projectFolders') || '[]');
-            }
-            const folders = window.projectFolders;
+            // Load project folders fresh from localStorage every render
+            const folders = getProjectFolders();
 
             if (projects.length === 0 && folders.length === 0) {
                 container.innerHTML = `
@@ -4309,12 +4313,14 @@
                 // Render folders
                 folders.forEach(folder => {
                     const folderIndices = filteredIndices.filter(i => projects[i].projectFolderId === folder.id);
-                    const isCollapsed = collapsedProjectFolders[folder.id];
                     const totalVersions = folderIndices.reduce((sum, i) => sum + projects[i].versions.length, 0);
+                    const pFolderMatches = query && folder.name.toLowerCase().includes(query);
+                    if (pFolderMatches) collapsedProjectFolders[folder.id] = false;
+                    const isCollapsed = collapsedProjectFolders[folder.id];
 
                     html += `
                         <div style="margin-bottom: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer;"
+                            <div data-folder-id="${folder.id}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid ${pFolderMatches ? '#185FA5' : 'var(--border)'}; border-radius: 6px; cursor: pointer; ${pFolderMatches ? 'box-shadow: 0 0 0 3px rgba(24,95,165,0.12);' : ''}"
                                  onclick="toggleProjectFolder('${folder.id}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                                      style="flex-shrink:0; transition: transform 0.15s; transform: rotate(${isCollapsed ? '0' : '90'}deg)">
@@ -4354,6 +4360,15 @@
 
             container.innerHTML = html;
             updateSortButtons();
+
+            // Scroll to highlighted project folder if query matches a folder name
+            if (query) {
+                const matchedFolder = folders.find(f => f.name.toLowerCase().includes(query));
+                if (matchedFolder) {
+                    const el = container.querySelector(`[data-folder-id="${matchedFolder.id}"]`);
+                    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+                }
+            }
         }
 
         function showNewProjectForm() {
@@ -4570,10 +4585,11 @@
 
             // Filter versions by search query
             const filteredVersions = query
-                ? versions.filter(v =>
-                    (v.name || '').toLowerCase().includes(query) ||
-                    (v.notes || '').toLowerCase().includes(query)
-                  )
+                ? versions.filter(v => {
+                    const versionMatch = (v.name || '').toLowerCase().includes(query) ||
+                        (v.notes || '').toLowerCase().includes(query);
+                    return versionMatch;
+                  })
                 : versions;
 
             if (filteredVersions.length === 0 && folders.length === 0 && versions.length === 0) {
@@ -4603,9 +4619,11 @@
                     const isCollapsed = collapsedFolders[folder.id];
                     const totalInvestment = folderVersions.reduce((sum, v) => sum + calculateVersionTotal(v), 0);
 
+                    const vFolderMatches = query && folder.name.toLowerCase().includes(query);
+                    if (vFolderMatches) collapsedFolders[folder.id] = false;
                     html += `
                         <div style="margin-bottom: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer;"
+                            <div data-version-folder-id="${folder.id}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: var(--surface); border: 1.5px solid ${vFolderMatches ? '#185FA5' : 'var(--border)'}; border-radius: 6px; cursor: pointer; ${vFolderMatches ? 'box-shadow: 0 0 0 3px rgba(24,95,165,0.12);' : ''}"
                                  onclick="toggleFolder('${folder.id}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                                      style="flex-shrink:0; transition: transform 0.15s; transform: rotate(${isCollapsed ? '0' : '90'}deg)">
@@ -4644,6 +4662,15 @@
             }
 
             container.innerHTML = html;
+
+            // Scroll to highlighted version folder if query matches a folder name
+            if (query) {
+                const matchedFolder = folders.find(f => f.name.toLowerCase().includes(query));
+                if (matchedFolder) {
+                    const el = container.querySelector(`[data-version-folder-id="${matchedFolder.id}"]`);
+                    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+                }
+            }
         }
 
         function renderVersionCard(version, index) {
