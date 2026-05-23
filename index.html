@@ -5327,6 +5327,7 @@
                     const impressions = currentPackage.packageCPM > 0 ? (currentPackage.totalInvestment / currentPackage.packageCPM) * 1000 : 0;
                     const mediaCost = (impressions * currentPackage.cpmCost) / 1000;
                     currentPackage.mediaPercent = currentPackage.totalInvestment > 0 ? (mediaCost / currentPackage.totalInvestment) * 100 : 0;
+                    currentPackage.impressions = Math.round(impressions);
                 } else if (packageType === 'added-value') {
                     currentPackage.addedValueType = document.getElementById('addedValueType').value;
                     
@@ -6941,7 +6942,8 @@
             
             // Special handling for blended packages
             if (packageType === 'branded-blended') {
-                totalImpressions = currentPackage.impressions || 0;
+                const blendedCPM = currentPackage.packageCPM || 0;
+                totalImpressions = blendedCPM > 0 ? Math.round((currentPackage.totalInvestment / blendedCPM) * 1000) : (currentPackage.impressions || 0);
                 overallCPM = currentPackage.cpm || 0;
                 totalCost = currentPackage.totalCost || 0;
                 totalMarginDollar = currentPackage.totalMargin || 0;
@@ -9249,7 +9251,11 @@
             const packages = currentVersion.packages;
             const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
             const totalImpressions = packages.reduce((sum, pkg) => {
-                if (['streaming', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                if (pkg.type === 'branded-blended') {
+                    const pkgCPM = pkg.packageCPM || 0;
+                    return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
+                }
+                if (['streaming', 'partnership', 'sponsorship', 'added-value'].includes(pkg.type)) {
                     return sum + (pkg.impressions || 0);
                 }
                 return sum + (pkg.totalImpressions || 0);
@@ -10182,7 +10188,11 @@
             const packages = currentVersion.packages;
             const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
             const totalImpressions = packages.reduce((sum, pkg) => {
-                if (['streaming', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                if (pkg.type === 'branded-blended') {
+                    const pkgCPM = pkg.packageCPM || 0;
+                    return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
+                }
+                if (['streaming', 'partnership', 'sponsorship', 'added-value'].includes(pkg.type)) {
                     return sum + (pkg.impressions || 0);
                 }
                 return sum + (pkg.totalImpressions || 0);
