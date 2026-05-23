@@ -9255,7 +9255,11 @@
                     const pkgCPM = pkg.packageCPM || 0;
                     return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
                 }
-                if (['streaming', 'partnership', 'sponsorship', 'added-value'].includes(pkg.type)) {
+                if (pkg.type === 'sponsorship') {
+                    // Detailed sponsorships store impressions in totalImpressions; simple ones use impressions
+                    return sum + (pkg.totalImpressions || pkg.impressions || 0);
+                }
+                if (['streaming', 'partnership', 'added-value'].includes(pkg.type)) {
                     return sum + (pkg.impressions || 0);
                 }
                 return sum + (pkg.totalImpressions || 0);
@@ -10192,7 +10196,11 @@
                     const pkgCPM = pkg.packageCPM || 0;
                     return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
                 }
-                if (['streaming', 'partnership', 'sponsorship', 'added-value'].includes(pkg.type)) {
+                if (pkg.type === 'sponsorship') {
+                    // Detailed sponsorships store impressions in totalImpressions; simple ones use impressions
+                    return sum + (pkg.totalImpressions || pkg.impressions || 0);
+                }
+                if (['streaming', 'partnership', 'added-value'].includes(pkg.type)) {
                     return sum + (pkg.impressions || 0);
                 }
                 return sum + (pkg.totalImpressions || 0);
