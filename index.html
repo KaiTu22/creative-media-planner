@@ -1524,9 +1524,15 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
-                    <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Planner Name (Optional)</label>
+                        <input type="text" id="plannerName" placeholder="e.g. Jane Smith" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Planner Email (Optional)</label>
+                        <input type="email" id="plannerEmail" placeholder="e.g. jane@paramount.com" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); box-sizing: border-box;">
+                    </div>
                 </div>
 
                 <div style="margin-top: 1rem;">
@@ -1537,6 +1543,11 @@
                 <div style="margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
                     <input type="url" id="mediaPlanLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
+                    <input type="url" id="salesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -1590,9 +1601,15 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
-                    <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Planner Name (Optional)</label>
+                        <input type="text" id="editPlannerName" placeholder="e.g. Jane Smith" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Planner Email (Optional)</label>
+                        <input type="email" id="editPlannerEmail" placeholder="e.g. jane@paramount.com" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); box-sizing: border-box;">
+                    </div>
                 </div>
 
                 <div style="margin-top: 1rem;">
@@ -1603,6 +1620,11 @@
                 <div style="margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Media Plan Link (Optional)</label>
                     <input type="url" id="editMediaPlanLink" placeholder="https://..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">Salesforce Link (Optional)</label>
+                    <input type="url" id="editSalesforceLink" placeholder="https://example.salesforce.com/..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9375rem; transition: all 0.2s ease; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);">
                 </div>
 
                 <div class="button-group">
@@ -4249,6 +4271,8 @@
             const salesforceLink = document.getElementById('salesforceLink').value;
             const budgetSheetLink = document.getElementById('budgetSheetLink').value;
             const mediaPlanLink = document.getElementById('mediaPlanLink').value;
+            const plannerName = document.getElementById('plannerName').value;
+            const plannerEmail = document.getElementById('plannerEmail').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -4266,6 +4290,8 @@
                 salesforceLink,
                 budgetSheetLink,
                 mediaPlanLink,
+                plannerName,
+                plannerEmail,
                 versions: [],
                 createdAt: new Date().toISOString()
             };
@@ -4332,6 +4358,8 @@
             document.getElementById('editSalesforceLink').value = currentProject.salesforceLink || '';
             document.getElementById('editBudgetSheetLink').value = currentProject.budgetSheetLink || '';
             document.getElementById('editMediaPlanLink').value = currentProject.mediaPlanLink || '';
+            document.getElementById('editPlannerName').value = currentProject.plannerName || '';
+            document.getElementById('editPlannerEmail').value = currentProject.plannerEmail || '';
             
             showScreen('screen-0-6');
         }
@@ -4352,6 +4380,8 @@
             const salesforceLink = document.getElementById('editSalesforceLink').value;
             const budgetSheetLink = document.getElementById('editBudgetSheetLink').value;
             const mediaPlanLink = document.getElementById('editMediaPlanLink').value;
+            const plannerName = document.getElementById('editPlannerName').value;
+            const plannerEmail = document.getElementById('editPlannerEmail').value;
 
             if (!agencyName || !brandName || !subBrandName || !projectName) {
                 customAlert('Please fill in all required fields');
@@ -4368,6 +4398,8 @@
             currentProject.salesforceLink = salesforceLink;
             currentProject.budgetSheetLink = budgetSheetLink;
             currentProject.mediaPlanLink = mediaPlanLink;
+            currentProject.plannerName = plannerName;
+            currentProject.plannerEmail = plannerEmail;
 
             saveProjects();
             
@@ -8861,7 +8893,7 @@
             el.innerHTML        = message;
         }
 
-        async function generateExternalPlan() {
+        function generateExternalPlan() {
             if (!currentProject) return;
             const checkboxes = document.querySelectorAll('#versionCheckboxList input[type="checkbox"]:checked');
             const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value));
@@ -8875,34 +8907,59 @@
             setExternalPlanStatus(
                 '<span style="display:inline-flex;align-items:center;gap:0.5rem;">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>' +
-                ' Generating your plan — this may take 30–60 seconds...</span>',
+                ' Opening generator — your plan will appear in a new tab...</span>',
                 'loading'
             );
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (result.success) {
-                    if (result.url && currentProject) {
-                        currentProject.mediaPlanLink = result.url;
-                        saveProjects();
-                    }
-                    setExternalPlanStatus(
-                        '✓ Plan generated successfully! ' +
-                        (result.url ? `<a href="${result.url}" target="_blank" style="color:#166534;font-weight:600;text-decoration:underline;">Open in Google Sheets →</a>` : ''),
-                        'success'
-                    );
-                    document.getElementById('generatePlanBtn').disabled = false;
-                } else {
-                    setExternalPlanStatus('Error: ' + (result.error || 'Something went wrong. Please try again.'), 'error');
-                    document.getElementById('generatePlanBtn').disabled = false;
-                }
-            } catch (err) {
-                setExternalPlanStatus('Network error: ' + err.message, 'error');
-                document.getElementById('generatePlanBtn').disabled = false;
+
+            // Open a new tab with a loading page, then submit the form targeting it
+            const newTab = window.open('', '_blank');
+            if (newTab) {
+                newTab.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Generating External Plan...</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8f9fa; }
+  .card { background: white; border-radius: 12px; padding: 3rem; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  .logo { color: #001A6E; font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; letter-spacing: 0.05em; }
+  .spinner { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-top-color: #001A6E; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h2 { color: #001A6E; margin: 0 0 0.75rem; font-size: 1.25rem; }
+  p { color: #6b7280; margin: 0; font-size: 0.9rem; line-height: 1.5; }
+</style></head>
+<body><div class="card">
+  <div class="logo">CREATIVE+ MEDIA PLANNER</div>
+  <div class="spinner"></div>
+  <h2>Generating External Plan...</h2>
+  <p>This usually takes 30–60 seconds.<br>Your Google Sheet will open automatically when ready.</p>
+</div></body></html>`);
+                newTab.document.close();
             }
+
+            // Submit via hidden form targeting the new tab
+            const tabName = 'externalPlanTab_' + Date.now();
+            if (newTab) newTab.name = tabName;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = APPS_SCRIPT_URL;
+            form.target = newTab ? tabName : '_blank';
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'payload';
+            input.value = JSON.stringify(payload);
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            // Reset modal state after short delay
+            setTimeout(function() {
+                setExternalPlanStatus(
+                    '✓ Plan generator opened in a new tab. The Google Sheet will appear in your shared Drive folder shortly.',
+                    'success'
+                );
+                document.getElementById('generatePlanBtn').disabled = false;
+            }, 1500);
         }
 
         const spinnerStyle = document.createElement('style');
@@ -12715,7 +12772,9 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             const gFlight = gRow[mapping.flight] || '';
                             
                             if (String(gDesc).trim()) {
+                                const gPlatform = gRow[mapping.platform] || '';
                                 lineItem.groupItems.push({
+                                    platform: String(gPlatform).trim(),
                                     description: String(gDesc).trim(),
                                     size: String(gSize).trim(),
                                     flight: String(gFlight).trim()
