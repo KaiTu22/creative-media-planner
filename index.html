@@ -1651,7 +1651,7 @@
                 <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
                     <div>
                         <h2 id="versionProjectName" style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Project Name</h2>
-                        <p>Manage versions of this media plan</p>
+                        <div id="projectInfoSummary" style="margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; font-size: 0.82rem; color: var(--text-muted);"></div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-shrink: 0; margin-top: 0.25rem;">
                         <button class="btn-secondary" onclick="editProjectInfo()" style="padding: 0.45rem 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Edit Project Info</button>
@@ -1868,10 +1868,29 @@
                     <div class="input-group">
                         <span class="input-addon">$</span>
                         <input type="text" id="sponsorshipTotalInvestment" 
-                               oninput="formatCurrencyLive(event);" 
+                               oninput="formatCurrencyLive(event); updateSponsorshipSimpleCalcs();" 
                                placeholder="0.00" required>
                     </div>
                     <span class="hint" id="sponsorshipInvestmentHint">Enter the total investment for this sponsorship</span>
+                </div>
+
+                <!-- CPM + Impressions (Simple only) -->
+                <div id="sponsorshipCPMGroup" style="display: none;">
+                    <div class="form-group">
+                        <label>CPM (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-addon">$</span>
+                            <input type="number" id="sponsorshipSimpleCPM" step="0.01" min="0" 
+                                   placeholder="e.g., 25.00"
+                                   oninput="updateSponsorshipSimpleCalcs()">
+                        </div>
+                    </div>
+                    <div class="summary-grid" style="grid-template-columns: 1fr;">
+                        <div class="summary-card">
+                            <div class="summary-label">Calculated Impressions</div>
+                            <div class="summary-value accent" id="sponsorshipSimpleImpressions">0</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- File Upload Section (shown only for detailed) -->
@@ -4187,6 +4206,9 @@
                             </div>
                         </div>
                     </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+                        <button class="btn-primary btn-sm" onclick="selectProject(${index});" style="display:inline-flex;align-items:center;gap:0.35rem;">View <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+                    </div>
                 </div>`;
             }
 
@@ -4472,6 +4494,34 @@
 
         function displayVersions() {
             document.getElementById('versionProjectName').textContent = currentProject.projectName;
+
+            // Project info summary
+            const summaryEl = document.getElementById('projectInfoSummary');
+            if (summaryEl) {
+                const p = currentProject;
+                const parts = [];
+
+                // Brand / Sub-brand / Agency
+                const brandParts = [p.brandName, p.subBrandName, p.agencyName].filter(Boolean);
+                if (brandParts.length) parts.push({ icon: '🏢', text: brandParts.join(' · ') });
+
+                // Campaign dates
+                if (p.campaignStartDate || p.campaignEndDate) {
+                    const fmt = d => new Date(d).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                    const dates = p.campaignStartDate && p.campaignEndDate
+                        ? `${fmt(p.campaignStartDate)} – ${fmt(p.campaignEndDate)}`
+                        : p.campaignStartDate ? `From ${fmt(p.campaignStartDate)}` : `Until ${fmt(p.campaignEndDate)}`;
+                    parts.push({ icon: '📅', text: dates });
+                }
+
+                summaryEl.innerHTML = parts.map(({ icon, text }) =>
+                    `<span style="display:inline-flex;align-items:center;gap:0.3rem;">${icon} ${escapeHtml(text)}</span>`
+                ).join('') + [
+                    p.salesforceLink ? `<a href="${escapeHtml(p.salesforceLink)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.25rem;color:var(--primary);text-decoration:none;font-weight:500;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Salesforce</a>` : '',
+                    p.budgetSheetLink ? `<a href="${escapeHtml(p.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.25rem;color:var(--primary);text-decoration:none;font-weight:500;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Budget Sheet</a>` : '',
+                    p.mediaPlanLink ? `<a href="${escapeHtml(p.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:0.25rem;color:var(--primary);text-decoration:none;font-weight:500;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Media Plan</a>` : '',
+                ].filter(Boolean).join('');
+            }
             const container = document.getElementById('versionsList');
             showDataSafetyBanner();
 
@@ -4551,7 +4601,7 @@
                 `<option value="${f.id}" ${version.folderId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`
             ).join('');
             return `
-                <div class="package-card" style="cursor:pointer;" onclick="selectVersion(${index})">
+                <div class="package-card">
                     <div class="package-header">
                         <div style="flex:1;">
                             <div class="package-title">${version.name || 'Version ' + (index + 1)}</div>
@@ -4573,11 +4623,14 @@
                                     <option value="__none__" ${!version.folderId?'selected':''}>No folder</option>
                                     ${moveOptions}
                                 </select>` : ''}
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();renameVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();editVersionNotes(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Notes</button>
-                            <button class="btn-secondary btn-sm" onclick="event.stopPropagation();duplicateVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate</button>
-                            <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
+                            <button class="btn-secondary btn-sm" onclick="renameVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
+                            <button class="btn-secondary btn-sm" onclick="editVersionNotes(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Notes</button>
+                            <button class="btn-secondary btn-sm" onclick="duplicateVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Duplicate</button>
+                            <button class="btn-danger btn-sm" onclick="deleteVersion(${index});"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:1px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
                         </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+                        <button class="btn-primary btn-sm" onclick="selectVersion(${index});" style="display:inline-flex;align-items:center;gap:0.35rem;">View <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
                     </div>
                 </div>`;
         }
@@ -5152,6 +5205,12 @@
                 // Handle detailed sponsorships - go back to type assignment screen
                 if (packageType === 'sponsorship' && currentPackage.sponsorshipType === 'detailed') {
                     showLineItemTypeAssignment();
+                    return;
+                }
+                
+                // Handle simple sponsorships - go back to data entry screen
+                if (packageType === 'sponsorship' && currentPackage.sponsorshipType === 'simple') {
+                    showScreen('screen-1-sponsorship');
                     return;
                 }
                 
@@ -7855,6 +7914,31 @@
                                         </div>
                                     </div>
                                 ` : ''}
+                                ${pkg.type === 'branded-blended' ? (() => {
+                                    const talentCost = pkg.talentCost || 0;
+                                    const mediaCost = pkg.mediaCost || 0;
+                                    const impressions = pkg.impressions || 0;
+                                    const internalCPM = impressions > 0 ? (mediaCost / impressions * 1000) : 0;
+                                    return `
+                                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                        <strong style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cost Breakdown</strong>
+                                        <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                                            <div class="summary-card" style="padding: 0.6rem;">
+                                                <div class="summary-label">Production & Talent Cost</div>
+                                                <div class="summary-value" style="font-size: 0.95rem;">$${formatNumber(talentCost)}</div>
+                                            </div>
+                                            <div class="summary-card" style="padding: 0.6rem;">
+                                                <div class="summary-label">Paid Media Cost</div>
+                                                <div class="summary-value" style="font-size: 0.95rem;">$${formatNumber(mediaCost)}</div>
+                                            </div>
+                                            <div class="summary-card" style="padding: 0.6rem;">
+                                                <div class="summary-label">Paid Media Internal CPM</div>
+                                                <div class="summary-value" style="font-size: 0.95rem;">${internalCPM > 0 ? '$' + internalCPM.toFixed(2) : 'N/A'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    `;
+                                })() : ''}
                                 ${pkg.url ? `<div><strong>URL:</strong> <a href="${escapeHtml(pkg.url)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">${escapeHtml(pkg.url)}</a></div>` : ''}
                                 ${pkg.notes ? `
                                 <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); text-align: left;">
@@ -8262,6 +8346,9 @@
                 chooseSponsorshipType('simple');
                 document.getElementById('sponsorshipPackageTitle').value = pkg.title || '';
                 document.getElementById('sponsorshipTotalInvestment').value = pkg.totalInvestment ? pkg.totalInvestment.toFixed(2) : '';
+                const cpmEl = document.getElementById('sponsorshipSimpleCPM');
+                if (cpmEl) cpmEl.value = pkg.cpm || '';
+                updateSponsorshipSimpleCalcs();
                 return;
             }
             
@@ -12196,6 +12283,10 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             investGroup.style.display = isSimple ? '' : 'none';
             document.getElementById('sponsorshipInvestmentHint').textContent = 'Enter the total investment for this sponsorship';
 
+            // CPM group: show for simple only
+            const cpmGroup = document.getElementById('sponsorshipCPMGroup');
+            if (cpmGroup) cpmGroup.style.display = isSimple ? '' : 'none';
+
             // File upload: hide for simple, show for detailed
             document.getElementById('sponsorshipFileUpload').style.display = isSimple ? 'none' : 'block';
 
@@ -12206,6 +12297,10 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             // Clear form inputs
             document.getElementById('sponsorshipPackageTitle').value = '';
             document.getElementById('sponsorshipTotalInvestment').value = '';
+            const simpleCPMEl = document.getElementById('sponsorshipSimpleCPM');
+            if (simpleCPMEl) simpleCPMEl.value = '';
+            const impressionsEl = document.getElementById('sponsorshipSimpleImpressions');
+            if (impressionsEl) impressionsEl.textContent = '0';
 
             // Hide file upload section
             document.getElementById('sponsorshipFileUpload').style.display = 'none';
@@ -12242,6 +12337,14 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             document.getElementById('sponsorshipUploadBox').style.display = 'block';
         }
 
+        function updateSponsorshipSimpleCalcs() {
+            const investment = parseCurrency(document.getElementById('sponsorshipTotalInvestment').value) || 0;
+            const cpm = parseFloat(document.getElementById('sponsorshipSimpleCPM')?.value) || 0;
+            const impressions = (investment > 0 && cpm > 0) ? (investment / cpm) * 1000 : 0;
+            const el = document.getElementById('sponsorshipSimpleImpressions');
+            if (el) el.textContent = formatImpressions(impressions);
+        }
+
         function proceedFromSponsorshipSetup() {
             const sponsorshipType = currentPackage.sponsorshipType;
             const title = document.getElementById('sponsorshipPackageTitle').value;
@@ -12259,19 +12362,27 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     customAlert('Please enter a valid investment amount');
                     return;
                 }
+                const cpm = parseFloat(document.getElementById('sponsorshipSimpleCPM')?.value) || 0;
                 currentPackage.totalInvestment = parseCurrency(investment);
+                currentPackage.cpm = cpm;
+                currentPackage.impressions = (currentPackage.totalInvestment > 0 && cpm > 0)
+                    ? (currentPackage.totalInvestment / cpm) * 1000
+                    : 0;
             }
             
             // Save to currentPackage
             currentPackage.title = title.trim();
             
             if (sponsorshipType === 'simple') {
-                // Simple sponsorship - proceed to normal flow
-                setupPackageDetails();
-                // Pre-populate screen-2 fields
-                document.getElementById('packageTitle').value = currentPackage.title || '';
-                document.getElementById('totalInvestment').value = currentPackage.totalInvestment || '';
-                showScreen('screen-2');
+                // Simple sponsorship — all data collected, skip screen-2 and go straight to summary
+                currentPackage.type = 'sponsorship';
+                currentPackage.sponsorshipType = 'simple';
+                currentPackage.totalCost = 0;
+                currentPackage.talentCost = 0;
+                currentPackage.mediaCost = 0;
+                currentPackage.totalMarginPercent = currentPackage.totalInvestment > 0 ? 100 : 0;
+                displayFinalSummary();
+                showScreen('screen-5');
             } else {
                 // Detailed sponsorship - check file uploaded
                 if (!sponsorshipImportData) {
