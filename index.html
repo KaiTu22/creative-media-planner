@@ -1818,12 +1818,44 @@
             </div>
         </div>
 
-        <!-- Screen 1-Sponsorship: Sponsorship Type Selection -->
+        <!-- Screen 1-Sponsorship-Type: Choose Simple vs Detailed FIRST -->
+        <div id="screen-1-sponsorship-type" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Sponsorship Package</h2>
+                    <p>Select how you want to build this sponsorship</p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+                    <div class="radio-option" onclick="chooseSponsorshipType('simple')">
+                        <input type="radio" name="sponsorshipTypeChoice" id="stChoiceSimple" value="simple">
+                        <label for="stChoiceSimple">
+                            <strong>Simple Sponsorship</strong>
+                            <span class="hint">A single lump-sum package with a title and total investment. No line item breakdown — ideal for packages still being defined.</span>
+                        </label>
+                    </div>
+
+                    <div class="radio-option" onclick="chooseSponsorshipType('detailed')">
+                        <input type="radio" name="sponsorshipTypeChoice" id="stChoiceDetailed" value="detailed">
+                        <label for="stChoiceDetailed">
+                            <strong>Detailed Sponsorship</strong>
+                            <span class="hint">Upload an Excel file and break down by placement type, platform, cost, and margin. Best for finalized packages with full line item detail.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 1.5rem;">
+                    <button class="btn-secondary" onclick="showScreen('screen-1');">← Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1-Sponsorship: Data entry (adapts based on type chosen) -->
         <div id="screen-1-sponsorship" class="screen">
             <div class="card">
                 <div class="card-header">
-                    <h2 style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Sponsorship Package Setup</h2>
-                    <p>Choose how you want to build your sponsorship package</p>
+                    <h2 id="sponsorshipSetupTitle" style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Simple Sponsorship</h2>
+                    <p id="sponsorshipSetupSubtitle">Enter the package details below</p>
                 </div>
 
                 <div class="form-group">
@@ -1839,31 +1871,10 @@
                                oninput="formatCurrencyLive(event);" 
                                placeholder="0.00" required>
                     </div>
-                    <span class="hint">This will be calculated from the uploaded file for detailed sponsorships</span>
+                    <span class="hint" id="sponsorshipInvestmentHint">Enter the total investment for this sponsorship</span>
                 </div>
 
-                <div class="form-group">
-                    <label>Setup Type <span class="required">*</span></label>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div class="radio-option" onclick="document.getElementById('sponsorshipSimple').click();">
-                            <input type="radio" id="sponsorshipSimple" name="sponsorshipType" value="simple" checked>
-                            <label for="sponsorshipSimple">
-                                <strong>Simple Sponsorship</strong>
-                                <span class="hint">Single line item, no detailed breakdown (current behavior)</span>
-                            </label>
-                        </div>
-                        
-                        <div class="radio-option" onclick="document.getElementById('sponsorshipDetailed').click();">
-                            <input type="radio" id="sponsorshipDetailed" name="sponsorshipType" value="detailed">
-                            <label for="sponsorshipDetailed">
-                                <strong>Detailed Sponsorship (Import & Breakdown)</strong>
-                                <span class="hint">Upload Excel file and break down by placement types with costs</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- File Upload Section (shown when detailed is selected) -->
+                <!-- File Upload Section (shown only for detailed) -->
                 <div id="sponsorshipFileUpload" style="display: none;">
                     <div id="sponsorshipUploadBox" style="margin-top: 1.5rem; padding: 1.5rem; border: 1.5px dashed var(--border); border-radius: 8px; text-align: center; background: var(--surface); cursor: pointer;"
                          onclick="document.getElementById('sponsorshipFileInput').click();"
@@ -1876,7 +1887,6 @@
                         <input type="file" id="sponsorshipFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleSponsorshipFileSelect(event)">
                     </div>
 
-                    <!-- Success Message (Option A: compact inline row) -->
                     <div id="sponsorshipUploadSuccess" style="display: none; margin-top: 0.75rem; padding: 0.625rem 0.875rem; background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; align-items: center; gap: 0.75rem;">
                         <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <div style="width: 10px; height: 10px; border-radius: 50%; background: #059669;"></div>
@@ -1890,7 +1900,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="btn-secondary" onclick="showScreen('screen-1');">← Back</button>
+                    <button class="btn-secondary" onclick="showScreen('screen-1-sponsorship-type');">← Back</button>
                     <button class="btn-primary" onclick="proceedFromSponsorshipSetup()">Next →</button>
                 </div>
             </div>
@@ -2347,23 +2357,23 @@
                         <!-- Other Added Value Fields -->
                         <div id="addedValueOtherFields" style="display: none;">
                             <div class="form-group">
-                                <label>Cost <span class="required">*</span></label>
+                                <label>Cost (Optional)</label>
                                 <div class="input-group">
                                     <span class="input-addon">$</span>
                                     <input type="text" id="otherCostValue" 
                                            oninput="formatCurrencyLive(event); calculateOtherValue();" 
-                                           placeholder="0.00" required>
+                                           placeholder="0.00">
                                 </div>
                                 <span class="hint">Your actual cost for this added value</span>
                             </div>
                             
                             <div class="form-group">
-                                <label>Value Price <span class="required">*</span></label>
+                                <label>Value Price (Optional)</label>
                                 <div class="input-group">
                                     <span class="input-addon">$</span>
                                     <input type="text" id="otherValuePrice" 
                                            oninput="formatCurrencyLive(event); calculateOtherValue();" 
-                                           placeholder="0.00" required>
+                                           placeholder="0.00">
                                 </div>
                                 <span class="hint">Market value if client were to pay</span>
                             </div>
@@ -4972,10 +4982,10 @@
             if (step === 1) {
                 const packageType = currentPackage.type;
                 
-                // Route to sponsorship setup if sponsorship selected
+                // Route to sponsorship type selection first
                 if (packageType === 'sponsorship') {
-                    clearSponsorshipScreen(); // Clear previous data
-                    showScreen('screen-1-sponsorship');
+                    clearSponsorshipScreen();
+                    showScreen('screen-1-sponsorship-type');
                     return;
                 }
                 
@@ -5118,7 +5128,12 @@
             const packageType = currentPackage.type;
             
             if (step === 2) {
-                showScreen('screen-1');
+                // Sponsorship came from screen-1-sponsorship, not screen-1
+                if (packageType === 'sponsorship') {
+                    showScreen('screen-1-sponsorship');
+                } else {
+                    showScreen('screen-1');
+                }
             } else if (step === 3) {
                 // From CPM Pricing (3), go back to Setup & Distribution (2)
                 showScreen('screen-2');
@@ -5277,16 +5292,7 @@
                             return false;
                         }
                     } else if (addedValueType === 'other') {
-                        const cost = document.getElementById('otherCostValue').value;
-                        const value = document.getElementById('otherValuePrice').value;
-                        if (!cost || parseCurrency(cost) <= 0) {
-                            customAlert('Please enter a Cost value');
-                            return false;
-                        }
-                        if (!value || parseCurrency(value) <= 0) {
-                            customAlert('Please enter a Value Price');
-                            return false;
-                        }
+                        // Cost and Value Price are optional for Other type — no validation needed
                     }
                 }
                 
@@ -7215,7 +7221,9 @@
                 }
             });
             
-            const totalCost = packages.reduce((sum, pkg) => sum + pkg.totalCost, 0);
+            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
+            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
+            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
             const totalMarginDollar = totalPrice - totalCost;
             const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
             
@@ -7276,6 +7284,14 @@
                 <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
                     <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Cost</div>
                     <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalCost)}</div>
+                </div>
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Production & Talent Cost</div>
+                    <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalTalentCost)}</div>
+                </div>
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Media Placements Cost</div>
+                    <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalMediaCost)}</div>
                 </div>
                 <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
                     <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Margin</div>
@@ -8227,8 +8243,6 @@
                 
                 // Restore sponsorship line items (handle both lineItems and sponsorshipLineItems)
                 sponsorshipLineItems = JSON.parse(JSON.stringify(pkg.sponsorshipLineItems || pkg.lineItems || []));
-                console.log('Loaded sponsorshipLineItems:', sponsorshipLineItems);
-                console.log('First item talentCost:', sponsorshipLineItems[0]?.talentCost);
                 
                 // Mark as editing
                 hasUnsavedChanges = true;
@@ -8238,6 +8252,16 @@
                 
                 // Go to sponsorship type assignment screen
                 showLineItemTypeAssignment();
+                return;
+            }
+
+            if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'simple') {
+                hasUnsavedChanges = true;
+                document.querySelector(`input[name="packageType"][value="sponsorship"]`).checked = true;
+                // Restore the data-entry screen for simple
+                chooseSponsorshipType('simple');
+                document.getElementById('sponsorshipPackageTitle').value = pkg.title || '';
+                document.getElementById('sponsorshipTotalInvestment').value = pkg.totalInvestment ? pkg.totalInvestment.toFixed(2) : '';
                 return;
             }
             
@@ -12074,31 +12098,6 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
         let sponsorshipSectionHeaders = []; // Stored separately to avoid affecting financial calculations
         let sponsorshipColumnMapping = {};
 
-        // Show/hide file upload based on sponsorship type selection
-        document.addEventListener('DOMContentLoaded', function() {
-            const simpleRadio = document.getElementById('sponsorshipSimple');
-            const detailedRadio = document.getElementById('sponsorshipDetailed');
-            const fileUploadDiv = document.getElementById('sponsorshipFileUpload');
-            const totalInvestmentGroup = document.getElementById('sponsorshipTotalInvestmentGroup');
-            
-            if (simpleRadio && detailedRadio && fileUploadDiv) {
-                simpleRadio.addEventListener('change', function() {
-                    fileUploadDiv.style.display = this.checked ? 'none' : 'block';
-                    if (totalInvestmentGroup) {
-                        totalInvestmentGroup.style.display = this.checked ? 'block' : 'none';
-                        document.getElementById('sponsorshipTotalInvestment').required = this.checked;
-                    }
-                });
-                detailedRadio.addEventListener('change', function() {
-                    fileUploadDiv.style.display = this.checked ? 'block' : 'none';
-                    if (totalInvestmentGroup) {
-                        totalInvestmentGroup.style.display = this.checked ? 'none' : 'block';
-                        document.getElementById('sponsorshipTotalInvestment').required = !this.checked;
-                    }
-                });
-            }
-        });
-
         function handleSponsorshipDrop(event) {
             event.preventDefault();
             event.stopPropagation();
@@ -12177,24 +12176,49 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             reader.readAsArrayBuffer(file);
         }
         
+        function chooseSponsorshipType(type) {
+            // Check the radio for visual feedback
+            const radio = document.getElementById(type === 'simple' ? 'stChoiceSimple' : 'stChoiceDetailed');
+            if (radio) radio.checked = true;
+
+            // Store the chosen type on currentPackage
+            currentPackage.sponsorshipType = type;
+
+            // Adapt the data-entry screen based on choice
+            const isSimple = type === 'simple';
+            document.getElementById('sponsorshipSetupTitle').textContent = isSimple ? 'Simple Sponsorship' : 'Detailed Sponsorship';
+            document.getElementById('sponsorshipSetupSubtitle').textContent = isSimple
+                ? 'Enter the package title and total investment'
+                : 'Enter the package title and upload your sponsorship file';
+
+            // Investment field: show for simple, hide for detailed (calculated from file)
+            const investGroup = document.getElementById('sponsorshipTotalInvestmentGroup');
+            investGroup.style.display = isSimple ? '' : 'none';
+            document.getElementById('sponsorshipInvestmentHint').textContent = 'Enter the total investment for this sponsorship';
+
+            // File upload: hide for simple, show for detailed
+            document.getElementById('sponsorshipFileUpload').style.display = isSimple ? 'none' : 'block';
+
+            showScreen('screen-1-sponsorship');
+        }
+
         function clearSponsorshipScreen() {
             // Clear form inputs
             document.getElementById('sponsorshipPackageTitle').value = '';
             document.getElementById('sponsorshipTotalInvestment').value = '';
-            
-            // Reset radio to simple (default)
-            document.getElementById('sponsorshipSimple').checked = true;
-            document.getElementById('sponsorshipDetailed').checked = false;
-            
+
             // Hide file upload section
             document.getElementById('sponsorshipFileUpload').style.display = 'none';
-            
+
+            // Show investment field by default
+            document.getElementById('sponsorshipTotalInvestmentGroup').style.display = '';
+
             // Clear file input
             document.getElementById('sponsorshipFileInput').value = '';
-            
+
             // Clear stored data
             sponsorshipImportData = null;
-            
+
             // Hide success message and file name
             document.getElementById('sponsorshipUploadSuccess').style.display = 'none';
             
@@ -12219,7 +12243,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
         }
 
         function proceedFromSponsorshipSetup() {
-            const sponsorshipType = document.querySelector('input[name="sponsorshipType"]:checked')?.value;
+            const sponsorshipType = currentPackage.sponsorshipType;
             const title = document.getElementById('sponsorshipPackageTitle').value;
             const investment = document.getElementById('sponsorshipTotalInvestment').value;
             
@@ -12240,11 +12264,13 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             
             // Save to currentPackage
             currentPackage.title = title.trim();
-            currentPackage.sponsorshipType = sponsorshipType;
             
             if (sponsorshipType === 'simple') {
-                // Simple sponsorship - proceed to normal flow (CPM entry)
+                // Simple sponsorship - proceed to normal flow
                 setupPackageDetails();
+                // Pre-populate screen-2 fields
+                document.getElementById('packageTitle').value = currentPackage.title || '';
+                document.getElementById('totalInvestment').value = currentPackage.totalInvestment || '';
                 showScreen('screen-2');
             } else {
                 // Detailed sponsorship - check file uploaded
@@ -12253,7 +12279,6 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     return;
                 }
                 
-                // Total investment will be calculated from uploaded data
                 // Parse and go to column mapping screen
                 parseAndMapSponsorshipData();
             }
@@ -12489,7 +12514,13 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
                     const cell = ws[cellAddress];
                     if (cell && cell.v !== undefined && cell.v !== null) {
-                        row[C] = cell.v;
+                        // For date cells, prefer cell.w (formatted display string like "5/25/26")
+                        // over cell.v (raw serial number like 46167)
+                        if (cell.t === 'd' || (cell.t === 'n' && cell.w && /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(cell.w))) {
+                            row[C] = cell.w || cell.v;
+                        } else {
+                            row[C] = cell.v;
+                        }
                         hasData = true;
                     }
                 }
@@ -12588,6 +12619,26 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             parseLineItemsWithGrouping();
         }
         
+        function excelDateToString(val) {
+            if (!val && val !== 0) return '';
+            // Handle JavaScript Date objects (SheetJS returns these for date cells)
+            if (val instanceof Date) {
+                var m = val.getMonth() + 1;
+                var d = val.getDate();
+                var y = val.getFullYear().toString().slice(-2);
+                return m + '/' + d + '/' + y;
+            }
+            // Handle Excel date serial numbers
+            if (typeof val === 'number' && val > 40000 && val < 55000) {
+                var date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                var m2 = date.getUTCMonth() + 1;
+                var d2 = date.getUTCDate();
+                var y2 = date.getUTCFullYear().toString().slice(-2);
+                return m2 + '/' + d2 + '/' + y2;
+            }
+            return String(val || '').trim();
+        }
+
         function parseLineItemsWithGrouping() {
             const data = sponsorshipImportData;
             const mapping = sponsorshipColumnMapping;
@@ -12625,6 +12676,20 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     if (costMethodValue) {
                         for (let r = merge.s.r; r <= merge.e.r; r++) {
                             costMethodMerges[r] = costMethodValue;
+                        }
+                    }
+                }
+            });
+
+            // Build a map of package merges to inherit package names across sub-rows
+            const packageMerges = {};
+            merges.forEach(merge => {
+                if (merge.s.c === mapping.package && merge.e.r > merge.s.r) {
+                    const pkgCell = ws[XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c })];
+                    const pkgValue = pkgCell ? pkgCell.v : null;
+                    if (pkgValue) {
+                        for (let r = merge.s.r; r <= merge.e.r; r++) {
+                            packageMerges[r] = String(pkgValue).trim();
                         }
                     }
                 }
@@ -12676,7 +12741,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 const packageName = row[mapping.package] || '';
                 const description = row[mapping.description] || '';
                 const size = row[mapping.size] || '';
-                const flight = row[mapping.flight] || '';
+                const flight = excelDateToString(row[mapping.flight] || '');
                 
                 // Inherit cost method from merge if empty
                 let costMethod = row[mapping.costMethod] || '';
@@ -12769,12 +12834,16 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         groupRows.forEach(gRow => {
                             const gDesc = gRow[mapping.description] || '';
                             const gSize = gRow[mapping.size] || '';
-                            const gFlight = gRow[mapping.flight] || '';
+                            const gFlight = excelDateToString(gRow[mapping.flight] || '');
                             
                             if (String(gDesc).trim()) {
                                 const gPlatform = gRow[mapping.platform] || '';
+                                // Inherit package from merged cells if own cell is empty
+                                const gPackageRaw = gRow[mapping.package] || '';
+                                const gPackage = String(gPackageRaw).trim() || (packageMerges[gRow._rowIndex] || '');
                                 lineItem.groupItems.push({
                                     platform: String(gPlatform).trim(),
+                                    package: gPackage,
                                     description: String(gDesc).trim(),
                                     size: String(gSize).trim(),
                                     flight: String(gFlight).trim()
