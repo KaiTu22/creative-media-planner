@@ -1754,6 +1754,14 @@
                         </label>
                     </div>
 
+                    <div class="radio-option" onclick="document.getElementById('packageBrandFunded').click();">
+                        <input type="radio" id="packageBrandFunded" name="packageType" value="brand-funded-content">
+                        <label for="packageBrandFunded">
+                            <strong>Brand Funded Content</strong>
+                            <span class="hint">Single investment amount, cost equals investment (0% margin)</span>
+                        </label>
+                    </div>
+
                     <div class="radio-option" onclick="document.getElementById('packageMedia').click();">
                         <input type="radio" id="packageMedia" name="packageType" value="media">
                         <label for="packageMedia">
@@ -2099,6 +2107,35 @@
                 <div class="button-group">
                     <button class="btn-secondary" onclick="sponsorshipGoBack()">← Back</button>
                     <button class="btn-primary" onclick="proceedFromTypeAssignment()">Next: Review & Save →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 1-Brand-Funded: Brand Funded Content single-step setup -->
+        <div id="screen-1-brand-funded" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Brand Funded Content</h2>
+                    <p>Enter the package title and total investment</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Package Title <span class="required">*</span></label>
+                    <input type="text" id="brandFundedTitle" placeholder="e.g., Q4 Brand Funded Integration" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Package Investment <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-addon">$</span>
+                        <input type="text" id="brandFundedInvestment" oninput="formatCurrencyLive(event);" placeholder="0.00" required>
+                    </div>
+                    <span class="hint">Cost will always equal the investment amount (0% margin)</span>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="showScreen('screen-1');">← Back</button>
+                    <button class="btn-primary" onclick="proceedFromBrandFundedSetup()">Next: Review & Save →</button>
                 </div>
             </div>
         </div>
@@ -4870,7 +4907,8 @@
                 fees: 'Fees',
                 partnership: 'Social Partnerships',
                 sponsorship: 'Sponsorship Packages',
-                'added-value': 'Added Value'
+                'added-value': 'Added Value',
+                'brand-funded-content': 'Brand Funded Content'
             };
             return labels[type] || type;
         }
@@ -5039,6 +5077,13 @@
                 if (packageType === 'sponsorship') {
                     clearSponsorshipScreen();
                     showScreen('screen-1-sponsorship-type');
+                    return;
+                }
+
+                // Route to Brand Funded Content single-step screen
+                if (packageType === 'brand-funded-content') {
+                    clearBrandFundedScreen();
+                    showScreen('screen-1-brand-funded');
                     return;
                 }
                 
@@ -5211,6 +5256,12 @@
                 // Handle simple sponsorships - go back to data entry screen
                 if (packageType === 'sponsorship' && currentPackage.sponsorshipType === 'simple') {
                     showScreen('screen-1-sponsorship');
+                    return;
+                }
+
+                // Handle Brand Funded Content - go back to its single data entry screen
+                if (packageType === 'brand-funded-content') {
+                    showScreen('screen-1-brand-funded');
                     return;
                 }
                 
@@ -5545,6 +5596,26 @@
         // Step 2: Package Details
         function setupPackageDetails() {
             const type = currentPackage.type;
+
+            // Always reset both talent markup fields to a clean default state first.
+            // This prevents a markup value changed while editing one package from
+            // silently leaking into a different package that never had a custom
+            // markup saved (the fields are only ever overridden below if the
+            // package being edited actually has its own stored talentMarkup).
+            ['talentMarkup', 'talentMarkup4'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = '25';
+                    el.disabled = true;
+                    el.style.opacity = '0.5';
+                    el.style.pointerEvents = 'none';
+                }
+            });
+            ['talentMarkupCheckbox', 'talentMarkupCheckbox4'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = false;
+            });
+
             const titles = {
                 influencer: 'Influencer Package Setup',
                 branded: 'Branded Content Package Setup',
@@ -5733,9 +5804,11 @@
                     // Complex packages
                     document.getElementById('packageTitleComplex').value = pkg.title;
                     document.getElementById('totalInvestmentComplex').value = pkg.totalInvestment.toLocaleString('en-US');
-                    // Restore package sub-type for talent packages
-                    if (type === 'talent' && pkg.packageSubType) {
-                        document.getElementById('packageTypeDropdown').value = pkg.packageSubType;
+                    // Restore package sub-type for talent packages (always reset first
+                    // so a subtype left over from editing a different package can't leak)
+                    const ptDropdownEl = document.getElementById('packageTypeDropdown');
+                    if (ptDropdownEl) {
+                        ptDropdownEl.value = (type === 'talent' && pkg.packageSubType) ? pkg.packageSubType : '';
                     }
                     
                     // Restore media input type and value
@@ -5754,6 +5827,22 @@
                         renderPlatformList();
                     }
                     
+                    // Restore talent markup on screen-3 (Cost & Margin) if editing an
+                    // influencer or branded content package with a saved custom markup
+                    if ((type === 'influencer' || type === 'branded') && pkg.talentMarkup !== undefined) {
+                        const tm = document.getElementById('talentMarkup');
+                        const tmc = document.getElementById('talentMarkupCheckbox');
+                        if (tm) {
+                            tm.value = pkg.talentMarkup;
+                            if (pkg.talentMarkup !== 25) {
+                                tm.disabled = false;
+                                tm.style.opacity = '1';
+                                tm.style.pointerEvents = 'auto';
+                                if (tmc) tmc.checked = true;
+                            }
+                        }
+                    }
+
                     // Restore talent markup on screen-4 if editing talent package
                     if (type === 'talent' && pkg.talentMarkup !== undefined) {
                         const tm4 = document.getElementById('talentMarkup4');
@@ -5769,14 +5858,16 @@
                         }
                     }
                     
-                    // Restore Campaign Type (Influencer only)
-                    if (type === 'influencer' && pkg.campaignType) {
-                        document.getElementById('campaignType').value = pkg.campaignType;
+                    // Restore Campaign Type (Influencer only) — always reset first
+                    const campaignTypeEl = document.getElementById('campaignType');
+                    if (campaignTypeEl) {
+                        campaignTypeEl.value = (type === 'influencer' && pkg.campaignType) ? pkg.campaignType : '';
                     }
                     
-                    // Restore Production Fee Presentation (Influencer & Branded Content)
-                    if ((type === 'influencer' || type === 'branded') && pkg.productionPresentation) {
-                        document.getElementById('productionPresentation').value = pkg.productionPresentation;
+                    // Restore Production Fee Presentation (Influencer & Branded Content) — always reset first
+                    const prodPresentationEl = document.getElementById('productionPresentation');
+                    if (prodPresentationEl) {
+                        prodPresentationEl.value = ((type === 'influencer' || type === 'branded') && pkg.productionPresentation) ? pkg.productionPresentation : '';
                     }
                     
                     updateInvestmentSplit();
@@ -7059,8 +7150,8 @@
             const breakdownHeader = document.getElementById('summaryBreakdownHeader');
             const breakdownGrid = document.getElementById('summaryBreakdownGrid');
             
-            if (packageType === 'media') {
-                // Media-only (Paid Distribution) packages don't have talent
+            if (packageType === 'media' || packageType === 'brand-funded-content') {
+                // Media-only (Paid Distribution) and Brand Funded Content packages don't have a talent/media split
                 if (breakdownHeader) breakdownHeader.style.display = 'none';
                 if (breakdownGrid) breakdownGrid.style.display = 'none';
             } else {
@@ -7113,6 +7204,13 @@
                 totalCost = 0;
                 totalMarginDollar = totalPrice; // 100% margin
                 totalMarginPercent = 100;
+            } else if (packageType === 'brand-funded-content') {
+                // Brand Funded Content — cost always equals investment, 0% margin, no media/impressions
+                totalImpressions = 0;
+                overallCPM = 0;
+                totalCost = totalPrice;
+                totalMarginDollar = 0;
+                totalMarginPercent = 0;
             } else {
                 // For other packages, calculate from platformAllocations
                 totalImpressions = platformAllocations.reduce((sum, a) => sum + (a.impressions || 0), 0);
@@ -7381,6 +7479,10 @@
                 addedvalue: { 
                     types: ['added-value'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
+                },
+                brandfunded: {
+                    types: ['brand-funded-content'],
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
                 }
             };
             
@@ -7473,7 +7575,8 @@
                         creative: 'Creative',
                         oo: 'O&O',
                         partnerships: 'Social Partnerships',
-                        addedvalue: 'Added Value'
+                        addedvalue: 'Added Value',
+                        brandfunded: 'Brand Funded Content'
                     };
                     
                     // Calculate display text for package count
@@ -8100,6 +8203,55 @@
                         </div>
                     </div>
                     ` : ''}
+
+                    ${pkg.type === 'brand-funded-content' ? `
+                    <div style="margin-top: 1.5rem;">
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.75rem;">
+                            <button class="btn-secondary btn-sm" onclick="toggleBrandFundedDetails(${index})" id="toggleBrandFundedBtn${index}">
+                                ▼ Show Details
+                            </button>
+                        </div>
+                        <div id="brandFundedDetails${index}" style="display: none;">
+                            <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+                                <table style="margin: 0;">
+                                    <thead>
+                                        <tr style="background: var(--background);">
+                                            <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">PRICE</th>
+                                            <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">COST</th>
+                                            <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">MARGIN ($)</th>
+                                            <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">MARGIN (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; font-weight: 600;">$${formatNumber(pkg.totalInvestment)}</td>
+                                            <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem;">$${formatNumber(pkg.totalCost || 0)}</td>
+                                            <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; color: var(--success); font-weight: 600;">$${formatNumber(pkg.totalInvestment - (pkg.totalCost || 0))}</td>
+                                            <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; color: var(--success); font-weight: 600;">${(pkg.totalMarginPercent || 0).toFixed(3)}%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            ${pkg.url ? `
+                            <div style="margin-top: 1rem; padding: 0.75rem; background: var(--background); border-radius: 8px; text-align: left;">
+                                <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Reference URL</strong>
+                                <a href="${escapeHtml(pkg.url)}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; word-break: break-all;">
+                                    ${escapeHtml(pkg.url)} ↗
+                                </a>
+                            </div>
+                            ` : ''}
+
+                            ${pkg.notes ? `
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: left;">
+                                <strong style="font-size: 0.875rem; color: var(--primary); display: block; margin-bottom: 0.5rem;">Notes</strong>
+                                <div style="background: var(--background); padding: 1rem; border-radius: 8px; font-size: 0.875rem; white-space: pre-wrap; text-align: left; text-indent: 0; display: block;">${escapeHtml((pkg.notes || "").trim())}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `}).join('');
             
@@ -8183,6 +8335,19 @@
             const detailsDiv = document.getElementById(`talentDetails${index}`);
             const toggleBtn = document.getElementById(`toggleTalentBtn${index}`);
             
+            if (detailsDiv.style.display === 'none') {
+                detailsDiv.style.display = 'block';
+                toggleBtn.textContent = '▲ Hide Details';
+            } else {
+                detailsDiv.style.display = 'none';
+                toggleBtn.textContent = '▼ Show Details';
+            }
+        }
+
+        function toggleBrandFundedDetails(index) {
+            const detailsDiv = document.getElementById(`brandFundedDetails${index}`);
+            const toggleBtn = document.getElementById(`toggleBrandFundedBtn${index}`);
+
             if (detailsDiv.style.display === 'none') {
                 detailsDiv.style.display = 'block';
                 toggleBtn.textContent = '▲ Hide Details';
@@ -8351,6 +8516,15 @@
                 updateSponsorshipSimpleCalcs();
                 return;
             }
+
+            if (pkg.type === 'brand-funded-content') {
+                hasUnsavedChanges = true;
+                document.querySelector(`input[name="packageType"][value="brand-funded-content"]`).checked = true;
+                document.getElementById('brandFundedTitle').value = pkg.title || '';
+                document.getElementById('brandFundedInvestment').value = pkg.totalInvestment ? pkg.totalInvestment.toFixed(2) : '';
+                showScreen('screen-1-brand-funded');
+                return;
+            }
             
             // Also restore blended platforms if it's a branded-blended package
             if (pkg.type === 'branded-blended' && pkg.blendedPlatforms) {
@@ -8499,6 +8673,11 @@
                     types: ['added-value'], 
                     investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
                     label: 'Added Value' 
+                },
+                brandFunded: {
+                    types: ['brand-funded-content'],
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0,
+                    label: 'Brand Funded Content'
                 }
             };
             
@@ -8618,7 +8797,9 @@
                 'streaming': 'Streaming Video',
                 'fees': 'Fees',
                 'partnership': 'Social Partnerships',
-                'sponsorship': 'Sponsorship Packages'
+                'sponsorship': 'Sponsorship Packages',
+                'added-value': 'Added Value',
+                'brand-funded-content': 'Brand Funded Content'
             };
             
             const packageData = [];
@@ -8653,7 +8834,7 @@
                 
                 const talentCost = pkg.talentCost || 0;
                 const totalCost = pkg.totalCost || 0;
-                const mediaCost = totalCost - talentCost;
+                const mediaCost = pkgType === 'brand-funded-content' ? 0 : totalCost - talentCost;
                 
                 // Get investment split for Branded Content and Influencer packages
                 const talentInvestment = pkg.talentInvestment || 0;
@@ -9550,32 +9731,54 @@
             
             const packages = currentVersion.packages;
             const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-            const totalImpressions = packages.reduce((sum, pkg) => {
-                if (pkg.type === 'branded-blended') {
-                    const pkgCPM = pkg.packageCPM || 0;
-                    return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
+
+            // Separate CPV packages from CPM packages (matches main screen logic exactly)
+            const hasCPVPackages = packages.some(pkg =>
+                pkg.type === 'partnership' &&
+                pkg.partnershipType === 'x_amplify' &&
+                pkg.pricingMetric === 'cpv'
+            );
+
+            let totalViews = 0;
+            let totalCPVInvestment = 0;
+            let totalImpressions = 0;
+            let totalCPMInvestment = 0;
+
+            packages.forEach(pkg => {
+                const metricInfo = getPackageMetricInfo(pkg);
+
+                if (metricInfo.usesViews) {
+                    totalViews += (pkg.views || 0);
+                    totalCPVInvestment += pkg.totalInvestment;
+                } else {
+                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                        totalImpressions += (pkg.totalImpressions || 0);
+                    } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                        totalImpressions += (pkg.impressions || 0);
+                    } else {
+                        totalImpressions += (pkg.totalImpressions || 0);
+                    }
+                    totalCPMInvestment += pkg.totalInvestment;
                 }
-                if (pkg.type === 'sponsorship') {
-                    // Detailed sponsorships store impressions in totalImpressions; simple ones use impressions
-                    return sum + (pkg.totalImpressions || pkg.impressions || 0);
-                }
-                if (['streaming', 'partnership', 'added-value'].includes(pkg.type)) {
-                    return sum + (pkg.impressions || 0);
-                }
-                return sum + (pkg.totalImpressions || 0);
-            }, 0);
-            const totalCost = packages.reduce((sum, pkg) => sum + pkg.totalCost, 0);
+            });
+
+            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
             const totalMarginDollar = totalPrice - totalCost;
-            const totalMarginPercent = (totalMarginDollar / totalPrice) * 100;
-            const overallCPM = totalImpressions > 0 ? (totalPrice / totalImpressions * 1000) : 0;
-            
+            const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
+
+            // Calculate CPM only from non-CPV packages (matches main screen)
+            const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0)
+                ? (totalCPMInvestment / totalImpressions * 1000)
+                : 0;
+
+            // Calculate CPV from CPV packages (matches main screen)
+            const overallCPV = (totalViews > 0 && totalCPVInvestment > 0)
+                ? (totalCPVInvestment / totalViews)
+                : 0;
+
             const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = packages.reduce((sum, pkg) => {
-                if (pkg.platformAllocations) {
-                    return sum + pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0);
-                }
-                return sum + (pkg.totalCost || 0) - (pkg.talentCost || 0);
-            }, 0);
+            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+
             
             let html = `
                 <div style="background: var(--background); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid var(--border);">
@@ -9601,7 +9804,11 @@
                     <tbody>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Investment</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalPrice)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Impressions</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">${formatImpressions(totalImpressions)}</td></tr>
-                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Overall CPM</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${overallCPM.toFixed(2)}</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Overall CPM</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">${overallCPM > 0 ? '$' + overallCPM.toFixed(2) : 'N/A'}</td></tr>
+                        ${hasCPVPackages && totalViews > 0 ? `
+                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Views</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">${formatImpressions(totalViews)}</td></tr>
+                        <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Overall CPV</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">${overallCPV > 0 ? '$' + overallCPV.toFixed(2) : 'N/A'}</td></tr>
+                        ` : ''}
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Production & Talent Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalTalentCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Media Placements Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalMediaCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Cost</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalCost)}</td></tr>
@@ -9629,6 +9836,11 @@
                      types: ['added-value'], 
                      label: 'Added Value', 
                      investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 
+                 },
+                 brandfunded: {
+                     types: ['brand-funded-content'],
+                     label: 'Brand Funded Content',
+                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0
                  }
              };
              
@@ -9821,6 +10033,10 @@
                         talentCostAmount = 0;
                         mediaCostAmount = pkg.totalCost;
                     }
+                } else if (pkg.type === 'brand-funded-content') {
+                    // Brand Funded Content — flat cost, no talent/media breakdown
+                    talentCostAmount = 0;
+                    mediaCostAmount = 0;
                 } else {
                     // Other packages
                     mediaCostAmount = pkg.totalCost - talentCostAmount;
@@ -10384,7 +10600,7 @@
                             <td style="padding: 0.75rem; text-align: right; color: var(--danger);">$${formatNumber(mediaCost)}</td>
                             <td style="padding: 0.75rem; text-align: right; color: var(--danger); font-weight: 600;">$${formatNumber(item.totalCost || 0)}</td>
                             <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent || 0)};">$${formatNumber(item.margin || 0)}</td>
-                            <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent || 0)};">${(item.marginPercent || 0).toFixed(1)}%</td>
+                            <td style="padding: 0.75rem; text-align: right; color: ${getMarginColor(item.marginPercent || 0)};">${(item.marginPercent || 0).toFixed(3)}%</td>
                         </tr>
                     `;
                     
@@ -10601,7 +10817,8 @@
             const categories = {
                 creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0, investmentNoFees: 0, costNoFees: 0, marginNoFees: 0 },
                 oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 }
+                addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 },
+                brandfunded: { types: ['brand-funded-content'], label: 'Brand Funded Content', investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 }
             };
             
             packages.forEach(pkg => {
@@ -10780,7 +10997,8 @@
                     'fees': 'Fees',
                     'media': 'Paid Distribution',
                     'talent': 'Talent and Production Only',
-                    'added-value': 'Added Value'
+                    'added-value': 'Added Value',
+                    'brand-funded-content': 'Brand Funded Content'
                 };
                 
                 doc.setFontSize(11);
@@ -10812,6 +11030,10 @@
                         talentCostAmount = 0;
                         mediaCostAmount = pkg.totalCost;
                     }
+                } else if (pkg.type === 'brand-funded-content') {
+                    // Brand Funded Content — flat cost, no talent/media breakdown
+                    talentCostAmount = 0;
+                    mediaCostAmount = 0;
                 } else {
                     // Other packages
                     mediaCostAmount = pkg.totalCost - talentCostAmount;
@@ -12291,6 +12513,39 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             document.getElementById('sponsorshipFileUpload').style.display = isSimple ? 'none' : 'block';
 
             showScreen('screen-1-sponsorship');
+        }
+
+        function clearBrandFundedScreen() {
+            const titleEl = document.getElementById('brandFundedTitle');
+            const investmentEl = document.getElementById('brandFundedInvestment');
+            if (titleEl) titleEl.value = '';
+            if (investmentEl) investmentEl.value = '';
+        }
+
+        function proceedFromBrandFundedSetup() {
+            const title = document.getElementById('brandFundedTitle').value;
+            const investment = document.getElementById('brandFundedInvestment').value;
+
+            if (!title || !title.trim()) {
+                customAlert('Please enter a package title');
+                return;
+            }
+            if (!investment || parseCurrency(investment) <= 0) {
+                customAlert('Please enter a valid investment amount');
+                return;
+            }
+
+            currentPackage.title = title.trim();
+            currentPackage.type = 'brand-funded-content';
+            currentPackage.totalInvestment = parseCurrency(investment);
+            // Cost always equals investment — 0% margin by design
+            currentPackage.totalCost = currentPackage.totalInvestment;
+            currentPackage.talentCost = 0;
+            currentPackage.mediaCost = 0;
+            currentPackage.totalMarginPercent = 0;
+
+            displayFinalSummary();
+            showScreen('screen-5');
         }
 
         function clearSponsorshipScreen() {
