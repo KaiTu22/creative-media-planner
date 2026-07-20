@@ -10148,20 +10148,30 @@
                             <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Category</th>
                             <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Investment</th>
                             <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Cost</th>
+                            <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin ($)</th>
+                            <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Margin (%)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${Object.values(cats).map(cat => `
+                        ${Object.values(cats).map(cat => {
+                            const marginDollar = cat.investment - cat.cost;
+                            const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
+                            return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 0.6rem 0.75rem;">${cat.label}</td>
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(cat.investment)}</td>
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; color: var(--danger);">${cat.hasCost ? '$' + formatNumber(cat.cost) : '—'}</td>
+                                <td style="padding: 0.6rem 0.75rem; text-align: right; color: ${getMarginColor(marginPercent)}; font-weight: 600;">$${formatNumber(marginDollar)}</td>
+                                <td style="padding: 0.6rem 0.75rem; text-align: right; color: ${getMarginColor(marginPercent)}; font-weight: 600;">${marginPercent.toFixed(3)}%</td>
                             </tr>
-                        `).join('')}
+                        `;
+                        }).join('')}
                         <tr style="border-top: 2px solid var(--border);">
                             <td style="padding: 0.6rem 0.75rem; font-weight: bold;">Total</td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalInvestment)}</td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: var(--danger);">$${formatNumber(totalCost)}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0)};">$${formatNumber(totalInvestment - totalCost)}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0)};">${(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0).toFixed(3)}%</td>
                         </tr>
                     </tbody>
                 </table>
@@ -11211,25 +11221,35 @@
                     yPos += 8;
                 }
 
-                const ibRows = Object.values(ibCats).map(cat => [
-                    cat.label,
-                    '$' + formatNumber(cat.investment),
-                    cat.hasCost ? '$' + formatNumber(cat.cost) : '—'
-                ]);
+                const ibRows = Object.values(ibCats).map(cat => {
+                    const marginDollar = cat.investment - cat.cost;
+                    const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
+                    return [
+                        cat.label,
+                        '$' + formatNumber(cat.investment),
+                        cat.hasCost ? '$' + formatNumber(cat.cost) : '—',
+                        '$' + formatNumber(marginDollar),
+                        marginPercent.toFixed(3) + '%'
+                    ];
+                });
                 const ibTotalInvestment = Object.values(ibCats).reduce((s, c) => s + c.investment, 0);
                 const ibTotalCost = Object.values(ibCats).reduce((s, c) => s + c.cost, 0);
-                ibRows.push(['Total', '$' + formatNumber(ibTotalInvestment), '$' + formatNumber(ibTotalCost)]);
+                const ibTotalMarginDollar = ibTotalInvestment - ibTotalCost;
+                const ibTotalMarginPercent = ibTotalInvestment > 0 ? (ibTotalMarginDollar / ibTotalInvestment) * 100 : 0;
+                ibRows.push(['Total', '$' + formatNumber(ibTotalInvestment), '$' + formatNumber(ibTotalCost), '$' + formatNumber(ibTotalMarginDollar), ibTotalMarginPercent.toFixed(3) + '%']);
 
                 doc.autoTable({
                     startY: yPos,
-                    head: [['Category', 'Investment', 'Cost']],
+                    head: [['Category', 'Investment', 'Cost', 'Margin ($)', 'Margin (%)']],
                     body: ibRows,
                     theme: 'plain',
                     styles: { fontSize: 9, cellPadding: 2 },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
                     columnStyles: {
                         1: { halign: 'right' },
-                        2: { halign: 'right' }
+                        2: { halign: 'right' },
+                        3: { halign: 'right' },
+                        4: { halign: 'right' }
                     },
                     margin: { left: 14, right: 14 }
                 });
