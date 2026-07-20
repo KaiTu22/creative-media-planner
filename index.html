@@ -2573,7 +2573,7 @@
                                     <div class="form-group">
                                         <label>Media Investment % <span class="required">*</span></label>
                                         <div class="input-group">
-                                            <input type="number" id="mediaPercentage" step="1" min="0" max="100" value="50" oninput="updateInvestmentSplit()">
+                                            <input type="number" id="mediaPercentage" step="1" min="1" max="99" value="50" oninput="updateInvestmentSplit()">
                                             <span class="input-addon">%</span>
                                         </div>
                                         <span class="hint" id="mediaInvestmentHint">= $0</span>
@@ -5408,16 +5408,34 @@
                 
                 // Complex packages (influencer, branded, media) validation
                 if (['influencer', 'branded', 'media'].includes(packageType)) {
-                    // For influencer and branded: check Media % > 0, platforms selected, and 100% allocation
+                    // For influencer and branded: check Media % is strictly between 0-100, platforms selected, and 100% allocation
                     if (packageType === 'influencer' || packageType === 'branded') {
-                        const mediaPercent = parseFloat(document.getElementById('mediaPercentage')?.value || 0);
+                        // Compute the ACTUAL resulting media percent regardless of which
+                        // input mode (percentage vs. dollar) is currently active, so a
+                        // user can't bypass this check by switching modes.
+                        const isPercentMode = document.getElementById('mediaTypePercent')?.checked;
+                        const totalInvestmentRaw = (document.getElementById('totalInvestmentComplex')?.value || '').replace(/,/g, '');
+                        const totalInvestment = parseFloat(totalInvestmentRaw) || 0;
+
+                        let mediaPercent;
+                        if (isPercentMode) {
+                            mediaPercent = parseFloat(document.getElementById('mediaPercentage')?.value || 0);
+                        } else {
+                            const mediaDollarRaw = (document.getElementById('mediaInvestmentDollarInput')?.value || '').replace(/,/g, '');
+                            const mediaDollar = parseFloat(mediaDollarRaw) || 0;
+                            mediaPercent = totalInvestment > 0 ? (mediaDollar / totalInvestment) * 100 : 0;
+                        }
+
                         const hasPlatforms = platformAllocations.length > 0;
                         const total = platformAllocations.reduce((sum, p) => sum + (p.percentage || 0), 0);
                         const is100Percent = Math.abs(total - 100) < 0.01;
                         
-                        // Check if any validation fails
-                        if (mediaPercent <= 0 || !hasPlatforms || !is100Percent) {
-                            customAlert('Please add at least one distribution platform and allocate % distributions that total 100%');
+                        // Check if any validation fails — media must be strictly between
+                        // 0% and 100% so both a Production & Talent and a Media component
+                        // always exist. A 0% or 100% split belongs to Talent and Production
+                        // Only / Paid Distribution Only instead.
+                        if (mediaPercent <= 0 || mediaPercent >= 100 || !hasPlatforms || !is100Percent) {
+                            customAlert('Media investment must be greater than 0% and less than 100% of the total. For a package that is entirely Talent/Production or entirely Media, use "Talent and Production Only" or "Paid Distribution Only" instead. Please also add at least one distribution platform and allocate % distributions that total 100%.');
                             return false;
                         }
                     } else if (packageType === 'media') {
@@ -8020,10 +8038,23 @@
                                 ${pkg.type === 'branded-blended' ? (() => {
                                     const talentCost = pkg.talentCost || 0;
                                     const mediaCost = pkg.mediaCost || 0;
+                                    const talentInvestment = talentCost; // Production & Talent Investment = Production & Talent Cost (blended)
+                                    const mediaInvestment = (pkg.totalInvestment || 0) - talentCost; // Media = Total Investment - Production & Talent
                                     const impressions = pkg.impressions || 0;
                                     const internalCPM = impressions > 0 ? (mediaCost / impressions * 1000) : 0;
                                     return `
                                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                        <strong style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Investment Breakdown</strong>
+                                        <div class="summary-grid" style="grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 0.5rem;">
+                                            <div class="summary-card" style="padding: 0.6rem;">
+                                                <div class="summary-label">Production & Talent Investment</div>
+                                                <div class="summary-value" style="font-size: 0.95rem;">$${formatNumber(talentInvestment)}</div>
+                                            </div>
+                                            <div class="summary-card" style="padding: 0.6rem;">
+                                                <div class="summary-label">Media Investment</div>
+                                                <div class="summary-value" style="font-size: 0.95rem;">$${formatNumber(mediaInvestment)}</div>
+                                            </div>
+                                        </div>
                                         <strong style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cost Breakdown</strong>
                                         <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                                             <div class="summary-card" style="padding: 0.6rem;">
@@ -8070,7 +8101,7 @@
                         <div id="mediaDetails${index}" style="display: none;">
                             ${hasTalent ? `
                             <div style="margin-bottom: 1rem;">
-                                <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700;">Production & Talent</strong>
+                                <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Production & Talent</strong>
                                 <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
                                     <table style="margin: 0;">
                                         <thead>
@@ -8094,8 +8125,40 @@
                             </div>
                             ` : ''}
                             
-                            <div>
-                                <strong style="font-size: 0.875rem; color: var(--primary); display: block; margin-bottom: 0.75rem;">Media Placement Details</strong>
+                            <div style="margin-top: 1rem;">
+                                <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Media</strong>
+                                <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+                                    <table style="margin: 0;">
+                                        <thead>
+                                            <tr style="background: var(--background);">
+                                                <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">PRICE</th>
+                                                <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">COST</th>
+                                                <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">MARGIN ($)</th>
+                                                <th style="padding: 0.4rem 0.6rem; font-size: 0.875rem;">MARGIN (%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${(() => {
+                                                const mediaPrice = pkg.mediaInvestmentDollar || 0;
+                                                const mediaCost = pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0);
+                                                const mediaMarginDollar = mediaPrice - mediaCost;
+                                                const mediaMarginPercent = mediaPrice > 0 ? (mediaMarginDollar / mediaPrice) * 100 : 0;
+                                                return `
+                                            <tr>
+                                                <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; font-weight: 600;">$${formatNumber(mediaPrice)}</td>
+                                                <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem;">$${formatNumber(mediaCost)}</td>
+                                                <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; color: var(--success); font-weight: 600;">$${formatNumber(mediaMarginDollar)}</td>
+                                                <td style="padding: 0.5rem 0.6rem; font-size: 0.8rem; color: var(--success); font-weight: 600;">${mediaMarginPercent.toFixed(3)}%</td>
+                                            </tr>
+                                                `;
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1rem;">
+                                <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Media Placement Details</strong>
                                 <div class="table-container">
                                     <table>
                                         <thead>
@@ -8146,7 +8209,7 @@
                             
                             ${pkg.notes ? `
                             <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: left;">
-                                <strong style="font-size: 0.875rem; color: var(--primary); display: block; margin-bottom: 0.5rem;">Notes</strong>
+                                <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Notes</strong>
                                 <div style="background: var(--background); padding: 1rem; border-radius: 8px; font-size: 0.875rem; white-space: pre-wrap; text-align: left; text-indent: 0; display: block;">${escapeHtml((pkg.notes || "").trim())}
                                 </div>
                             </div>
@@ -8356,6 +8419,7 @@
                 toggleBtn.textContent = '▼ Show Details';
             }
         }
+
         
         function toggleCategoryBreakdown() {
             const contentDiv = document.getElementById('categoryBreakdownContent');
@@ -9976,7 +10040,7 @@
         let currentSummaryContent = '';
         
         function switchSummaryTab(tab) {
-            const tabs = ['summary', 'packageDetails', 'platformBreakdown', 'sponsorshipDetails'];
+            const tabs = ['summary', 'packageDetails', 'platformBreakdown', 'investmentBreakdown', 'sponsorshipDetails'];
             tabs.forEach(t => {
                 const btn = document.getElementById(t + 'Tab');
                 if (btn) {
@@ -10000,11 +10064,112 @@
                 content.innerHTML = renderPackageDetailsTab();
             } else if (tab === 'platformBreakdown') {
                 content.innerHTML = renderPlatformBreakdownTab();
+            } else if (tab === 'investmentBreakdown') {
+                content.innerHTML = renderInvestmentBreakdownTab();
             } else if (tab === 'sponsorshipDetails') {
                 content.innerHTML = renderSponsorshipDetailsTab();
             }
         }
         
+        function renderInvestmentBreakdownTab() {
+            const packages = currentVersion.packages;
+
+            const cats = {
+                talent: { label: 'Production & Talent', investment: 0, cost: 0, hasCost: true },
+                media: { label: 'Paid Media', investment: 0, cost: 0, hasCost: true },
+                social: { label: 'Social Partnership', investment: 0, cost: 0, hasCost: true },
+                streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
+                linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
+                fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
+                brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
+            };
+
+            let sponsorshipCount = 0;
+
+            packages.forEach(pkg => {
+                if (pkg.type === 'sponsorship') {
+                    sponsorshipCount++;
+                    return; // Sponsorship packages are not yet included in this breakdown
+                }
+
+                if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
+                    cats.talent.investment += (pkg.talentInvestment || 0);
+                    cats.talent.cost += (pkg.talentCost || 0);
+                    cats.media.investment += (pkg.mediaInvestmentDollar || 0);
+                    const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
+                        ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
+                        : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
+                    cats.media.cost += mediaCost;
+                } else if (pkg.type === 'branded-blended') {
+                    const talentCost = pkg.talentCost || 0;
+                    cats.talent.investment += talentCost; // Production & Talent Investment = Production & Talent Cost
+                    cats.talent.cost += talentCost;
+                    cats.media.investment += (pkg.totalInvestment || 0) - talentCost; // Media = Total Investment - Production & Talent
+                    cats.media.cost += (pkg.totalCost || 0) - talentCost;
+                } else if (pkg.type === 'partnership') {
+                    cats.social.investment += (pkg.totalInvestment || 0);
+                    cats.social.cost += (pkg.totalCost || 0); // Rev Share Cost
+                } else if (pkg.type === 'streaming') {
+                    cats.streaming.investment += (pkg.totalInvestment || 0);
+                } else if (pkg.type === 'linear') {
+                    cats.linear.investment += (pkg.totalInvestment || 0);
+                } else if (pkg.type === 'fees') {
+                    cats.fees.investment += (pkg.totalInvestment || 0);
+                } else if (pkg.type === 'brand-funded-content') {
+                    cats.brandFunded.investment += (pkg.totalInvestment || 0);
+                    cats.brandFunded.cost += (pkg.totalCost || 0); // Cost always equals Investment
+                } else if (pkg.type === 'added-value') {
+                    // Added Value: cost only (where applicable), no investment side
+                    if (pkg.addedValueType === 'talent') {
+                        cats.talent.cost += (pkg.totalCost || 0);
+                    } else if (pkg.addedValueType === 'distribution') {
+                        cats.media.cost += (pkg.totalCost || 0);
+                    }
+                    // 'streaming' and 'other' sub-types have no clear cost mapping and are not included
+                }
+            });
+
+            const totalInvestment = Object.values(cats).reduce((sum, c) => sum + c.investment, 0);
+            const totalCost = Object.values(cats).reduce((sum, c) => sum + c.cost, 0);
+
+            let html = `
+                <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem;">
+                    INVESTMENT BREAKDOWN
+                    <span style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(0,10,60,0.08); color: #000a3c; border: 1px solid #000a3c; border-radius: 4px; padding: 2px 8px;">Beta</span>
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem;">A component-level view of investment and cost across the version, broken out by Production &amp; Talent, Paid Media, Social Partnership, Streaming, Linear, Fees, and Brand Funded Content.</p>
+                ${sponsorshipCount > 0 ? `
+                <div style="background: rgba(244, 164, 96, 0.12); border: 1px solid #F4A460; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text);">
+                    <strong>Note:</strong> This version has ${sponsorshipCount} Sponsorship package${sponsorshipCount !== 1 ? 's' : ''}. Sponsorship packages are not yet included in this breakdown.
+                </div>` : ''}
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
+                    <thead>
+                        <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 0.75rem; text-align: left; font-weight: bold;">Category</th>
+                            <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Investment</th>
+                            <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.values(cats).map(cat => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.6rem 0.75rem;">${cat.label}</td>
+                                <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(cat.investment)}</td>
+                                <td style="padding: 0.6rem 0.75rem; text-align: right; color: var(--danger);">${cat.hasCost ? '$' + formatNumber(cat.cost) : '—'}</td>
+                            </tr>
+                        `).join('')}
+                        <tr style="border-top: 2px solid var(--border);">
+                            <td style="padding: 0.6rem 0.75rem; font-weight: bold;">Total</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalInvestment)}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: var(--danger);">$${formatNumber(totalCost)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+
+            return html;
+        }
+
         function renderPackageDetailsTab() {
             const packages = currentVersion.packages;
             
@@ -10040,6 +10205,15 @@
                 } else {
                     // Other packages
                     mediaCostAmount = pkg.totalCost - talentCostAmount;
+                }
+
+                // Investment-side amounts (Production & Talent Investment / Media Investment)
+                let talentInvestmentAmount = pkg.talentInvestment || 0;
+                let mediaInvestmentAmount = pkg.mediaInvestmentDollar || 0;
+                if (pkg.type === 'branded-blended') {
+                    // Per spec: Production & Talent Investment = Production & Talent Cost for blended packages
+                    talentInvestmentAmount = talentCostAmount;
+                    mediaInvestmentAmount = (pkg.totalInvestment || 0) - talentCostAmount;
                 }
                 
                 html += `
@@ -10096,7 +10270,9 @@
                                         `;
                                     })()}
                                 ` : ''}
+                                ${hasTalent && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Production & Talent Investment</td><td style="padding: 0.6rem;">$${formatNumber(talentInvestmentAmount)}</td></tr>` : ''}
                                 ${hasTalent && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Production & Talent Cost</td><td style="padding: 0.6rem;">$${formatNumber(talentCostAmount)}</td></tr>` : ''}
+                                ${(hasMedia || pkg.type === 'branded-blended') && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Media Investment</td><td style="padding: 0.6rem;">$${formatNumber(mediaInvestmentAmount)}</td></tr>` : ''}
                                 ${(hasMedia || pkg.type === 'branded-blended') && pkg.type !== 'sponsorship' ? `<tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; padding-left: 1.5rem;">Media Cost</td><td style="padding: 0.6rem;">$${formatNumber(mediaCostAmount)}</td></tr>` : ''}
                                 <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.6rem; font-weight: bold;">Total Cost${pkg.type === 'sponsorship' ? ' (INTERNAL)' : ''}</td><td style="padding: 0.6rem; color: var(--danger);">$${formatNumber(pkg.totalCost)}</td></tr>
                                 <tr><td style="padding: 0.6rem; font-weight: bold;">Total Margin</td><td style="padding: 0.6rem; color: ${getMarginColor(pkg.totalMarginPercent || 0)}; font-weight: bold;">$${formatNumber(pkg.totalInvestment - pkg.totalCost)} (${(pkg.totalMarginPercent || 0).toFixed(3)}%)</td></tr>
@@ -10970,7 +11146,96 @@
                     yPos = doc.lastAutoTable.finalY + 8;
                 });
             }
-            
+
+            // Investment Breakdown (Beta) - new page
+            doc.addPage();
+            yPos = 20;
+            doc.setFontSize(14);
+            doc.setTextColor(15, 23, 42);
+            doc.text('INVESTMENT BREAKDOWN (BETA)', 14, yPos);
+            yPos += 8;
+
+            (() => {
+                const ibCats = {
+                    talent: { label: 'Production & Talent', investment: 0, cost: 0, hasCost: true },
+                    media: { label: 'Paid Media', investment: 0, cost: 0, hasCost: true },
+                    social: { label: 'Social Partnership', investment: 0, cost: 0, hasCost: true },
+                    streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
+                    linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
+                    fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
+                    brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
+                };
+                let ibSponsorshipCount = 0;
+
+                packages.forEach(pkg => {
+                    if (pkg.type === 'sponsorship') { ibSponsorshipCount++; return; }
+                    if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
+                        ibCats.talent.investment += (pkg.talentInvestment || 0);
+                        ibCats.talent.cost += (pkg.talentCost || 0);
+                        ibCats.media.investment += (pkg.mediaInvestmentDollar || 0);
+                        const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
+                            ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
+                            : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
+                        ibCats.media.cost += mediaCost;
+                    } else if (pkg.type === 'branded-blended') {
+                        const talentCost = pkg.talentCost || 0;
+                        ibCats.talent.investment += talentCost;
+                        ibCats.talent.cost += talentCost;
+                        ibCats.media.investment += (pkg.totalInvestment || 0) - talentCost;
+                        ibCats.media.cost += (pkg.totalCost || 0) - talentCost;
+                    } else if (pkg.type === 'partnership') {
+                        ibCats.social.investment += (pkg.totalInvestment || 0);
+                        ibCats.social.cost += (pkg.totalCost || 0);
+                    } else if (pkg.type === 'streaming') {
+                        ibCats.streaming.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'linear') {
+                        ibCats.linear.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'fees') {
+                        ibCats.fees.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'brand-funded-content') {
+                        ibCats.brandFunded.investment += (pkg.totalInvestment || 0);
+                        ibCats.brandFunded.cost += (pkg.totalCost || 0);
+                    } else if (pkg.type === 'added-value') {
+                        if (pkg.addedValueType === 'talent') {
+                            ibCats.talent.cost += (pkg.totalCost || 0);
+                        } else if (pkg.addedValueType === 'distribution') {
+                            ibCats.media.cost += (pkg.totalCost || 0);
+                        }
+                    }
+                });
+
+                if (ibSponsorshipCount > 0) {
+                    doc.setFontSize(9);
+                    doc.setTextColor(180, 100, 20);
+                    doc.text(`Note: ${ibSponsorshipCount} Sponsorship package(s) in this version are not yet included in this breakdown.`, 14, yPos);
+                    yPos += 8;
+                }
+
+                const ibRows = Object.values(ibCats).map(cat => [
+                    cat.label,
+                    '$' + formatNumber(cat.investment),
+                    cat.hasCost ? '$' + formatNumber(cat.cost) : '—'
+                ]);
+                const ibTotalInvestment = Object.values(ibCats).reduce((s, c) => s + c.investment, 0);
+                const ibTotalCost = Object.values(ibCats).reduce((s, c) => s + c.cost, 0);
+                ibRows.push(['Total', '$' + formatNumber(ibTotalInvestment), '$' + formatNumber(ibTotalCost)]);
+
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Category', 'Investment', 'Cost']],
+                    body: ibRows,
+                    theme: 'plain',
+                    styles: { fontSize: 9, cellPadding: 2 },
+                    headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+                    columnStyles: {
+                        1: { halign: 'right' },
+                        2: { halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+                yPos = doc.lastAutoTable.finalY + 8;
+            })();
+
             // Add new page for packages
             doc.addPage();
             yPos = 20;
@@ -11037,6 +11302,14 @@
                 } else {
                     // Other packages
                     mediaCostAmount = pkg.totalCost - talentCostAmount;
+                }
+
+                // Investment-side amounts (Production & Talent Investment / Media Investment)
+                let talentInvestmentAmount = pkg.talentInvestment || 0;
+                let mediaInvestmentAmount = pkg.mediaInvestmentDollar || 0;
+                if (pkg.type === 'branded-blended') {
+                    talentInvestmentAmount = talentCostAmount;
+                    mediaInvestmentAmount = (pkg.totalInvestment || 0) - talentCostAmount;
                 }
                 
                 const pkgRows = [];
@@ -11107,13 +11380,15 @@
                         pkgRows.push(['  Production & Talent Cost (INTERNAL)', '$' + formatNumber(totalTalentCost)]);
                         pkgRows.push(['  Media Cost (INTERNAL)', '$' + formatNumber(totalMediaCost)]);
                     } else {
-                        // Regular packages - add production & talent cost if present
-                        if (talentCostAmount > 0) {
+                        // Regular packages - add production & talent investment/cost if present
+                        if (talentCostAmount > 0 || talentInvestmentAmount > 0) {
+                            pkgRows.push(['  Production & Talent Investment', '$' + formatNumber(talentInvestmentAmount)]);
                             pkgRows.push(['  Production & Talent Cost', '$' + formatNumber(talentCostAmount)]);
                         }
                         
-                        // Add media cost if present
-                        if (mediaCostAmount > 0 || pkg.type === 'branded-blended') {
+                        // Add media investment/cost if present
+                        if (mediaCostAmount > 0 || mediaInvestmentAmount > 0 || pkg.type === 'branded-blended') {
+                            pkgRows.push(['  Media Investment', '$' + formatNumber(mediaInvestmentAmount)]);
                             pkgRows.push(['  Media Cost', '$' + formatNumber(mediaCostAmount)]);
                         }
                     }
@@ -14278,6 +14553,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         <button id="summaryTab" onclick="switchSummaryTab('summary')" style="padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid var(--primary); color: var(--primary); font-weight: bold; cursor: pointer;">Summary</button>
                         <button id="packageDetailsTab" onclick="switchSummaryTab('packageDetails')" style="padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer;">Package Details</button>
                         <button id="platformBreakdownTab" onclick="switchSummaryTab('platformBreakdown')" style="padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer;">Paid Media</button>
+                        <button id="investmentBreakdownTab" onclick="switchSummaryTab('investmentBreakdown')" style="padding: 0.75rem 1.5rem; border: none; background: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">Investment Breakdown <span style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(0,10,60,0.08); color: #000a3c; border: 1px solid #000a3c; border-radius: 4px; padding: 1px 6px;">Beta</span></button>
                     </div>
                 </div>
                 <div id="packageDetailsContent" style="padding: 2rem;">
