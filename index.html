@@ -10071,77 +10071,14 @@
             }
         }
         
-        function renderInvestmentBreakdownTab() {
-            const packages = currentVersion.packages;
+        function investmentBreakdownTableHTML(cats, showZeroRows) {
+            const rows = Object.values(cats).filter(cat => showZeroRows || cat.investment !== 0 || cat.cost !== 0);
+            const totalInvestment = rows.reduce((sum, c) => sum + c.investment, 0);
+            const totalCost = rows.reduce((sum, c) => sum + c.cost, 0);
+            const totalMarginDollar = totalInvestment - totalCost;
+            const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
 
-            const cats = {
-                talent: { label: 'Production & Talent', investment: 0, cost: 0, hasCost: true },
-                media: { label: 'Paid Media', investment: 0, cost: 0, hasCost: true },
-                social: { label: 'Social Partnership', investment: 0, cost: 0, hasCost: true },
-                streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
-                linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
-                fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
-                brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
-            };
-
-            let sponsorshipCount = 0;
-
-            packages.forEach(pkg => {
-                if (pkg.type === 'sponsorship') {
-                    sponsorshipCount++;
-                    return; // Sponsorship packages are not yet included in this breakdown
-                }
-
-                if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
-                    cats.talent.investment += (pkg.talentInvestment || 0);
-                    cats.talent.cost += (pkg.talentCost || 0);
-                    cats.media.investment += (pkg.mediaInvestmentDollar || 0);
-                    const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
-                        ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
-                        : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
-                    cats.media.cost += mediaCost;
-                } else if (pkg.type === 'branded-blended') {
-                    const talentCost = pkg.talentCost || 0;
-                    cats.talent.investment += talentCost; // Production & Talent Investment = Production & Talent Cost
-                    cats.talent.cost += talentCost;
-                    cats.media.investment += (pkg.totalInvestment || 0) - talentCost; // Media = Total Investment - Production & Talent
-                    cats.media.cost += (pkg.totalCost || 0) - talentCost;
-                } else if (pkg.type === 'partnership') {
-                    cats.social.investment += (pkg.totalInvestment || 0);
-                    cats.social.cost += (pkg.totalCost || 0); // Rev Share Cost
-                } else if (pkg.type === 'streaming') {
-                    cats.streaming.investment += (pkg.totalInvestment || 0);
-                } else if (pkg.type === 'linear') {
-                    cats.linear.investment += (pkg.totalInvestment || 0);
-                } else if (pkg.type === 'fees') {
-                    cats.fees.investment += (pkg.totalInvestment || 0);
-                } else if (pkg.type === 'brand-funded-content') {
-                    cats.brandFunded.investment += (pkg.totalInvestment || 0);
-                    cats.brandFunded.cost += (pkg.totalCost || 0); // Cost always equals Investment
-                } else if (pkg.type === 'added-value') {
-                    // Added Value: cost only (where applicable), no investment side
-                    if (pkg.addedValueType === 'talent') {
-                        cats.talent.cost += (pkg.totalCost || 0);
-                    } else if (pkg.addedValueType === 'distribution') {
-                        cats.media.cost += (pkg.totalCost || 0);
-                    }
-                    // 'streaming' and 'other' sub-types have no clear cost mapping and are not included
-                }
-            });
-
-            const totalInvestment = Object.values(cats).reduce((sum, c) => sum + c.investment, 0);
-            const totalCost = Object.values(cats).reduce((sum, c) => sum + c.cost, 0);
-
-            let html = `
-                <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem;">
-                    INVESTMENT BREAKDOWN
-                    <span style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(0,10,60,0.08); color: #000a3c; border: 1px solid #000a3c; border-radius: 4px; padding: 2px 8px;">Beta</span>
-                </h3>
-                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem;">A component-level view of investment and cost across the version, broken out by Production &amp; Talent, Paid Media, Social Partnership, Streaming, Linear, Fees, and Brand Funded Content.</p>
-                ${sponsorshipCount > 0 ? `
-                <div style="background: rgba(244, 164, 96, 0.12); border: 1px solid #F4A460; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text);">
-                    <strong>Note:</strong> This version has ${sponsorshipCount} Sponsorship package${sponsorshipCount !== 1 ? 's' : ''}. Sponsorship packages are not yet included in this breakdown.
-                </div>` : ''}
+            return `
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
                     <thead>
                         <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
@@ -10153,7 +10090,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${Object.values(cats).map(cat => {
+                        ${rows.map(cat => {
                             const marginDollar = cat.investment - cat.cost;
                             const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
                             return `
@@ -10170,11 +10107,88 @@
                             <td style="padding: 0.6rem 0.75rem; font-weight: bold;">Total</td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalInvestment)}</td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: var(--danger);">$${formatNumber(totalCost)}</td>
-                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0)};">$${formatNumber(totalInvestment - totalCost)}</td>
-                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0)};">${(totalInvestment > 0 ? ((totalInvestment - totalCost) / totalInvestment) * 100 : 0).toFixed(3)}%</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">$${formatNumber(totalMarginDollar)}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">${totalMarginPercent.toFixed(3)}%</td>
                         </tr>
                     </tbody>
                 </table>
+            `;
+        }
+
+        function renderInvestmentBreakdownTab() {
+            const packages = currentVersion.packages;
+
+            const nonSponsorshipCats = makeEmptyInvestmentBreakdownCats();
+            const sponsorshipCats = makeEmptyInvestmentBreakdownCats();
+            const totalCats = makeEmptyInvestmentBreakdownCats();
+
+            let sponsorshipCount = 0;
+
+            packages.forEach(pkg => {
+                if (pkg.type === 'sponsorship') {
+                    sponsorshipCount++;
+                    if (pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                        pkg.sponsorshipLineItems.forEach(item => {
+                            categorizeSponsorshipLineItem(item, sponsorshipCats);
+                            categorizeSponsorshipLineItem(item, totalCats);
+                        });
+                    }
+                    return;
+                }
+
+                const targets = [nonSponsorshipCats, totalCats];
+                targets.forEach(cats => {
+                    if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
+                        cats.talent.investment += (pkg.talentInvestment || 0);
+                        cats.talent.cost += (pkg.talentCost || 0);
+                        cats.media.investment += (pkg.mediaInvestmentDollar || 0);
+                        const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
+                            ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
+                            : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
+                        cats.media.cost += mediaCost;
+                    } else if (pkg.type === 'branded-blended') {
+                        const talentCost = pkg.talentCost || 0;
+                        cats.talent.investment += talentCost;
+                        cats.talent.cost += talentCost;
+                        cats.media.investment += (pkg.totalInvestment || 0) - talentCost;
+                        cats.media.cost += (pkg.totalCost || 0) - talentCost;
+                    } else if (pkg.type === 'partnership') {
+                        cats.social.investment += (pkg.totalInvestment || 0);
+                        cats.social.cost += (pkg.totalCost || 0);
+                    } else if (pkg.type === 'streaming') {
+                        cats.streaming.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'linear') {
+                        cats.linear.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'fees') {
+                        cats.fees.investment += (pkg.totalInvestment || 0);
+                    } else if (pkg.type === 'brand-funded-content') {
+                        cats.brandFunded.investment += (pkg.totalInvestment || 0);
+                        cats.brandFunded.cost += (pkg.totalCost || 0);
+                    } else if (pkg.type === 'added-value') {
+                        if (pkg.addedValueType === 'talent') {
+                            cats.talent.cost += (pkg.totalCost || 0);
+                        } else if (pkg.addedValueType === 'distribution') {
+                            cats.media.cost += (pkg.totalCost || 0);
+                        }
+                    }
+                });
+            });
+
+            let html = `
+                <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem;">
+                    INVESTMENT BREAKDOWN
+                    <span style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(0,10,60,0.08); color: #000a3c; border: 1px solid #000a3c; border-radius: 4px; padding: 2px 8px;">Beta</span>
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem;">A component-level view of investment and cost across the version, broken out by Production &amp; Talent, Paid Media, Social Partnership, Streaming, Linear, Fees, and Brand Funded Content.</p>
+
+                <h4 style="color: var(--primary); margin: 0 0 0.75rem; font-size: 1.05rem;">Total Investment Breakdown</h4>
+                ${investmentBreakdownTableHTML(totalCats, true)}
+
+                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Non-Sponsorship Package Breakdown</h4>
+                ${investmentBreakdownTableHTML(nonSponsorshipCats, true)}
+
+                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Sponsorships Investment Breakdown</h4>
+                ${sponsorshipCount > 0 ? investmentBreakdownTableHTML(sponsorshipCats, true) : '<p style="color: var(--text-muted); font-size: 0.875rem;">No Sponsorship packages in this version.</p>'}
             `;
 
             return html;
@@ -10806,6 +10820,16 @@
                                 </tbody>
                             </table>
                         </div>
+                `;
+
+                // Per-sponsorship Investment Breakdown (Beta) - all categories shown, even $0
+                const pkgCats = makeEmptyInvestmentBreakdownCats();
+                pkg.sponsorshipLineItems.forEach(item => categorizeSponsorshipLineItem(item, pkgCats));
+                html += `
+                        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <strong style="font-size: 0.75rem; color: var(--primary); display: block; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Investment Breakdown</strong>
+                            ${investmentBreakdownTableHTML(pkgCats, true)}
+                        </div>
                     </div>
                 `;
             });
@@ -11165,63 +11189,13 @@
             doc.text('INVESTMENT BREAKDOWN (BETA)', 14, yPos);
             yPos += 8;
 
-            (() => {
-                const ibCats = {
-                    talent: { label: 'Production & Talent', investment: 0, cost: 0, hasCost: true },
-                    media: { label: 'Paid Media', investment: 0, cost: 0, hasCost: true },
-                    social: { label: 'Social Partnership', investment: 0, cost: 0, hasCost: true },
-                    streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
-                    linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
-                    fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
-                    brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
-                };
-                let ibSponsorshipCount = 0;
+            function pdfAddInvestmentBreakdownTable(cats, title) {
+                doc.setFontSize(11);
+                doc.setTextColor(15, 23, 42);
+                doc.text(title, 14, yPos);
+                yPos += 5;
 
-                packages.forEach(pkg => {
-                    if (pkg.type === 'sponsorship') { ibSponsorshipCount++; return; }
-                    if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
-                        ibCats.talent.investment += (pkg.talentInvestment || 0);
-                        ibCats.talent.cost += (pkg.talentCost || 0);
-                        ibCats.media.investment += (pkg.mediaInvestmentDollar || 0);
-                        const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
-                            ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
-                            : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
-                        ibCats.media.cost += mediaCost;
-                    } else if (pkg.type === 'branded-blended') {
-                        const talentCost = pkg.talentCost || 0;
-                        ibCats.talent.investment += talentCost;
-                        ibCats.talent.cost += talentCost;
-                        ibCats.media.investment += (pkg.totalInvestment || 0) - talentCost;
-                        ibCats.media.cost += (pkg.totalCost || 0) - talentCost;
-                    } else if (pkg.type === 'partnership') {
-                        ibCats.social.investment += (pkg.totalInvestment || 0);
-                        ibCats.social.cost += (pkg.totalCost || 0);
-                    } else if (pkg.type === 'streaming') {
-                        ibCats.streaming.investment += (pkg.totalInvestment || 0);
-                    } else if (pkg.type === 'linear') {
-                        ibCats.linear.investment += (pkg.totalInvestment || 0);
-                    } else if (pkg.type === 'fees') {
-                        ibCats.fees.investment += (pkg.totalInvestment || 0);
-                    } else if (pkg.type === 'brand-funded-content') {
-                        ibCats.brandFunded.investment += (pkg.totalInvestment || 0);
-                        ibCats.brandFunded.cost += (pkg.totalCost || 0);
-                    } else if (pkg.type === 'added-value') {
-                        if (pkg.addedValueType === 'talent') {
-                            ibCats.talent.cost += (pkg.totalCost || 0);
-                        } else if (pkg.addedValueType === 'distribution') {
-                            ibCats.media.cost += (pkg.totalCost || 0);
-                        }
-                    }
-                });
-
-                if (ibSponsorshipCount > 0) {
-                    doc.setFontSize(9);
-                    doc.setTextColor(180, 100, 20);
-                    doc.text(`Note: ${ibSponsorshipCount} Sponsorship package(s) in this version are not yet included in this breakdown.`, 14, yPos);
-                    yPos += 8;
-                }
-
-                const ibRows = Object.values(ibCats).map(cat => {
+                const rows = Object.values(cats).map(cat => {
                     const marginDollar = cat.investment - cat.cost;
                     const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
                     return [
@@ -11232,28 +11206,94 @@
                         marginPercent.toFixed(3) + '%'
                     ];
                 });
-                const ibTotalInvestment = Object.values(ibCats).reduce((s, c) => s + c.investment, 0);
-                const ibTotalCost = Object.values(ibCats).reduce((s, c) => s + c.cost, 0);
-                const ibTotalMarginDollar = ibTotalInvestment - ibTotalCost;
-                const ibTotalMarginPercent = ibTotalInvestment > 0 ? (ibTotalMarginDollar / ibTotalInvestment) * 100 : 0;
-                ibRows.push(['Total', '$' + formatNumber(ibTotalInvestment), '$' + formatNumber(ibTotalCost), '$' + formatNumber(ibTotalMarginDollar), ibTotalMarginPercent.toFixed(3) + '%']);
+                const totalInvestment = Object.values(cats).reduce((s, c) => s + c.investment, 0);
+                const totalCost = Object.values(cats).reduce((s, c) => s + c.cost, 0);
+                const totalMarginDollar = totalInvestment - totalCost;
+                const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
+                rows.push(['Total', '$' + formatNumber(totalInvestment), '$' + formatNumber(totalCost), '$' + formatNumber(totalMarginDollar), totalMarginPercent.toFixed(3) + '%']);
 
                 doc.autoTable({
                     startY: yPos,
                     head: [['Category', 'Investment', 'Cost', 'Margin ($)', 'Margin (%)']],
-                    body: ibRows,
+                    body: rows,
                     theme: 'plain',
                     styles: { fontSize: 9, cellPadding: 2 },
                     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
-                    columnStyles: {
-                        1: { halign: 'right' },
-                        2: { halign: 'right' },
-                        3: { halign: 'right' },
-                        4: { halign: 'right' }
-                    },
+                    columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
                     margin: { left: 14, right: 14 }
                 });
-                yPos = doc.lastAutoTable.finalY + 8;
+                yPos = doc.lastAutoTable.finalY + 10;
+            }
+
+            (() => {
+                const nonSponsorshipCats = makeEmptyInvestmentBreakdownCats();
+                const sponsorshipCats = makeEmptyInvestmentBreakdownCats();
+                const totalCats = makeEmptyInvestmentBreakdownCats();
+                let ibSponsorshipCount = 0;
+
+                packages.forEach(pkg => {
+                    if (pkg.type === 'sponsorship') {
+                        ibSponsorshipCount++;
+                        if (pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                            pkg.sponsorshipLineItems.forEach(item => {
+                                categorizeSponsorshipLineItem(item, sponsorshipCats);
+                                categorizeSponsorshipLineItem(item, totalCats);
+                            });
+                        }
+                        return;
+                    }
+                    [nonSponsorshipCats, totalCats].forEach(cats => {
+                        if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
+                            cats.talent.investment += (pkg.talentInvestment || 0);
+                            cats.talent.cost += (pkg.talentCost || 0);
+                            cats.media.investment += (pkg.mediaInvestmentDollar || 0);
+                            const mediaCost = (pkg.platformAllocations && pkg.platformAllocations.length > 0)
+                                ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0)
+                                : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
+                            cats.media.cost += mediaCost;
+                        } else if (pkg.type === 'branded-blended') {
+                            const talentCost = pkg.talentCost || 0;
+                            cats.talent.investment += talentCost;
+                            cats.talent.cost += talentCost;
+                            cats.media.investment += (pkg.totalInvestment || 0) - talentCost;
+                            cats.media.cost += (pkg.totalCost || 0) - talentCost;
+                        } else if (pkg.type === 'partnership') {
+                            cats.social.investment += (pkg.totalInvestment || 0);
+                            cats.social.cost += (pkg.totalCost || 0);
+                        } else if (pkg.type === 'streaming') {
+                            cats.streaming.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'linear') {
+                            cats.linear.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'fees') {
+                            cats.fees.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'brand-funded-content') {
+                            cats.brandFunded.investment += (pkg.totalInvestment || 0);
+                            cats.brandFunded.cost += (pkg.totalCost || 0);
+                        } else if (pkg.type === 'added-value') {
+                            if (pkg.addedValueType === 'talent') {
+                                cats.talent.cost += (pkg.totalCost || 0);
+                            } else if (pkg.addedValueType === 'distribution') {
+                                cats.media.cost += (pkg.totalCost || 0);
+                            }
+                        }
+                    });
+                });
+
+                pdfAddInvestmentBreakdownTable(totalCats, 'Total Investment Breakdown');
+                pdfAddInvestmentBreakdownTable(nonSponsorshipCats, 'Non-Sponsorship Package Breakdown');
+
+                if (ibSponsorshipCount > 0) {
+                    pdfAddInvestmentBreakdownTable(sponsorshipCats, 'Sponsorships Investment Breakdown');
+                } else {
+                    doc.setFontSize(11);
+                    doc.setTextColor(15, 23, 42);
+                    doc.text('Sponsorships Investment Breakdown', 14, yPos);
+                    yPos += 5;
+                    doc.setFontSize(9);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text('No Sponsorship packages in this version.', 14, yPos);
+                    yPos += 8;
+                }
             })();
 
             // Add new page for packages
@@ -11882,7 +11922,7 @@
                             '$' + formatNumber(talentCost),
                             '$' + formatNumber(mediaCost),
                             '$' + formatNumber(item.totalCost || 0),
-                            (item.marginPercent || 0).toFixed(1) + '%'
+                            (item.marginPercent || 0).toFixed(3) + '%'
                         ];
                     });
                     
@@ -11918,6 +11958,35 @@
                             7: { halign: 'right', fontStyle: 'bold' },
                             8: { halign: 'right' }
                         },
+                        margin: { left: 14, right: 14 }
+                    });
+                    
+                    yPos = doc.lastAutoTable.finalY + 6;
+
+                    // Per-sponsorship Investment Breakdown (Beta) - all categories shown, even $0
+                    if (yPos > 200) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    const pkgCats = makeEmptyInvestmentBreakdownCats();
+                    pkg.sponsorshipLineItems.forEach(item => categorizeSponsorshipLineItem(item, pkgCats));
+                    doc.setFontSize(9);
+                    doc.setTextColor(15, 23, 42);
+                    doc.text('Investment Breakdown', 14, yPos);
+                    yPos += 4;
+                    const ibPkgRows = Object.values(pkgCats).map(cat => {
+                        const marginDollar = cat.investment - cat.cost;
+                        const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
+                        return [cat.label, '$' + formatNumber(cat.investment), cat.hasCost ? '$' + formatNumber(cat.cost) : '—', '$' + formatNumber(marginDollar), marginPercent.toFixed(3) + '%'];
+                    });
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['Category', 'Investment', 'Cost', 'Margin ($)', 'Margin (%)']],
+                        body: ibPkgRows,
+                        theme: 'plain',
+                        styles: { fontSize: 7, cellPadding: 1.5 },
+                        headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+                        columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
                         margin: { left: 14, right: 14 }
                     });
                     
@@ -11999,6 +12068,338 @@
                 customAlert('Error generating PDF: ' + error.message + '\n\nPlease check the browser console for details.');
                 
                 // Reset button state on error
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            }
+        }
+
+        async function exportSummaryToExcel() {
+            const btn = event?.target?.closest('button');
+            const originalText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Generating...';
+            }
+
+            try {
+                const packages = currentVersion.packages;
+                const wb = XLSX.utils.book_new();
+                const currencyFmt = '$#,##0.00';
+                const percentFmt = '0.000%';
+                const numberFmt = '#,##0';
+
+                function applyFormats(ws, formats) {
+                    formats.forEach(([row, col, fmt]) => {
+                        const addr = XLSX.utils.encode_cell({ r: row, c: col });
+                        if (ws[addr]) ws[addr].z = fmt;
+                    });
+                }
+
+                // ========== SHEET 1: SUMMARY ==========
+                const summaryData = [];
+                const summaryFormats = [];
+                summaryData.push(['MEDIA PLAN SUMMARY']);
+                summaryData.push([]);
+                summaryData.push(['Agency:', currentProject.agencyName || 'N/A']);
+                summaryData.push(['Brand:', currentProject.brandName || 'N/A']);
+                summaryData.push(['Sub-Brand:', currentProject.subBrandName || 'N/A']);
+                summaryData.push(['Project:', currentProject.projectName || 'N/A']);
+                summaryData.push(['Version:', currentVersion.name || 'N/A']);
+                summaryData.push(['Campaign Period:', `${currentProject.campaignStartDate || 'N/A'} to ${currentProject.campaignEndDate || 'N/A'}`]);
+                if (currentProject.salesforceLink) summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
+                summaryData.push([]);
+
+                const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
+                const hasCPVPackages = packages.some(pkg => pkg.type === 'partnership' && pkg.partnershipType === 'x_amplify' && pkg.pricingMetric === 'cpv');
+                let totalViews = 0, totalCPVInvestment = 0, totalImpressions = 0, totalCPMInvestment = 0;
+                packages.forEach(pkg => {
+                    const metricInfo = getPackageMetricInfo(pkg);
+                    if (metricInfo.usesViews) {
+                        totalViews += (pkg.views || 0);
+                        totalCPVInvestment += pkg.totalInvestment;
+                    } else {
+                        if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                            totalImpressions += (pkg.totalImpressions || 0);
+                        } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                            totalImpressions += (pkg.impressions || 0);
+                        } else {
+                            totalImpressions += (pkg.totalImpressions || 0);
+                        }
+                        totalCPMInvestment += pkg.totalInvestment;
+                    }
+                });
+                const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
+                const totalMarginDollar = totalPrice - totalCost;
+                const totalMarginPercent = totalPrice > 0 ? (totalMarginDollar / totalPrice) * 100 : 0;
+                const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0) ? (totalCPMInvestment / totalImpressions * 1000) : 0;
+                const overallCPV = (totalViews > 0 && totalCPVInvestment > 0) ? (totalCPVInvestment / totalViews) : 0;
+                const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
+                const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+
+                summaryData.push(['OVERALL TOTALS']);
+                summaryData.push(['Total Investment', totalPrice]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                summaryData.push(['Total Impressions', totalImpressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                summaryData.push(['Overall CPM', overallCPM]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                if (hasCPVPackages && totalViews > 0) {
+                    summaryData.push(['Total Views', totalViews]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                    summaryData.push(['Overall CPV', overallCPV]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                }
+                summaryData.push(['Production & Talent Cost', totalTalentCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                summaryData.push(['Media Placements Cost', totalMediaCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                summaryData.push(['Total Cost', totalCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                summaryData.push(['Total Margin', totalMarginDollar]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                summaryData.push(['Margin %', totalMarginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
+                summaryData.push([]);
+
+                // Investment Category Breakdown (Creative / O&O / Added Value / Brand Funded Content)
+                const catDefs = {
+                    creative: { types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, impressions: 0, count: 0 },
+                    oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, impressions: 0, count: 0 },
+                    addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, impressions: 0, count: 0 },
+                    brandfunded: { types: ['brand-funded-content'], label: 'Brand Funded Content', investment: 0, cost: 0, impressions: 0, count: 0 }
+                };
+                packages.forEach(pkg => {
+                    for (const cat of Object.values(catDefs)) {
+                        if (cat.types.includes(pkg.type)) {
+                            cat.investment += pkg.totalInvestment;
+                            cat.cost += (pkg.totalCost || 0);
+                            cat.impressions += (pkg.impressions || pkg.totalImpressions || 0);
+                            cat.count++;
+                            break;
+                        }
+                    }
+                });
+
+                summaryData.push(['INVESTMENT CATEGORY BREAKDOWN']);
+                summaryData.push([]);
+                Object.values(catDefs).forEach(cat => {
+                    if (cat.count > 0) {
+                        const margin = cat.investment - cat.cost;
+                        const marginPercent = cat.investment > 0 ? (margin / cat.investment) * 100 : 0;
+                        summaryData.push([`${cat.label} (${cat.count} package${cat.count !== 1 ? 's' : ''})`]);
+                        summaryData.push(['Investment', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                        if (cat.impressions > 0) {
+                            summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                        }
+                        summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                        summaryData.push(['Margin ($)', margin]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                        summaryData.push(['Margin (%)', marginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
+                        summaryData.push([]);
+                    }
+                });
+
+                const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+                ws1['!cols'] = [{ wch: 32 }, { wch: 20 }];
+                applyFormats(ws1, summaryFormats);
+                XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+                // ========== SHEET 2: PACKAGE DETAILS ==========
+                const typeLabels = {
+                    'influencer': 'Influencer', 'branded': 'Branded Content', 'branded-blended': 'Branded Content Blended',
+                    'talent': 'Talent and Production Only', 'media': 'Paid Distribution Only', 'streaming': 'Streaming Video',
+                    'fees': 'Fees', 'linear': 'Linear', 'partnership': 'Social Partnerships', 'sponsorship': 'Sponsorship Packages',
+                    'added-value': 'Added Value', 'brand-funded-content': 'Brand Funded Content'
+                };
+                const pkgData = [];
+                const pkgFormats = [];
+                pkgData.push(['#', 'Package Title', 'Type', 'Investment', 'Production & Talent Investment', 'Production & Talent Cost', 'Media Investment', 'Media Cost', 'Total Cost', 'Margin ($)', 'Margin (%)']);
+                packages.forEach((pkg, i) => {
+                    let talentCostAmount = pkg.talentCost || 0;
+                    let mediaCostAmount = 0;
+                    const hasMedia = pkg.platformAllocations && pkg.platformAllocations.length > 0;
+                    if (pkg.type === 'added-value') {
+                        mediaCostAmount = 0;
+                    } else if (pkg.type === 'branded-blended') {
+                        mediaCostAmount = (pkg.totalCost || 0) - talentCostAmount;
+                    } else if (pkg.type === 'brand-funded-content') {
+                        talentCostAmount = 0;
+                        mediaCostAmount = 0;
+                    } else {
+                        mediaCostAmount = hasMedia ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0) : Math.max(0, (pkg.totalCost || 0) - talentCostAmount);
+                    }
+                    let talentInvestmentAmount = pkg.talentInvestment || 0;
+                    let mediaInvestmentAmount = pkg.mediaInvestmentDollar || 0;
+                    if (pkg.type === 'branded-blended') {
+                        talentInvestmentAmount = talentCostAmount;
+                        mediaInvestmentAmount = (pkg.totalInvestment || 0) - talentCostAmount;
+                    }
+                    const margin = pkg.totalInvestment - (pkg.totalCost || 0);
+                    const marginPercent = pkg.totalInvestment > 0 ? (margin / pkg.totalInvestment) * 100 : 0;
+                    const row = i + 1;
+                    pkgData.push([
+                        row, pkg.title, typeLabels[pkg.type] || pkg.type, pkg.totalInvestment,
+                        talentInvestmentAmount, talentCostAmount, mediaInvestmentAmount, mediaCostAmount,
+                        pkg.totalCost || 0, margin, marginPercent / 100
+                    ]);
+                    [3, 4, 5, 6, 7, 8, 9].forEach(col => pkgFormats.push([pkgData.length - 1, col, currencyFmt]));
+                    pkgFormats.push([pkgData.length - 1, 10, percentFmt]);
+                });
+                const ws2 = XLSX.utils.aoa_to_sheet(pkgData);
+                ws2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+                applyFormats(ws2, pkgFormats);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Package Details');
+
+                // ========== SHEET 3: PAID MEDIA (platform-level) ==========
+                const mediaRows = [];
+                const mediaFormats = [];
+                mediaRows.push(['Platform', 'Media Type', 'Handle', 'Packages', 'Investment', 'Impressions', 'CPM Price', 'Media Budget', 'CPM Cost', 'Margin ($)', 'Margin (%)']);
+                const platformMap = {};
+                packages.forEach(pkg => {
+                    if (pkg.platformAllocations) {
+                        pkg.platformAllocations.forEach(a => {
+                            const key = `${a.platform}|${a.mediaType || ''}|${a.handleType || ''}`;
+                            if (!platformMap[key]) {
+                                platformMap[key] = { platform: a.platform, mediaType: a.mediaType || 'N/A', handle: a.handleType === 'paramount' ? 'Paramount' : 'Influencer', investment: 0, impressions: 0, cost: 0, packages: [] };
+                            }
+                            const inv = (pkg.mediaInvestmentDollar || 0) * ((a.percentage || 0) / 100);
+                            platformMap[key].investment += inv;
+                            platformMap[key].impressions += (a.impressions || 0);
+                            platformMap[key].cost += (a.totalCost || 0);
+                            if (!platformMap[key].packages.includes(pkg.title)) platformMap[key].packages.push(pkg.title);
+                        });
+                    }
+                });
+                Object.values(platformMap).forEach(p => {
+                    const priceCPM = p.impressions > 0 ? (p.investment / p.impressions * 1000) : 0;
+                    const costCPM = p.impressions > 0 ? (p.cost / p.impressions * 1000) : 0;
+                    const margin = p.investment - p.cost;
+                    const marginPercent = p.investment > 0 ? (margin / p.investment) * 100 : 0;
+                    mediaRows.push([p.platform, p.mediaType, p.handle, p.packages.join(', '), p.investment, p.impressions, priceCPM, p.cost, costCPM, margin, marginPercent / 100]);
+                    [4, 6, 7, 8, 9].forEach(col => mediaFormats.push([mediaRows.length - 1, col, currencyFmt]));
+                    mediaFormats.push([mediaRows.length - 1, 5, numberFmt]);
+                    mediaFormats.push([mediaRows.length - 1, 10, percentFmt]);
+                });
+                const ws3 = XLSX.utils.aoa_to_sheet(mediaRows);
+                ws3['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
+                applyFormats(ws3, mediaFormats);
+                XLSX.utils.book_append_sheet(wb, ws3, 'Paid Media');
+
+                // ========== SHEET 4: INVESTMENT BREAKDOWN (BETA) ==========
+                const nonSponsorshipCats = makeEmptyInvestmentBreakdownCats();
+                const sponsorshipCats = makeEmptyInvestmentBreakdownCats();
+                const totalCats = makeEmptyInvestmentBreakdownCats();
+                let ibSponsorshipCount = 0;
+                packages.forEach(pkg => {
+                    if (pkg.type === 'sponsorship') {
+                        ibSponsorshipCount++;
+                        if (pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                            pkg.sponsorshipLineItems.forEach(item => {
+                                categorizeSponsorshipLineItem(item, sponsorshipCats);
+                                categorizeSponsorshipLineItem(item, totalCats);
+                            });
+                        }
+                        return;
+                    }
+                    [nonSponsorshipCats, totalCats].forEach(cats => {
+                        if (['influencer', 'branded', 'talent', 'media'].includes(pkg.type)) {
+                            cats.talent.investment += (pkg.talentInvestment || 0);
+                            cats.talent.cost += (pkg.talentCost || 0);
+                            cats.media.investment += (pkg.mediaInvestmentDollar || 0);
+                            const mc = (pkg.platformAllocations && pkg.platformAllocations.length > 0) ? pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0) : Math.max(0, (pkg.totalCost || 0) - (pkg.talentCost || 0));
+                            cats.media.cost += mc;
+                        } else if (pkg.type === 'branded-blended') {
+                            const tc = pkg.talentCost || 0;
+                            cats.talent.investment += tc; cats.talent.cost += tc;
+                            cats.media.investment += (pkg.totalInvestment || 0) - tc;
+                            cats.media.cost += (pkg.totalCost || 0) - tc;
+                        } else if (pkg.type === 'partnership') {
+                            cats.social.investment += (pkg.totalInvestment || 0);
+                            cats.social.cost += (pkg.totalCost || 0);
+                        } else if (pkg.type === 'streaming') {
+                            cats.streaming.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'linear') {
+                            cats.linear.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'fees') {
+                            cats.fees.investment += (pkg.totalInvestment || 0);
+                        } else if (pkg.type === 'brand-funded-content') {
+                            cats.brandFunded.investment += (pkg.totalInvestment || 0);
+                            cats.brandFunded.cost += (pkg.totalCost || 0);
+                        } else if (pkg.type === 'added-value') {
+                            if (pkg.addedValueType === 'talent') cats.talent.cost += (pkg.totalCost || 0);
+                            else if (pkg.addedValueType === 'distribution') cats.media.cost += (pkg.totalCost || 0);
+                        }
+                    });
+                });
+
+                function pushInvestmentBreakdownSection(rows, formats, sectionTitle, cats) {
+                    rows.push([sectionTitle]);
+                    rows.push(['Category', 'Investment', 'Cost', 'Margin ($)', 'Margin (%)']);
+                    Object.values(cats).forEach(cat => {
+                        const marginDollar = cat.investment - cat.cost;
+                        const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
+                        rows.push([cat.label, cat.investment, cat.hasCost ? cat.cost : '—', marginDollar, marginPercent / 100]);
+                        formats.push([rows.length - 1, 1, currencyFmt]);
+                        if (cat.hasCost) formats.push([rows.length - 1, 2, currencyFmt]);
+                        formats.push([rows.length - 1, 3, currencyFmt]);
+                        formats.push([rows.length - 1, 4, percentFmt]);
+                    });
+                    const totalInvestment = Object.values(cats).reduce((s, c) => s + c.investment, 0);
+                    const totalCost = Object.values(cats).reduce((s, c) => s + c.cost, 0);
+                    const totalMargin = totalInvestment - totalCost;
+                    const totalMarginPercent = totalInvestment > 0 ? (totalMargin / totalInvestment) * 100 : 0;
+                    rows.push(['Total', totalInvestment, totalCost, totalMargin, totalMarginPercent / 100]);
+                    [1, 2, 3].forEach(col => formats.push([rows.length - 1, col, currencyFmt]));
+                    formats.push([rows.length - 1, 4, percentFmt]);
+                    rows.push([]);
+                }
+
+                const ibRows = [];
+                const ibFormats = [];
+                pushInvestmentBreakdownSection(ibRows, ibFormats, 'TOTAL INVESTMENT BREAKDOWN', totalCats);
+                pushInvestmentBreakdownSection(ibRows, ibFormats, 'NON-SPONSORSHIP PACKAGE BREAKDOWN', nonSponsorshipCats);
+                if (ibSponsorshipCount > 0) {
+                    pushInvestmentBreakdownSection(ibRows, ibFormats, 'SPONSORSHIPS INVESTMENT BREAKDOWN', sponsorshipCats);
+                } else {
+                    ibRows.push(['SPONSORSHIPS INVESTMENT BREAKDOWN']);
+                    ibRows.push(['No Sponsorship packages in this version.']);
+                }
+
+                const ws4 = XLSX.utils.aoa_to_sheet(ibRows);
+                ws4['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+                applyFormats(ws4, ibFormats);
+                XLSX.utils.book_append_sheet(wb, ws4, 'Investment Breakdown (Beta)');
+
+                // ========== SHEET 5: SPONSORSHIP DETAILS (conditional) ==========
+                const sponsorshipPkgs = packages.filter(pkg => pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed');
+                if (sponsorshipPkgs.length > 0) {
+                    const spRows = [];
+                    const spFormats = [];
+                    spRows.push(['Sponsorship Package', 'Platform', 'Package/Placement', 'Type', 'Quantity', 'Cost Method', 'Net Cost', 'Total Cost', 'Margin ($)', 'Margin (%)', 'Notes']);
+                    sponsorshipPkgs.forEach(pkg => {
+                        (pkg.sponsorshipLineItems || []).forEach(item => {
+                            spRows.push([
+                                pkg.title, item.platform || '', item.package || '',
+                                getPlacementTypeLabel(item.placementType) + (item.addedValueSubType ? ` (${item.addedValueSubType})` : ''),
+                                item.quantity || 0, item.costMethod || 'N/A', item.netCost || 0, item.totalCost || 0,
+                                item.margin || 0, (item.marginPercent || 0) / 100, item.notes || ''
+                            ]);
+                            [6, 7, 8].forEach(col => spFormats.push([spRows.length - 1, col, currencyFmt]));
+                            spFormats.push([spRows.length - 1, 4, numberFmt]);
+                            spFormats.push([spRows.length - 1, 9, percentFmt]);
+                        });
+                    });
+                    const ws5 = XLSX.utils.aoa_to_sheet(spRows);
+                    ws5['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }];
+                    applyFormats(ws5, spFormats);
+                    XLSX.utils.book_append_sheet(wb, ws5, 'Sponsorship Details');
+                }
+
+                // Filename & save
+                const projectName = (currentProject.projectName || 'Project').replace(/[^a-z0-9]/gi, '_');
+                const versionName = (currentVersion.name || 'Version').replace(/[^a-z0-9]/gi, '_');
+                const dateStr = new Date().toISOString().split('T')[0];
+                const filename = `${projectName}_${versionName}_Summary_${dateStr}.xlsx`;
+                XLSX.writeFile(wb, filename);
+
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            } catch (error) {
+                console.error('Excel export error:', error);
+                customAlert('There was an error generating the Excel file: ' + error.message);
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = originalText;
@@ -13808,7 +14209,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             <option value="PAID_MEDIA">Paid Media Distribution</option>
                             <option value="CUSTOM_SOCIAL">Custom Social Package</option>
                             <option value="DIGITAL_OO">Digital O&O</option>
-                            <option value="ADD_INNOVATION">Add Innovation</option>
+                            <option value="ADD_INNOVATION">Ad Innovation</option>
                             <option value="ADDED_VALUE">Added Value</option>
                             <option value="SOCIAL_VIDEO">Social Video</option>
                             <option value="LINEAR_OO">Linear O&O</option>
@@ -13817,6 +14218,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             <option value="INTEGRATION_FEE">Integration – Fee</option>
                             <option value="INTEGRATION_BUILDOUT">Integration Production Buildout</option>
                             <option value="IP_LICENSING">IP / Licensing - Fee</option>
+                            <option value="BRAND_FUNDED_CONTENT">Brand Funded Content</option>
                         </select>
                     </div>
                     
@@ -13942,8 +14344,15 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         <!-- Sub-type cost inputs -->
                     </div>
                 `;
+            } else if (type === 'BRAND_FUNDED_CONTENT') {
+                // Brand Funded Content: cost always equals investment (0% margin), no cost input needed
+                inputsHTML = `
+                    <div style="padding: 0.75rem 1rem; background: var(--background); border-radius: 6px; font-size: 0.8125rem; color: var(--text-muted);">
+                        Cost automatically equals the Net Cost for Brand Funded Content (0% margin).
+                    </div>
+                `;
             }
-            // Digital O&O, Add Innovation, Linear O&O, Experiential Fee, Integration Fee = no costs (100% margin)
+            // Digital O&O, Ad Innovation, Linear O&O, Experiential Fee, Integration Fee = no costs (100% margin)
             
             costInputsDiv.innerHTML = inputsHTML;
             
@@ -13969,6 +14378,9 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         displaySpan.textContent = '$' + formatNumber(item.mediaCost);
                     }
                 }, 0);
+            } else if (type === 'BRAND_FUNDED_CONTENT') {
+                // Cost always equals investment
+                item.mediaCost = item.netCost || 0;
             }
             
             updateLineItemMargin(idx);
@@ -14533,13 +14945,71 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             });
         }
         
+        // Categorizes a single sponsorship line item into the Investment Breakdown
+        // category buckets (talent/media/social/streaming/linear/fees/brandFunded).
+        // Mutates the passed-in `cats` object in place. Shared by the overlay tab,
+        // PDF export, Excel export, and the per-sponsorship mini breakdown.
+        function categorizeSponsorshipLineItem(item, cats) {
+            const type = item.placementType;
+            const netCost = item.netCost || 0;
+            const totalCost = item.totalCost || 0;
+
+            if (['TALENT_PRODUCTION', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_BUILDOUT'].includes(type)) {
+                cats.talent.investment += netCost;
+                cats.talent.cost += totalCost;
+            } else if (type === 'PAID_MEDIA') {
+                cats.media.investment += netCost;
+                cats.media.cost += totalCost;
+            } else if (type === 'CUSTOM_SOCIAL') {
+                // Per spec: Production & Talent Investment = Production & Talent Cost;
+                // Media Investment = Total Investment - Production & Talent
+                const talentCost = item.talentCost || 0;
+                const mediaCost = item.mediaCost || 0;
+                cats.talent.investment += talentCost;
+                cats.talent.cost += talentCost;
+                cats.media.investment += (netCost - talentCost);
+                cats.media.cost += mediaCost;
+            } else if (['DIGITAL_OO', 'ADD_INNOVATION'].includes(type)) {
+                cats.streaming.investment += netCost;
+            } else if (type === 'LINEAR_OO') {
+                cats.linear.investment += netCost;
+            } else if (type === 'SOCIAL_VIDEO') {
+                cats.social.investment += netCost;
+                cats.social.cost += totalCost;
+            } else if (['EXPERIENTIAL_FEE', 'INTEGRATION_FEE', 'IP_LICENSING'].includes(type)) {
+                cats.fees.investment += netCost;
+            } else if (type === 'BRAND_FUNDED_CONTENT') {
+                cats.brandFunded.investment += netCost;
+                cats.brandFunded.cost += totalCost;
+            } else if (type === 'ADDED_VALUE') {
+                if (item.addedValueSubType === 'talent') {
+                    cats.talent.cost += totalCost;
+                } else if (item.addedValueSubType === 'media') {
+                    cats.media.cost += totalCost;
+                }
+                // 'other' / unset: no clear mapping, excluded
+            }
+        }
+
+        function makeEmptyInvestmentBreakdownCats() {
+            return {
+                talent: { label: 'Production & Talent', investment: 0, cost: 0, hasCost: true },
+                media: { label: 'Paid Media', investment: 0, cost: 0, hasCost: true },
+                social: { label: 'Social Partnership', investment: 0, cost: 0, hasCost: true },
+                streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
+                linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
+                fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
+                brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
+            };
+        }
+
         function getPlacementTypeLabel(type) {
             const labels = {
                 'TALENT_PRODUCTION': 'Talent and Production',
                 'PAID_MEDIA': 'Paid Media Distribution',
                 'CUSTOM_SOCIAL': 'Custom Social Package',
                 'DIGITAL_OO': 'Digital O&O',
-                'ADD_INNOVATION': 'Add Innovation',
+                'ADD_INNOVATION': 'Ad Innovation',
                 'ADDED_VALUE': 'Added Value',
                 'SOCIAL_VIDEO': 'Social Video',
                 'LINEAR_OO': 'Linear O&O',
@@ -14547,7 +15017,8 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 'EXPERIENTIAL_BUILDOUT': 'Experiential Production Buildout',
                 'INTEGRATION_FEE': 'Integration – Fee',
                 'INTEGRATION_BUILDOUT': 'Integration Production Buildout',
-                'IP_LICENSING': 'IP / Licensing - Fee'
+                'IP_LICENSING': 'IP / Licensing - Fee',
+                'BRAND_FUNDED_CONTENT': 'Brand Funded Content'
             };
             return labels[type] || type;
         }
@@ -14565,6 +15036,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2 style="font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase; margin: 0; color: var(--primary);" id="modalPackageTitle">Media Plan Summary</h2>
                         <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <button onclick="exportSummaryToExcel()" class="btn-secondary btn-sm" style="padding: 0.5rem 1rem;">📊 Export Excel</button>
                             <button onclick="exportSummaryToPDF()" class="btn-success btn-sm" style="padding: 0.5rem 1rem;">📄 Export PDF</button>
                             <button onclick="closePackageDetailsModal()" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-muted); line-height: 1;">×</button>
                         </div>
