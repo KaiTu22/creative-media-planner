@@ -4114,6 +4114,13 @@
         // Save projects to localStorage with schema version
         function saveProjects() {
             try {
+                // Track when the currently open project was last saved, so the
+                // project card can tell the user if they have changes that
+                // haven't been exported yet.
+                if (typeof currentProject !== 'undefined' && currentProject && currentProject.id) {
+                    currentProject.lastSavedAt = new Date().toISOString();
+                }
+
                 const data = {
                     schemaVersion: CURRENT_SCHEMA_VERSION,
                     projects: projects,
@@ -4216,6 +4223,19 @@
                     const d = new Date(project.lastExportedAt);
                     exportLine = '<br><span style="color:var(--success-dark);font-size:0.8rem;">Last exported: ' + d.toLocaleDateString() + ' at ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + '</span>';
                 }
+                let savedLine = '';
+                if (project.lastSavedAt) {
+                    const savedD = new Date(project.lastSavedAt);
+                    const savedText = 'Last saved: ' + savedD.toLocaleDateString() + ' at ' + savedD.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                    // If the project has been saved more recently than it was last exported
+                    // (or has never been exported at all), flag that an export is needed.
+                    const needsExport = !project.lastExportedAt || new Date(project.lastSavedAt) > new Date(project.lastExportedAt);
+                    if (needsExport) {
+                        savedLine = '<br><span style="color:#B45309;font-size:0.8rem;font-weight:600;">⚠ ' + savedText + ' — export needed</span>';
+                    } else {
+                        savedLine = '<br><span style="color:var(--text-muted);font-size:0.8rem;">' + savedText + '</span>';
+                    }
+                }
                 const manualButtons = projectSortOrder === 'manual' ? `
                     <div style="display:flex;flex-direction:column;gap:2px;margin-right:0.25rem;">
                         <button onclick="event.stopPropagation();moveProject(${index},-1)" ${index===0?'disabled':''} class="btn-secondary btn-sm" style="padding:2px 6px;font-size:0.7rem;line-height:1;">▲</button>
@@ -4230,7 +4250,7 @@
                     <div class="package-header">
                         <div onclick="selectProject(${index})" style="flex:1;cursor:pointer;">
                             <div class="package-title">${project.projectName}</div>
-                            <p style="color:var(--text-muted);font-size:0.875rem;margin-top:0.25rem;">${brandLine}${dateLine}${exportLine}</p>
+                            <p style="color:var(--text-muted);font-size:0.875rem;margin-top:0.25rem;">${brandLine}${dateLine}${savedLine}${exportLine}</p>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;">
                             <div style="display:flex;align-items:center;gap:0.5rem;">
