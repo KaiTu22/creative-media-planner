@@ -40,8 +40,8 @@
     PACKAGE TYPES:
     - Influencer: Content with production + media placements
     - Branded Content: Similar to Influencer with talent/production
-    - Branded Content - Blended: Multiple platforms with single CPM
-    - Paid Distribution Only: Media placements without production
+    - Branded Content Blended Package: Multiple platforms with single CPM
+    - Social Distribution Only: Media placements without production
     - Streaming: Platform deals (Netflix, Disney+, etc.)
     - Fees: Flat fees with 100% margin
     - Partnership: Revenue share deals (X Amplify, TikTok, etc.)
@@ -1741,7 +1741,7 @@
                     <div class="radio-option" onclick="document.getElementById('packageBrandedBlended').click();">
                         <input type="radio" id="packageBrandedBlended" name="packageType" value="branded-blended">
                         <label for="packageBrandedBlended">
-                            <strong>Branded Content - Blended Package</strong>
+                            <strong>Branded Content Blended Package</strong>
                             <span class="hint">Simplified branded content with fixed CPM and informational platforms</span>
                         </label>
                     </div>
@@ -1749,7 +1749,7 @@
                     <div class="radio-option" onclick="document.getElementById('packageTalent').click();">
                         <input type="radio" id="packageTalent" name="packageType" value="talent">
                         <label for="packageTalent">
-                            <strong>Talent and Production Only</strong>
+                            <strong>Talent and Production</strong>
                             <span class="hint">No media distribution, production services only</span>
                         </label>
                     </div>
@@ -1765,7 +1765,7 @@
                     <div class="radio-option" onclick="document.getElementById('packageMedia').click();">
                         <input type="radio" id="packageMedia" name="packageType" value="media">
                         <label for="packageMedia">
-                            <strong>Paid Distribution Only</strong>
+                            <strong>Social Distribution Only</strong>
                             <span class="hint">Media placements without production costs</span>
                         </label>
                     </div>
@@ -1782,7 +1782,7 @@
                         <input type="radio" id="packageFees" name="packageType" value="fees">
                         <label for="packageFees">
                             <strong>Fees</strong>
-                            <span class="hint">Integration or Tentpole/On The Ground fees (100% margin)</span>
+                            <span class="hint">Integration, Experiential, or IP/Licensing fees (100% margin)</span>
                         </label>
                     </div>
 
@@ -2215,8 +2215,8 @@
                                     <label for="feeTypeIntegration">Integration</label>
                                 </div>
                                 <div class="radio-option" style="flex: 1;">
-                                    <input type="radio" id="feeTypeTentpole" name="feeType" value="tentpole">
-                                    <label for="feeTypeTentpole">Tentpole / On The Ground</label>
+                                    <input type="radio" id="feeTypeExperiential" name="feeType" value="experiential">
+                                    <label for="feeTypeExperiential">Experiential</label>
                                 </div>
                                 <div class="radio-option" style="flex: 1;">
                                     <input type="radio" id="feeTypeIPLicensing" name="feeType" value="ip_licensing">
@@ -2533,13 +2533,23 @@
                             </div>
 
                             <div class="form-group" id="packageTypeDropdownSection" style="display: none;">
-                                <label>Package Type</label>
-                                <select id="packageTypeDropdown">
-                                    <option value="">Select Package Type</option>
-                                    <option value="influencer-paramount-produced">Influencer - Paramount Produced</option>
-                                    <option value="influencer-hybrid">Influencer - Hybrid</option>
-                                    <option value="influencer-talent-captured">Influencer - Talent Captured</option>
-                                    <option value="branded-content">Branded Content</option>
+                                <label>Content Type</label>
+                                <select id="contentTypeDropdown" onchange="updateContentTypeSection()">
+                                    <option value="">Select Content Type</option>
+                                    <option value="influencer">Influencer</option>
+                                    <option value="branded">Branded Content</option>
+                                    <option value="experiential">Experiential</option>
+                                    <option value="integration">Integration</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="productionTypeDropdownSection" style="display: none;">
+                                <label>Production Type</label>
+                                <select id="productionTypeDropdown">
+                                    <option value="">Select Production Type</option>
+                                    <option value="paramount-produced">Paramount Produced</option>
+                                    <option value="hybrid">Hybrid</option>
+                                    <option value="talent-captured">Talent Captured</option>
                                 </select>
                             </div>
 
@@ -3995,7 +4005,28 @@
         // Schema version tracks the data structure format
         // This allows safe upgrades when the data model changes
         
-        const CURRENT_SCHEMA_VERSION = "1.0";
+        // 7.13: Stable, multi-user-safe ID generation. Previously every entity
+        // (Projects, Versions, Packages, Platform Allocations, Folders) used
+        // Date.now() as its id — fine for one browser, but two different
+        // people on two different devices can generate the exact same
+        // timestamp-based id at the same moment. UUIDs are safe across
+        // devices without needing any coordination. Old numeric ids already
+        // saved in existing projects are left as-is and continue to work
+        // correctly (ids are only ever compared with ===, never sorted or
+        // used in arithmetic) — only newly-created entities get a UUID.
+        function generateId() {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
+            // Fallback for environments without crypto.randomUUID
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        const CURRENT_SCHEMA_VERSION = "2.0";
         
         // Migration functions for upgrading old data formats
         function migrateData(data) {
@@ -4005,11 +4036,76 @@
                 data = migrateToV1(data);
             }
             
-            // Add future migrations here as needed
-            // if (data.schemaVersion === "1.0") {
-            //     data = migrateToV2(data);
-            // }
+            if (data.schemaVersion === "1.0") {
+                console.log("Migrating data to schema v2.0");
+                data = migrateToV2(data);
+            }
             
+            return data;
+        }
+
+        // v2.0: terminology cleanup from the Data Model Decisions Log.
+        // Renames old field values to their new canonical names so existing
+        // saved plans keep working correctly after the app's own labels and
+        // logic switch to the new terms.
+        function migrateToV2(data) {
+            const projects = data.projects || [];
+            projects.forEach(project => {
+                (project.versions || []).forEach(version => {
+                    (version.packages || []).forEach(pkg => {
+                        // 7.2: Fee terminology — 'tentpole' is renamed to 'experiential'
+                        if (pkg.type === 'fees' && pkg.feeType === 'tentpole') {
+                            pkg.feeType = 'experiential';
+                        }
+                        // 7.5: Margin field naming — normalize old un-suffixed
+                        // margin fields to the consistent *MarginDollar pattern.
+                        // These are write-only scratch values (margin is always
+                        // recomputed live from investment/cost wherever it's
+                        // displayed), so this is a schema-cleanliness migration,
+                        // not a functional fix.
+                        if (pkg.totalMargin !== undefined && pkg.totalMarginDollar === undefined) {
+                            pkg.totalMarginDollar = pkg.totalMargin;
+                        }
+                        delete pkg.totalMargin;
+                        if (pkg.talentMargin !== undefined && pkg.talentMarginDollar === undefined) {
+                            pkg.talentMarginDollar = pkg.talentMargin;
+                        }
+                        delete pkg.talentMargin;
+                        if (pkg.mediaMargin !== undefined && pkg.mediaMarginDollar === undefined) {
+                            pkg.mediaMarginDollar = pkg.mediaMargin;
+                        }
+                        delete pkg.mediaMargin;
+                        // 7.7: Talent and Production Only packages — the old flat
+                        // packageSubType (4 values) is replaced by two fields:
+                        // contentType (Influencer/Branded Content/Experiential/Integration)
+                        // and, only for Influencer, a nested productionType.
+                        if (pkg.type === 'talent' && pkg.packageSubType !== undefined) {
+                            const oldSubTypeMap = {
+                                'influencer-paramount-produced': { contentType: 'influencer', productionType: 'paramount-produced' },
+                                'influencer-hybrid': { contentType: 'influencer', productionType: 'hybrid' },
+                                'influencer-talent-captured': { contentType: 'influencer', productionType: 'talent-captured' },
+                                'branded-content': { contentType: 'branded', productionType: '' }
+                            };
+                            const mapped = oldSubTypeMap[pkg.packageSubType];
+                            if (mapped) {
+                                pkg.contentType = mapped.contentType;
+                                pkg.productionType = mapped.productionType;
+                            }
+                            delete pkg.packageSubType;
+                        }
+                        // 7.1: Added Value sub-type vocabulary — sponsorship line items
+                        // used 'media' where the canonical term is 'distribution'
+                        if (pkg.type === 'sponsorship' && pkg.sponsorshipLineItems) {
+                            pkg.sponsorshipLineItems.forEach(item => {
+                                if (item.addedValueSubType === 'media') {
+                                    item.addedValueSubType = 'distribution';
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+            data.schemaVersion = "2.0";
             return data;
         }
         
@@ -4128,8 +4224,17 @@
                     createdAt: localStorage.getItem('mediaPlanner_createdAt') || new Date().toISOString()
                 };
                 
+                // 7.11: UI interaction state (e.g. "is this input currently
+                // unlocked for manual editing") is session/interface state, not
+                // plan data — exclude it from what gets persisted, without
+                // touching the live in-memory objects the UI is still using.
+                const uiStateKeysToExclude = new Set(['isPriceEditing', 'isCostEditing']);
+                function stripUIState(key, value) {
+                    return uiStateKeysToExclude.has(key) ? undefined : value;
+                }
+
                 // Check storage size BEFORE attempting save
-                const dataStr = JSON.stringify(data);
+                const dataStr = JSON.stringify(data, stripUIState);
                 const dataSize = new Blob([dataStr]).size;
                 const maxSize = 5 * 1024 * 1024; // 5MB typical limit
                 
@@ -4211,12 +4316,8 @@
                     ? project.brandName + ' • ' + project.subBrandName + ' • ' + project.agencyName
                     : project.brandName + ' • ' + project.agencyName;
                 let dateLine = '';
-                if (project.campaignStartDate && project.campaignEndDate) {
-                    dateLine = '<br>' + new Date(project.campaignStartDate).toLocaleDateString() + ' - ' + new Date(project.campaignEndDate).toLocaleDateString();
-                } else if (project.campaignStartDate) {
-                    dateLine = '<br>Start: ' + new Date(project.campaignStartDate).toLocaleDateString();
-                } else if (project.campaignEndDate) {
-                    dateLine = '<br>End: ' + new Date(project.campaignEndDate).toLocaleDateString();
+                if (project.campaignStartDate || project.campaignEndDate) {
+                    dateLine = '<br>' + formatCampaignPeriod(project.campaignStartDate, project.campaignEndDate);
                 }
                 let exportLine = '';
                 if (project.lastExportedAt) {
@@ -4369,7 +4470,7 @@
             }
 
             const project = {
-                id: Date.now(),
+                id: generateId(),
                 agencyName,
                 brandName,
                 subBrandName,
@@ -4513,13 +4614,13 @@
             const originalProject = projects[index];
             const newProject = JSON.parse(JSON.stringify(originalProject)); // Deep clone
             
-            newProject.id = Date.now();
+            newProject.id = generateId();
             newProject.projectName = 'Copy of ' + originalProject.projectName;
             newProject.createdAt = new Date().toISOString();
             
             // Update all version IDs
             newProject.versions.forEach(version => {
-                version.id = Date.now() + Math.random();
+                version.id = generateId();
                 version.name = version.name || 'Version 1';
             });
             
@@ -4564,10 +4665,7 @@
 
                 // Campaign dates
                 if (p.campaignStartDate || p.campaignEndDate) {
-                    const fmt = d => new Date(d).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
-                    const dates = p.campaignStartDate && p.campaignEndDate
-                        ? `${fmt(p.campaignStartDate)} – ${fmt(p.campaignEndDate)}`
-                        : p.campaignStartDate ? `From ${fmt(p.campaignStartDate)}` : `Until ${fmt(p.campaignEndDate)}`;
+                    const dates = formatCampaignPeriod(p.campaignStartDate, p.campaignEndDate);
                     parts.push({ icon: '📅', text: dates });
                 }
 
@@ -4701,7 +4799,7 @@
             showRename('Name this folder:', 'New Folder', (name) => {
                 if (!name || !name.trim()) return;
                 if (!currentProject.folders) currentProject.folders = [];
-                currentProject.folders.push({ id: 'vf_' + Date.now(), name: name.trim(), createdAt: new Date().toISOString() });
+                currentProject.folders.push({ id: 'vf_' + generateId(), name: name.trim(), createdAt: new Date().toISOString() });
                 saveProjects();
                 displayVersions();
             }, 'Create Folder', 'Create');
@@ -4749,7 +4847,7 @@
                 if (versionName === null) return;
                 const finalName = versionName && versionName.trim() ? versionName.trim() : defaultName;
                 showNotesPrompt('Add notes for this version (optional):', '', (notes) => {
-                    const version = { id: Date.now(), name: finalName, packages: [], createdAt: new Date().toISOString(), notes: notes || '', folderId: folderId };
+                    const version = { id: generateId(), name: finalName, packages: [], createdAt: new Date().toISOString(), notes: notes || '', folderId: folderId };
                     currentProject.versions.push(version);
                     currentVersion = version;
                     saveProjects();
@@ -4773,7 +4871,7 @@
             showRename('Name this folder:', 'New Folder', (name) => {
                 if (!name || !name.trim()) return;
                 const folders = getProjectFolders();
-                folders.push({ id: 'pf_' + Date.now(), name: name.trim(), createdAt: new Date().toISOString() });
+                folders.push({ id: 'pf_' + generateId(), name: name.trim(), createdAt: new Date().toISOString() });
                 saveProjectFolders(folders);
                 displayProjects();
             }, 'Create Project Folder', 'Create');
@@ -4832,7 +4930,7 @@
                 // Show custom prompt for notes
                 showNotesPrompt('Add notes for this version (optional):', '', (notes) => {
                     const version = {
-                        id: Date.now(),
+                        id: generateId(),
                         name: finalName,
                         packages: [],
                         createdAt: new Date().toISOString(),
@@ -4885,7 +4983,7 @@
             const originalVersion = currentProject.versions[index];
             const newVersion = JSON.parse(JSON.stringify(originalVersion)); // Deep clone
             
-            newVersion.id = Date.now();
+            newVersion.id = generateId();
             newVersion.name = 'Copy of ' + (originalVersion.name || `Version ${index + 1}`);
             newVersion.createdAt = new Date().toISOString();
             
@@ -4920,10 +5018,11 @@
             const labels = {
                 influencer: 'Influencer',
                 branded: 'Branded Content',
-                'branded-blended': 'Branded Content',
+                'branded-blended': 'Branded Content Blended Package',
                 talent: 'Talent and Production',
-                media: 'Paid Media',
+                media: 'Social Distribution Only',
                 streaming: 'Streaming Video',
+                linear: 'Linear',
                 fees: 'Fees',
                 partnership: 'Social Partnerships',
                 sponsorship: 'Sponsorship Packages',
@@ -5148,15 +5247,15 @@
                         currentPackage.mediaCost = mediaCost;
                         
                         // Calculate margins
-                        const totalMargin = investment - totalCost;
-                        const totalMarginPercent = investment > 0 ? (totalMargin / investment) * 100 : 0;
+                        const totalMarginDollar = investment - totalCost;
+                        const totalMarginPercent = investment > 0 ? (totalMarginDollar / investment) * 100 : 0;
                         
                         currentPackage.totalCost = totalCost;
-                        currentPackage.totalMargin = totalMargin;
+                        currentPackage.totalMarginDollar = totalMarginDollar;
                         currentPackage.totalMarginPercent = totalMarginPercent;
-                        currentPackage.talentMargin = 0;
+                        currentPackage.talentMarginDollar = 0;
                         currentPackage.talentMarginPercent = 0;
-                        currentPackage.mediaMargin = 0;
+                        currentPackage.mediaMarginDollar = 0;
                         currentPackage.mediaMarginPercent = 0;
                     }
                     // For streaming, fees, linear, and sponsorship: cost = 0 (100% margin)
@@ -5166,20 +5265,20 @@
                         // Added Value: margins were already calculated in saveStepData
                         // Don't recalculate to avoid overwriting
                     } else if (packageType !== 'branded-blended') {
-                        const totalMargin = currentPackage.totalInvestment - totalCost;
+                        const totalMarginDollar = currentPackage.totalInvestment - totalCost;
                         const totalMarginPercent = currentPackage.totalInvestment > 0 
-                            ? (totalMargin / currentPackage.totalInvestment) * 100 
+                            ? (totalMarginDollar / currentPackage.totalInvestment) * 100 
                             : 0;
                         
                         currentPackage.totalCost = totalCost;
-                        currentPackage.totalMargin = totalMargin;
+                        currentPackage.totalMarginDollar = totalMarginDollar;
                         currentPackage.totalMarginPercent = totalMarginPercent;
                         
                         currentPackage.talentCost = talentCost;
                         currentPackage.mediaCost = mediaCost;
-                        currentPackage.talentMargin = 0;
+                        currentPackage.talentMarginDollar = 0;
                         currentPackage.talentMarginPercent = 0;
-                        currentPackage.mediaMargin = 0;
+                        currentPackage.mediaMarginDollar = 0;
                         currentPackage.mediaMarginPercent = 0;
                     }
                     
@@ -5455,7 +5554,7 @@
                         // always exist. A 0% or 100% split belongs to Talent and Production
                         // Only / Paid Distribution Only instead.
                         if (mediaPercent <= 0 || mediaPercent >= 100 || !hasPlatforms || !is100Percent) {
-                            customAlert('Media investment must be greater than 0% and less than 100% of the total. For a package that is entirely Talent/Production or entirely Media, use "Talent and Production Only" or "Paid Distribution Only" instead. Please also add at least one distribution platform and allocate % distributions that total 100%.');
+                            customAlert('Media investment must be greater than 0% and less than 100% of the total. For a package that is entirely Talent/Production or entirely Media, use "Talent and Production" or "Social Distribution Only" instead. Please also add at least one distribution platform and allocate % distributions that total 100%.');
                             return false;
                         }
                     } else if (packageType === 'media') {
@@ -5495,9 +5594,12 @@
                 } else {
                     currentPackage.title = document.getElementById('packageTitleComplex').value;
                     currentPackage.totalInvestment = parseCurrency(document.getElementById('totalInvestmentComplex').value);
-                    // Save package sub-type for talent packages
+                    // Save Content Type / Production Type for Talent and Production Only packages
                     if (packageType === 'talent') {
-                        currentPackage.packageSubType = document.getElementById('packageTypeDropdown').value;
+                        currentPackage.contentType = document.getElementById('contentTypeDropdown').value;
+                        currentPackage.productionType = currentPackage.contentType === 'influencer'
+                            ? document.getElementById('productionTypeDropdown').value
+                            : '';
                     }
                 }
                 
@@ -5589,7 +5691,7 @@
                     currentPackage.totalInvestment = 0;
                     currentPackage.totalCost = totalCost;
                     currentPackage.totalValue = totalValue;
-                    currentPackage.totalMargin = -totalCost; // Negative margin (cost to us)
+                    currentPackage.totalMarginDollar = -totalCost; // Negative margin (cost to us)
                     currentPackage.totalMarginPercent = totalCost > 0 ? -100 : 0; // 100% cost, no revenue
                 } else {
                     // Complex packages (influencer, branded, talent, media)
@@ -5654,12 +5756,22 @@
                 if (el) el.checked = false;
             });
 
+            // Same reset-first safety pattern for Content Type / Production Type,
+            // so a value left over from a previously-edited Talent and Production
+            // package can't leak into a different one that has no value saved.
+            const contentTypeResetEl = document.getElementById('contentTypeDropdown');
+            if (contentTypeResetEl) contentTypeResetEl.value = '';
+            const productionTypeResetEl = document.getElementById('productionTypeDropdown');
+            if (productionTypeResetEl) productionTypeResetEl.value = '';
+            const productionTypeSectionResetEl = document.getElementById('productionTypeDropdownSection');
+            if (productionTypeSectionResetEl) productionTypeSectionResetEl.style.display = 'none';
+
             const titles = {
                 influencer: 'Influencer Package Setup',
                 branded: 'Branded Content Package Setup',
-                'branded-blended': 'Branded Content - Blended Package',
-                talent: 'Talent & Production Package',
-                media: 'Paid Distribution Package',
+                'branded-blended': 'Branded Content Blended Package Setup',
+                talent: 'Talent and Production Package',
+                media: 'Social Distribution Only Package',
                 streaming: 'Streaming Video',
                 fees: 'Fee Package',
                 partnership: 'Social Partnership',
@@ -5759,12 +5871,13 @@
                     campaignTypeSection.style.display = 'none';
                 }
 
-                // Show/hide Package Type dropdown (Talent only)
+                // Show/hide Content Type dropdown (Talent only)
                 const packageTypeDropdownSection = document.getElementById('packageTypeDropdownSection');
                 if (type === 'talent') {
                     packageTypeDropdownSection.style.display = 'block';
                 } else {
                     packageTypeDropdownSection.style.display = 'none';
+                    document.getElementById('productionTypeDropdownSection').style.display = 'none';
                 }
                 
                 // Show/hide Production Fee Presentation section (Influencer & Branded Content)
@@ -5801,7 +5914,7 @@
                         const feeType = pkg.feeType || 'integration';
                         const feeRadio = document.getElementById(
                             feeType === 'integration' ? 'feeTypeIntegration' :
-                            feeType === 'tentpole' ? 'feeTypeTentpole' :
+                            feeType === 'experiential' ? 'feeTypeExperiential' :
                             feeType === 'ip_licensing' ? 'feeTypeIPLicensing' :
                             'feeTypeOther'
                         );
@@ -5842,11 +5955,19 @@
                     // Complex packages
                     document.getElementById('packageTitleComplex').value = pkg.title;
                     document.getElementById('totalInvestmentComplex').value = pkg.totalInvestment.toLocaleString('en-US');
-                    // Restore package sub-type for talent packages (always reset first
-                    // so a subtype left over from editing a different package can't leak)
-                    const ptDropdownEl = document.getElementById('packageTypeDropdown');
-                    if (ptDropdownEl) {
-                        ptDropdownEl.value = (type === 'talent' && pkg.packageSubType) ? pkg.packageSubType : '';
+                    // Restore Content Type / Production Type for talent packages (always
+                    // reset first so a value left over from editing a different package can't leak)
+                    const contentTypeEl = document.getElementById('contentTypeDropdown');
+                    const productionTypeEl = document.getElementById('productionTypeDropdown');
+                    if (contentTypeEl) {
+                        contentTypeEl.value = (type === 'talent' && pkg.contentType) ? pkg.contentType : '';
+                        if (contentTypeEl.value === 'influencer') {
+                            document.getElementById('productionTypeDropdownSection').style.display = 'block';
+                            productionTypeEl.value = pkg.productionType || '';
+                        } else {
+                            document.getElementById('productionTypeDropdownSection').style.display = 'none';
+                            productionTypeEl.value = '';
+                        }
                     }
                     
                     // Restore media input type and value
@@ -5955,21 +6076,6 @@
                     updateInvestmentSplit();
                 }
             }
-        }
-        function toggleMediaInputType() {
-            const isPercent = document.getElementById('mediaTypePercent').checked;
-            const prefix = document.getElementById('mediaInputPrefix');
-            const input = document.getElementById('mediaInvestment');
-            
-            if (isPercent) {
-                prefix.textContent = '%';
-                input.value = 50;
-            } else {
-                prefix.textContent = '$';
-                input.value = 0;
-            }
-            
-            updateInvestmentSplit();
         }
 
         function updateInvestmentSplit() {
@@ -6166,13 +6272,6 @@
             document.getElementById('addedValueTotalValue').textContent = '$' + formatNumber(totalValue);
         }
         
-        function updateAddedValueDisplay() {
-            const cost = parseCurrency(document.getElementById('addedValueCost')?.value) || 0;
-            const displayEl = document.getElementById('addedValueDisplay');
-            if (displayEl) {
-                displayEl.textContent = '$' + formatNumber(cost);
-            }
-        }
         
         function updateSimplePackageCalcs() {
             const type = currentPackage.type;
@@ -6261,20 +6360,6 @@
         }
 
         // Step 3: Platform Distribution
-        function setupPlatformDistribution() {
-            // If editing and platformAllocations already exist in currentPackage, restore them
-            if (editingPackageIndex >= 0 && currentPackage.platformAllocations && currentPackage.platformAllocations.length > 0) {
-                platformAllocations = JSON.parse(JSON.stringify(currentPackage.platformAllocations));
-                renderPlatformAllocations();
-                validatePlatformPercentages();
-            } else {
-                platformAllocations = [];
-                document.getElementById('platformDistributionContainer').innerHTML = '';
-                
-                // Add one default allocation
-                addPlatformAllocation();
-            }
-        }
 
         function renderPlatformList() {
             const container = document.getElementById('platformListContainer');
@@ -6295,13 +6380,13 @@
                 <div style="background: var(--background); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <strong style="color: var(--primary);">${allocation.platform || 'New Platform'}</strong>
-                        <button type="button" onclick="removePlatformAllocation(${allocation.id})" 
+                        <button type="button" onclick="removePlatformAllocation('${allocation.id}')" 
                                 style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.25rem; padding: 0; line-height: 1;">×</button>
                     </div>
                     <div style="display: grid; grid-template-columns: ${isBrandedContent ? '1fr 1fr' : '1fr'}; gap: 0.75rem;">
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Platform</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'platform', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateAllocation('${allocation.id}', 'platform', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="">Select</option>
                                 ${Object.keys(PLATFORMS).map(p => `
                                     <option value="${p}" ${allocation.platform === p ? 'selected' : ''}>${p}</option>
@@ -6311,7 +6396,7 @@
                         ${isBrandedContent ? `
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Media Type</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'mediaType', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateAllocation('${allocation.id}', 'mediaType', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="">Select</option>
                                 ${BRANDED_MEDIA_TYPES.map(type => `
                                     <option value="${type}" ${allocation.mediaType === type ? 'selected' : ''}>${type}</option>
@@ -6323,7 +6408,7 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem;">
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Handle</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'handleType', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateAllocation('${allocation.id}', 'handleType', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="paramount" ${(!allocation.handleType || allocation.handleType === 'paramount') ? 'selected' : ''}>Paramount</option>
                                 <option value="influencer" ${allocation.handleType === 'influencer' ? 'selected' : ''}>Influencer</option>
                             </select>
@@ -6332,8 +6417,8 @@
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Percentage</label>
                             <div style="display: flex; align-items: center; gap: 0.25rem;">
                                 <input type="number" value="${allocation.percentage || 0}" min="0" max="100" step="1"
-                                       oninput="updatePercentage(${allocation.id}, parseFloat(this.value) || 0)"
-                                       onchange="updateAllocation(${allocation.id}, 'percentage', parseFloat(this.value) || 0)"
+                                       oninput="updatePercentage('${allocation.id}', parseFloat(this.value) || 0)"
+                                       onchange="updateAllocation('${allocation.id}', 'percentage', parseFloat(this.value) || 0)"
                                        style="width: 100%; font-size: 0.875rem;">
                                 <span style="font-size: 0.875rem; color: var(--text-muted);">%</span>
                             </div>
@@ -6372,7 +6457,7 @@
             const packageType = document.querySelector('input[name="packageType"]:checked')?.value || '';
             const defaultHandle = (packageType === 'branded' || packageType === 'branded_blended') ? 'paramount' : 'influencer';
             const allocation = {
-                id: Date.now() + platformAllocations.length,
+                id: generateId(),
                 mediaType: '',
                 handleType: defaultHandle,
                 platform: '',
@@ -6384,7 +6469,7 @@
         }
 
         function removePlatformAllocation(id) {
-            platformAllocations = platformAllocations.filter(a => a.id !== id);
+            platformAllocations = platformAllocations.filter(a => String(a.id) !== String(id));
             renderPlatformList();
             validatePlatformPercentages();
         }
@@ -6401,7 +6486,7 @@
                     mediaTypeOptions = `
                         <div class="form-group">
                             <label>Media Type</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'mediaType', this.value)">
+                            <select onchange="updateAllocation('${allocation.id}', 'mediaType', this.value)">
                                 <option value="">Select Media Type</option>
                                 <option value="Long Form" ${allocation.mediaType === 'Long Form' ? 'selected' : ''}>Long Form Content</option>
                                 <option value="Cutdowns" ${allocation.mediaType === 'Cutdowns' ? 'selected' : ''}>Cutdowns / Social Only</option>
@@ -6409,7 +6494,7 @@
                         </div>
                         <div class="form-group">
                             <label>Handle Type</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'handleType', this.value)">
+                            <select onchange="updateAllocation('${allocation.id}', 'handleType', this.value)">
                                 <option value="">Select Handle Type</option>
                                 <option value="paramount" ${allocation.handleType === 'paramount' ? 'selected' : ''}>Paramount Handles</option>
                                 <option value="influencer" ${allocation.handleType === 'influencer' ? 'selected' : ''}>Influencer Handles</option>
@@ -6421,7 +6506,7 @@
                     handleTypeOptions = `
                         <div class="form-group">
                             <label>Handle Type</label>
-                            <select onchange="updateAllocation(${allocation.id}, 'handleType', this.value)">
+                            <select onchange="updateAllocation('${allocation.id}', 'handleType', this.value)">
                                 <option value="influencer" ${allocation.handleType === 'influencer' ? 'selected' : ''}>Influencer Handles</option>
                                 <option value="paramount" ${allocation.handleType === 'paramount' ? 'selected' : ''}>Paramount Handles</option>
                             </select>
@@ -6442,14 +6527,14 @@
                     <div class="platform-allocation">
                         <div class="platform-allocation-header">
                             <div class="platform-allocation-title">Platform ${index + 1}</div>
-                            ${platformAllocations.length > 1 ? `<span class="delete-icon" onclick="removePlatformAllocation(${allocation.id})">✕</span>` : ''}
+                            ${platformAllocations.length > 1 ? `<span class="delete-icon" onclick="removePlatformAllocation('${allocation.id}')">✕</span>` : ''}
                         </div>
                         <div class="grid-3">
                             ${mediaTypeOptions}
                             ${handleTypeOptions}
                             <div class="form-group">
                                 <label>Platform</label>
-                                <select onchange="updateAllocation(${allocation.id}, 'platform', this.value)">
+                                <select onchange="updateAllocation('${allocation.id}', 'platform', this.value)">
                                     <option value="">Select Platform</option>
                                     <option value="Instagram" ${allocation.platform === 'Instagram' ? 'selected' : ''}>Instagram</option>
                                     <option value="TikTok" ${allocation.platform === 'TikTok' ? 'selected' : ''}>TikTok</option>
@@ -6468,7 +6553,7 @@
                                 <label>% of Media Investment</label>
                                 <div class="input-group">
                                     <input type="number" value="${allocation.percentage}" step="0.1" min="0" max="100" 
-                                        oninput="updateAllocation(${allocation.id}, 'percentage', parseFloat(this.value))">
+                                        oninput="updateAllocation('${allocation.id}', 'percentage', parseFloat(this.value))">
                                     <span class="input-addon">%</span>
                                 </div>
                             </div>
@@ -6479,7 +6564,7 @@
         }
 
         function updateAllocation(id, field, value) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 // Allow duplicate platforms - users may want to add same platform multiple times
                 // (e.g., TBD multiple times, or same platform with different configurations)
@@ -6507,7 +6592,7 @@
         
         // Update percentage without re-rendering (for oninput)
         function updatePercentage(id, value) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 allocation.percentage = value;
                 validatePlatformPercentages();
@@ -6549,13 +6634,13 @@
                 <div style="background: var(--background); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <strong style="color: var(--primary);">${allocation.platform || 'New Platform'}</strong>
-                        <button type="button" onclick="removeBlendedPlatformAllocation(${allocation.id})" 
+                        <button type="button" onclick="removeBlendedPlatformAllocation('${allocation.id}')" 
                                 style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.25rem; padding: 0; line-height: 1;">×</button>
                     </div>
                     <div style="display: grid; grid-template-columns: ${isBrandedContent ? '1fr 1fr' : '1fr'}; gap: 0.75rem;">
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Platform</label>
-                            <select onchange="updateBlendedAllocation(${allocation.id}, 'platform', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateBlendedAllocation('${allocation.id}', 'platform', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="">Select</option>
                                 ${Object.keys(PLATFORMS).map(p => `
                                     <option value="${p}" ${allocation.platform === p ? 'selected' : ''}>${p}</option>
@@ -6565,7 +6650,7 @@
                         ${isBrandedContent ? `
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Media Type</label>
-                            <select onchange="updateBlendedAllocation(${allocation.id}, 'mediaType', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateBlendedAllocation('${allocation.id}', 'mediaType', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="">Select</option>
                                 ${BRANDED_MEDIA_TYPES.map(type => `
                                     <option value="${type}" ${allocation.mediaType === type ? 'selected' : ''}>${type}</option>
@@ -6577,7 +6662,7 @@
                     <div style="margin-top: 0.75rem;">
                         <div>
                             <label style="font-size: 0.875rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Handle</label>
-                            <select onchange="updateBlendedAllocation(${allocation.id}, 'handleType', this.value)" style="width: 100%; font-size: 0.875rem;">
+                            <select onchange="updateBlendedAllocation('${allocation.id}', 'handleType', this.value)" style="width: 100%; font-size: 0.875rem;">
                                 <option value="influencer" ${allocation.handleType === 'influencer' ? 'selected' : ''}>Influencer</option>
                                 <option value="paramount" ${allocation.handleType === 'paramount' ? 'selected' : ''}>Paramount</option>
                             </select>
@@ -6589,7 +6674,7 @@
 
         function addBlendedPlatformAllocation() {
             const allocation = {
-                id: Date.now() + blendedPlatformAllocations.length,
+                id: generateId(),
                 mediaType: '',
                 handleType: 'paramount',
                 platform: ''
@@ -6600,12 +6685,12 @@
         }
 
         function removeBlendedPlatformAllocation(id) {
-            blendedPlatformAllocations = blendedPlatformAllocations.filter(a => a.id !== id);
+            blendedPlatformAllocations = blendedPlatformAllocations.filter(a => String(a.id) !== String(id));
             renderBlendedPlatformList();
         }
 
         function updateBlendedAllocation(id, field, value) {
-            const allocation = blendedPlatformAllocations.find(a => a.id === id);
+            const allocation = blendedPlatformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 allocation[field] = value;
                 renderBlendedPlatformList();
@@ -6613,27 +6698,6 @@
         }
 
         // Step 4: Investment Breakdown Review
-        function displayInvestmentBreakdown() {
-            document.getElementById('reviewTotalInvestment').textContent = '$' + formatNumber(currentPackage.totalInvestment);
-            document.getElementById('reviewTalentInvestment').textContent = '$' + formatNumber(currentPackage.talentInvestment);
-            document.getElementById('reviewMediaInvestment').textContent = '$' + formatNumber(currentPackage.mediaInvestmentDollar);
-            
-            const tbody = document.getElementById('reviewPlatformTable');
-            const mediaInvestment = currentPackage.mediaInvestmentDollar;
-            
-            tbody.innerHTML = platformAllocations.map(allocation => {
-                const investment = mediaInvestment * (allocation.percentage / 100);
-                return `
-                    <tr>
-                        <td><strong>${allocation.platform || 'Not selected'}</strong></td>
-                        <td>${allocation.mediaType || 'N/A'}</td>
-                        <td>${allocation.handleType ? (allocation.handleType === 'paramount' ? 'Paramount' : 'Influencer') : 'N/A'}</td>
-                        <td>${allocation.percentage}%</td>
-                        <td>$${formatNumber(investment)}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
 
         // Step 5: CPM Pricing
         function setupCPMPricing() {
@@ -6700,7 +6764,7 @@
                         </td>
                         <td style="padding: 12px; font-size: 14px; font-weight: 500;">${formatImpressions(impressions)}</td>
                         <td style="padding: 12px;">
-                            <button onclick="toggleCPMAdjustments(${allocation.id})" 
+                            <button onclick="toggleCPMAdjustments('${allocation.id}')" 
                                     id="adjustBtn${allocation.id}"
                                     style="padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; color: #475569; font-weight: 500;">
                                 ⚙️ Adjust
@@ -6715,7 +6779,7 @@
                                         <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em; display: flex; align-items: center; gap: 6px;">
                                             <input type="checkbox" 
                                                 ${isPriceEditing ? 'checked' : ''} 
-                                                onchange="togglePriceEdit(${allocation.id}, this.checked)"
+                                                onchange="togglePriceEdit('${allocation.id}', this.checked)"
                                                 style="width: 16px; height: 16px;">
                                             Base Price CPM
                                         </label>
@@ -6724,21 +6788,21 @@
                                             step="0.01"
                                             style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500; ${isPriceEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
                                             ${isPriceEditing ? '' : 'disabled'}
-                                            onchange="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)"
-                                            onblur="updateCPM(${allocation.id}, 'cpmPrice', parseFloat(this.value) || 0)">
+                                            onchange="updateCPM('${allocation.id}', 'cpmPrice', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM('${allocation.id}', 'cpmPrice', parseFloat(this.value) || 0)">
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 4px;">
                                         <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em;">Premium (%)</label>
                                         <input type="text" value="${allocation.cpmPremium}" 
                                             style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500;" 
-                                            onchange="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)"
-                                            onblur="updateCPM(${allocation.id}, 'cpmPremium', parseFloat(this.value) || 0)">
+                                            onchange="updateCPM('${allocation.id}', 'cpmPremium', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM('${allocation.id}', 'cpmPremium', parseFloat(this.value) || 0)">
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 4px;">
                                         <label style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 0.03em; display: flex; align-items: center; gap: 6px;">
                                             <input type="checkbox" 
                                                 ${isCostEditing ? 'checked' : ''} 
-                                                onchange="toggleCostEdit(${allocation.id}, this.checked)"
+                                                onchange="toggleCostEdit('${allocation.id}', this.checked)"
                                                 style="width: 16px; height: 16px;">
                                             Base Cost CPM
                                         </label>
@@ -6747,8 +6811,8 @@
                                             step="0.01"
                                             style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-weight: 500; ${isCostEditing ? '' : 'opacity: 0.5; pointer-events: none;'}" 
                                             ${isCostEditing ? '' : 'disabled'}
-                                            onchange="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)"
-                                            onblur="updateCPM(${allocation.id}, 'baseCostCPM', parseFloat(this.value) || 0)">
+                                            onchange="updateCPM('${allocation.id}', 'baseCostCPM', parseFloat(this.value) || 0)"
+                                            onblur="updateCPM('${allocation.id}', 'baseCostCPM', parseFloat(this.value) || 0)">
                                     </div>
                                 </div>
                             </div>
@@ -6766,8 +6830,8 @@
             });
             
             // Display totals
-            const totalMargin = totalInvestment - totalCost;
-            const totalMarginPercent = totalInvestment > 0 ? (totalMargin / totalInvestment) * 100 : 0;
+            const totalMarginDollar = totalInvestment - totalCost;
+            const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
             const avgCPM = totalImpressions > 0 ? (totalInvestment / totalImpressions * 1000) : 0;
             const avgCostCPM = totalImpressions > 0 ? (totalCost / totalImpressions * 1000) : 0;
             
@@ -6791,7 +6855,7 @@
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">TOTAL MARGIN</div>
-                        <div class="summary-value success">$${formatNumber(totalMargin)}</div>
+                        <div class="summary-value success">$${formatNumber(totalMarginDollar)}</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">MARGIN %</div>
@@ -6812,7 +6876,7 @@
         }
 
         function updateCPM(id, field, value) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 allocation[field] = value;
                 setupCPMPricing();  // Re-render
@@ -6820,7 +6884,7 @@
         }
 
         function togglePriceEdit(id, checked) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 allocation.isPriceEditing = checked;
                 setupCPMPricing();  // Re-render
@@ -6828,7 +6892,7 @@
         }
 
         function toggleCostEdit(id, checked) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 allocation.isCostEditing = checked;
                 setupCPMPricing();  // Re-render
@@ -6848,22 +6912,49 @@
             }
         }
 
-        // Toggle Production & Talent Markup editing
-        function toggleTalentMarkup(enabled) {
-            const input = document.getElementById('talentMarkup');
-            if (enabled) {
-                // Enable editing
-                input.disabled = false;
-                input.style.opacity = '1';
-                input.style.pointerEvents = 'auto';
-                input.focus();
+        // Show/hide the nested Production Type dropdown based on Content Type
+        // selection (Talent and Production Only packages). Production Type
+        // only applies when Content Type is Influencer.
+        function updateContentTypeSection() {
+            const contentType = document.getElementById('contentTypeDropdown').value;
+            const productionTypeSection = document.getElementById('productionTypeDropdownSection');
+            if (contentType === 'influencer') {
+                productionTypeSection.style.display = 'block';
             } else {
-                // Disable editing and reset to default
-                input.disabled = true;
-                input.style.opacity = '0.5';
-                input.style.pointerEvents = 'none';
-                input.value = 25;
-                calculateTalentCost();
+                productionTypeSection.style.display = 'none';
+                document.getElementById('productionTypeDropdown').value = '';
+            }
+        }
+
+        // Toggle Production & Talent Markup editing
+        // Shared logic behind toggleTalentMarkup() and toggleTalentMarkup4() —
+        // these two functions were previously near-identical copies of each
+        // other (one per screen, since Influencer/Branded and Talent and
+        // Production Only use different screens and can't share one literal
+        // DOM element). Consolidated here so there's one reset/enable
+        // implementation instead of two independently-maintained copies.
+        function enableTalentMarkupInput(inputId) {
+            const input = document.getElementById(inputId);
+            input.disabled = false;
+            input.style.opacity = '1';
+            input.style.pointerEvents = 'auto';
+            input.focus();
+        }
+
+        function resetTalentMarkupInput(inputId, recalcFn) {
+            const input = document.getElementById(inputId);
+            input.disabled = true;
+            input.style.opacity = '0.5';
+            input.style.pointerEvents = 'none';
+            input.value = 25;
+            recalcFn();
+        }
+
+        function toggleTalentMarkup(enabled) {
+            if (enabled) {
+                enableTalentMarkupInput('talentMarkup');
+            } else {
+                resetTalentMarkupInput('talentMarkup', calculateTalentCost);
             }
         }
 
@@ -6924,7 +7015,7 @@
                 document.getElementById('summaryOverallCPM').textContent = currentPackage.overallCPM ? '$' + currentPackage.overallCPM.toFixed(2) : 'N/A';
                 document.getElementById('summaryOverallCPV').textContent = currentPackage.overallCPV ? '$' + currentPackage.overallCPV.toFixed(2) : 'N/A';
                 document.getElementById('summaryTotalCost').textContent = '$' + formatNumber(currentPackage.totalCost || 0);
-                document.getElementById('summaryTotalMarginDollar').textContent = '$' + formatNumber(currentPackage.totalMargin || 0);
+                document.getElementById('summaryTotalMarginDollar').textContent = '$' + formatNumber(currentPackage.totalMarginDollar || 0);
                 document.getElementById('summaryTotalMarginPercent').textContent = (currentPackage.totalMarginPercent || 0).toFixed(1) + '%';
                 
                 console.log('calculateCostMargin: Done populating sponsorship values');
@@ -7018,15 +7109,15 @@
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <input type="checkbox" id="override_${allocation.id}" 
                                     ${isOverridden ? 'checked' : ''} 
-                                    onchange="toggleCostCPMOverride(${allocation.id}, this.checked)"
+                                    onchange="toggleCostCPMOverride('${allocation.id}', this.checked)"
                                     style="width: auto; height: auto;">
                                 <input type="number" id="costcpm_${allocation.id}" 
                                     value="${costCPM.toFixed(2)}" 
                                     step="0.01" 
                                     style="width: 80px; ${isOverridden ? '' : 'opacity: 0.5; pointer-events: none;'}" 
                                     ${isOverridden ? '' : 'disabled'}
-                                    onchange="updateCostCPMOverride(${allocation.id}, parseFloat(this.value) || 0)"
-                                    onblur="updateCostCPMOverride(${allocation.id}, parseFloat(this.value) || 0)">
+                                    onchange="updateCostCPMOverride('${allocation.id}', parseFloat(this.value) || 0)"
+                                    onblur="updateCostCPMOverride('${allocation.id}', parseFloat(this.value) || 0)">
                             </div>
                         </td>
                         <td>$${formatNumber(totalCost)}</td>
@@ -7037,7 +7128,7 @@
         }
 
         function toggleCostCPMOverride(id, enabled) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation) {
                 if (enabled) {
                     // Enable override - use current calculated value as starting point
@@ -7054,7 +7145,7 @@
         }
 
         function updateCostCPMOverride(id, value) {
-            const allocation = platformAllocations.find(a => a.id === id);
+            const allocation = platformAllocations.find(a => String(a.id) === String(id));
             if (allocation && allocation.costCPMOverride !== undefined) {
                 allocation.costCPMOverride = value;
                 calculateCostMargin(); // Re-render
@@ -7063,18 +7154,10 @@
 
         // Toggle Production & Talent Markup editing
         function toggleTalentMarkup4(enabled) {
-            const input = document.getElementById('talentMarkup4');
             if (enabled) {
-                input.disabled = false;
-                input.style.opacity = '1';
-                input.style.pointerEvents = 'auto';
-                input.focus();
+                enableTalentMarkupInput('talentMarkup4');
             } else {
-                input.disabled = true;
-                input.style.opacity = '0.5';
-                input.style.pointerEvents = 'none';
-                input.value = '25';
-                calculateCostMargin();
+                resetTalentMarkupInput('talentMarkup4', calculateCostMargin);
             }
         }
 
@@ -7151,7 +7234,7 @@
                 const overallCPM = currentPackage.overallCPM || 0;
                 const overallCPV = currentPackage.overallCPV || 0;
                 const totalCost = currentPackage.totalCost || 0;
-                const totalMarginDollar = currentPackage.totalMargin || 0;
+                const totalMarginDollar = currentPackage.totalMarginDollar || 0;
                 const totalMarginPercent = currentPackage.totalMarginPercent || 0;
                 
                 // Display values
@@ -7207,7 +7290,7 @@
                 totalImpressions = blendedCPM > 0 ? Math.round((currentPackage.totalInvestment / blendedCPM) * 1000) : (currentPackage.impressions || 0);
                 overallCPM = currentPackage.cpm || 0;
                 totalCost = currentPackage.totalCost || 0;
-                totalMarginDollar = currentPackage.totalMargin || 0;
+                totalMarginDollar = currentPackage.totalMarginDollar || 0;
                 totalMarginPercent = currentPackage.totalMarginPercent || 0;
             } else if (packageType === 'partnership') {
                 // For partnerships: impressions/views calculated, cost = rev share
@@ -7319,7 +7402,6 @@
             if (currentPackage.type === 'sponsorship' && currentPackage.sponsorshipType === 'detailed') {
                 const itemsCopy = JSON.parse(JSON.stringify(sponsorshipLineItems));
                 currentPackage.sponsorshipLineItems = itemsCopy;
-                currentPackage.lineItems = itemsCopy; // Also save as lineItems for compatibility
                 console.log('✓ Synced sponsorshipLineItems to currentPackage');
                 console.log('currentPackage.sponsorshipLineItems[0]:', currentPackage.sponsorshipLineItems[0]);
             }
@@ -7503,104 +7585,7 @@
             document.getElementById('versionSummaryOverall').innerHTML = summaryHTML;
             
             // Calculate investment category breakdown
-            const vsFeeTypesNoFees = ['INTEGRATION_FEE', 'EXPERIENTIAL_FEE', 'IP_LICENSING'];
-            const categories = {
-                creative: { 
-                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0,
-                    investmentNoFees: 0, costNoFees: 0, marginNoFees: 0
-                },
-                oo: { 
-                    types: ['streaming', 'linear'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 
-                },
-                addedvalue: { 
-                    types: ['added-value'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, value: 0, count: 0 
-                },
-                brandfunded: {
-                    types: ['brand-funded-content'],
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
-                }
-            };
-            
-            packages.forEach(pkg => {
-                // Special handling for detailed sponsorships - distribute line items to categories
-                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
-                    pkg.sponsorshipLineItems.forEach(item => {
-                        const placementType = item.placementType;
-                        let targetCategory = null;
-                        
-                        // Map placement types to categories per specification
-                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
-                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
-                            targetCategory = categories.creative;
-                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
-                            targetCategory = categories.oo;
-                        } else if (placementType === 'ADDED_VALUE') {
-                            targetCategory = categories.addedvalue;
-                        }
-                        
-                        if (targetCategory) {
-                            targetCategory.investment += item.netCost || 0;
-                            targetCategory.cost += item.totalCost || 0;
-                            targetCategory.margin += (item.margin || 0);
-                            
-                            // Add impressions/views based on cost method
-                            if (item.costMethod === 'CPV') {
-                                // Views - for now just add to impressions field
-                                targetCategory.impressions += (item.quantity || 0);
-                            } else {
-                                targetCategory.impressions += (item.quantity || 0);
-                            }
-                            
-                            // Track no-fees for creative
-                            if (targetCategory === categories.creative && !vsFeeTypesNoFees.includes(placementType)) {
-                                targetCategory.investmentNoFees += item.netCost || 0;
-                                targetCategory.costNoFees += item.totalCost || 0;
-                                targetCategory.marginNoFees += (item.margin || 0);
-                            }
-                            
-                            // For added value, track the value provided (net cost is the value)
-                            if (placementType === 'ADDED_VALUE') {
-                                targetCategory.value += (item.netCost || 0);
-                            }
-                        }
-                    });
-                    // Don't break - we've handled all line items, continue to next package
-                } else {
-                    // Regular package handling
-                    for (const [key, category] of Object.entries(categories)) {
-                        if (category.types.includes(pkg.type)) {
-                            category.investment += pkg.totalInvestment;
-                            category.cost += pkg.totalCost || 0;
-                            category.margin += (pkg.totalInvestment - (pkg.totalCost || 0));
-                            
-                            // Track no-fees for creative (exclude 'fees' package type)
-                            if (key === 'creative' && pkg.type !== 'fees') {
-                                category.investmentNoFees += pkg.totalInvestment;
-                                category.costNoFees += pkg.totalCost || 0;
-                                category.marginNoFees += (pkg.totalInvestment - (pkg.totalCost || 0));
-                            }
-                            
-                            // For added-value, track the value provided
-                            if (pkg.type === 'added-value') {
-                                category.value += (pkg.totalValue || 0);
-                            }
-                            
-                            // Add impressions based on package type
-                            if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
-                                category.impressions += (pkg.impressions || 0);
-                            } else {
-                                category.impressions += (pkg.totalImpressions || 0);
-                            }
-                            
-                            category.count++;
-                            break;
-                        }
-                    }
-                }
-            });
+            const categories = calculateInvestmentCategoryBreakdown(packages);
             
             // Display investment category breakdown
             const categoryHTML = Object.entries(categories)
@@ -7755,7 +7740,7 @@
             
             packagesHTML += packages.map((pkg, index) => {
                 const hasMedia = pkg.platformAllocations && pkg.platformAllocations.length > 0;
-                const hasTalent = (pkg.talentInvestment || 0) > 0;
+                const hasTalent = (pkg.talentInvestment || 0) > 0 || (pkg.talentCost && pkg.talentCost > 0);
                 const isSimplePackage = ['streaming', 'fees', 'partnership', 'sponsorship', 'branded-blended', 'added-value'].includes(pkg.type);
                 
                 // Get metric info (Views vs Impressions, CPV vs CPM)
@@ -7795,14 +7780,24 @@
                         <div>
                             <div class="package-title">${escapeHtml(pkg.title)}</div>
                             <span class="badge badge-primary">${getTypeLabel(pkg.type)}</span>
-                            ${pkg.type === 'talent' && pkg.packageSubType ? (() => {
-                                const subTypeLabels = {
-                                    'influencer-paramount-produced': 'INF - PP',
-                                    'influencer-hybrid': 'INF - HYB',
-                                    'influencer-talent-captured': 'INF - TC',
-                                    'branded-content': 'BC'
+                            ${pkg.type === 'talent' && pkg.contentType ? (() => {
+                                const productionTypeLabels = {
+                                    'paramount-produced': 'PP',
+                                    'hybrid': 'HYB',
+                                    'talent-captured': 'TC'
                                 };
-                                const label = subTypeLabels[pkg.packageSubType];
+                                let label;
+                                if (pkg.contentType === 'influencer') {
+                                    label = pkg.productionType && productionTypeLabels[pkg.productionType]
+                                        ? `INF - ${productionTypeLabels[pkg.productionType]}`
+                                        : 'INFLUENCER';
+                                } else if (pkg.contentType === 'branded') {
+                                    label = 'BC';
+                                } else if (pkg.contentType === 'experiential') {
+                                    label = 'EXPERIENTIAL';
+                                } else if (pkg.contentType === 'integration') {
+                                    label = 'INTEGRATION';
+                                }
                                 return label ? `<span class="badge" style="background: rgba(0,10,60,0.08); color: #000a3c; border: 1.5px solid #000a3c; margin-left: 0.4rem;">${label}</span>` : '';
                             })() : ''}
                             ${pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems ? `
@@ -7949,7 +7944,7 @@
                                         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                             ${pkg.sponsorshipLineItems.map((item, idx) => {
                                                 const placementTypeLabel = getPlacementTypeLabel(item.placementType);
-                                                const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                                                const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'distribution' ? 'Distribution' : item.addedValueSubType === 'streaming' ? 'Streaming' : 'Other'})` : '';
                                                 const metricLabel = item.costMethod === 'CPV' ? 'Views' : 'Impressions';
                                                 
                                                 return `
@@ -8034,7 +8029,7 @@
                                     </div>
                                 ` : ''}
                                 ${pkg.type === 'fees' ? `
-                                    <div style="margin-bottom: 0.5rem;"><strong>Fee Type:</strong> ${pkg.feeType === 'integration' ? 'Integration' : 'Tentpole / On The Ground'}</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>Fee Type:</strong> ${{ integration: 'Integration', experiential: 'Experiential', ip_licensing: 'IP / Licensing', other: 'Other' }[pkg.feeType] || 'Integration'}</div>
                                 ` : ''}
                                 ${pkg.type === 'partnership' ? `
                                     <div style="margin-bottom: 0.5rem;"><strong>Partnership Type:</strong> ${pkg.partnershipType ? pkg.partnershipType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</div>
@@ -8238,7 +8233,7 @@
                     </div>
                     ` : ''}
                     
-                    ${hasTalent && !hasMedia ? `
+                    ${hasTalent && !hasMedia && pkg.type === 'talent' ? `
                     <div style="margin-top: 1.5rem;">
                         <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.75rem;">
                             <button class="btn-secondary btn-sm" onclick="toggleTalentDetails(${index})" id="toggleTalentBtn${index}">
@@ -8455,15 +8450,7 @@
         }
         
         // Wrapper functions to handle edit/delete without event bubbling
-        function handleEditPackage(index) {
-            editPackage(index);
-            return false; // Prevent event bubbling
-        }
         
-        function handleDeletePackage(index) {
-            deletePackage(index);
-            return false; // Prevent event bubbling
-        }
 
         function addAnotherPackage() {
             currentPackage = {};
@@ -8712,373 +8699,34 @@
             }
         }
         
-        async function exportVersion() {
-            if (!currentVersion || !currentVersion.packages || currentVersion.packages.length === 0) {
-                customAlert('No packages in this version to export');
-                return;
-            }
-            
-            // Save export timestamp to project
-            currentProject.lastExportedAt = new Date().toISOString();
-            saveProjects();
-            
-            // Calculate totals
-            const packages = currentVersion.packages;
-            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-            const totalImpressions = packages.reduce((sum, pkg) => {
-                if (['streaming', 'partnership', 'sponsorship', 'branded-blended'].includes(pkg.type)) {
-                    return sum + (pkg.impressions || 0);
-                }
-                return sum + (pkg.totalImpressions || 0);
-            }, 0);
-            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
-            const totalMarginDollar = totalPrice - totalCost;
-            const totalMarginPercent = (totalMarginDollar / totalPrice) * 100;
-            const overallCPM = totalImpressions > 0 ? (totalPrice / totalImpressions * 1000) : 0;
-            
-            // Calculate categories
-            const categories = {
-                creative: { 
-                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
-                    label: 'Creative' 
-                },
-                oo: { 
-                    types: ['streaming', 'linear'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
-                    label: 'O&O' 
-                },
-                sponsorships: { 
-                    types: ['sponsorship'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
-                    label: 'Sponsorships' 
-                },
-                addedValue: { 
-                    types: ['added-value'], 
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0, 
-                    label: 'Added Value' 
-                },
-                brandFunded: {
-                    types: ['brand-funded-content'],
-                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0,
-                    label: 'Brand Funded Content'
-                }
-            };
-            
-            packages.forEach(pkg => {
-                for (const [key, category] of Object.entries(categories)) {
-                    if (category.types.includes(pkg.type)) {
-                        category.investment += pkg.totalInvestment;
-                        category.cost += pkg.totalCost || 0;
-                        category.margin += (pkg.totalInvestment - (pkg.totalCost || 0));
-                        
-                        if (['streaming', 'partnership', 'sponsorship', 'branded-blended'].includes(pkg.type)) {
-                            category.impressions += (pkg.impressions || 0);
-                        } else {
-                            category.impressions += (pkg.totalImpressions || 0);
-                        }
-                        
-                        category.count++;
-                        break;
-                    }
-                }
-            });
-            
-            // Calculate category CPMs and margin percentages
-            for (const [key, cat] of Object.entries(categories)) {
-                cat.marginPercent = cat.investment > 0 ? ((cat.margin / cat.investment) * 100) : 0;
-                cat.cpm = cat.impressions > 0 ? (cat.investment / cat.impressions * 1000) : 0;
-            }
-            
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            
-            // === SHEET 1: SUMMARY ===
-            const summaryData = [];
-            summaryData.push(['MEDIA PLAN SUMMARY']);
-            summaryData.push([]);
-            summaryData.push(['Agency:', currentProject.agencyName || 'N/A']);
-            summaryData.push(['Brand:', currentProject.brandName || 'N/A']);
-            summaryData.push(['Sub-Brand:', currentProject.subBrandName || 'N/A']);
-            summaryData.push(['Project:', currentProject.projectName || 'N/A']);
-            summaryData.push(['Version:', currentVersion.name || 'N/A']);
-            summaryData.push(['Version Created:', currentVersion.createdAt ? new Date(currentVersion.createdAt).toLocaleDateString() : new Date().toLocaleDateString()]);
-            summaryData.push(['Campaign Period:', `${currentProject.campaignStartDate || 'N/A'} to ${currentProject.campaignEndDate || 'N/A'}`]);
-            if (currentProject.salesforceLink) {
-                summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
-            }
-            if (currentProject.budgetSheetLink) {
-                summaryData.push(['Budget Sheet:', currentProject.budgetSheetLink]);
-            }
-            if (currentProject.mediaPlanLink) {
-                summaryData.push(['Media Plan Link:', currentProject.mediaPlanLink]);
-            }
-            if (currentProject.budgetSheetLink) {
-                summaryData.push(['Media Plan Link:', currentProject.budgetSheetLink]);
-            }
-            summaryData.push([]);
-            summaryData.push(['OVERALL TOTALS']);
-            summaryData.push(['Metric', 'Value']);
-            summaryData.push(['Total Investment', totalPrice]);
-            summaryData.push(['Total Impressions', totalImpressions]);
-            summaryData.push(['Overall CPM', overallCPM]);
-            
-            // Calculate separate cost categories for totals
-            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = totalCost - totalTalentCost;
-            
-            summaryData.push(['Production & Talent Cost', totalTalentCost]);
-            summaryData.push(['Media Placements Cost', totalMediaCost]);
-            summaryData.push(['Total Cost', totalCost]);
-            summaryData.push(['Total Margin', totalMarginDollar]);
-            summaryData.push(['Margin %', totalMarginPercent / 100]); // As decimal for percentage format
-            summaryData.push([]);
-            summaryData.push(['INVESTMENT CATEGORY BREAKDOWN']);
-            summaryData.push([]);
-            
-            for (const [key, cat] of Object.entries(categories)) {
-                if (cat.count > 0) {
-                    summaryData.push([`${cat.label} (${cat.count} package${cat.count !== 1 ? 's' : ''})`]);
-                    summaryData.push(['Investment', cat.investment]);
-                    if (cat.impressions > 0) {
-                        summaryData.push(['Impressions', cat.impressions]);
-                        summaryData.push(['CPM', cat.cpm]);
-                    }
-                    summaryData.push(['Cost', cat.cost]);
-                    summaryData.push(['Margin', cat.margin]);
-                    summaryData.push(['Margin %', cat.marginPercent / 100]);
-                    summaryData.push([]);
-                }
-            }
-            
-            const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-            ws1['!cols'] = [{ wch: 40 }, { wch: 20 }];
-            
-            // Format currency and percentage cells
-            const currencyFormat = '$#,##0.00';
-            const percentFormat = '0.0%';
-            const numberFormat = '#,##0';
-            
-            // Apply formatting to specific cells in Summary sheet
-            if (ws1['B12']) ws1['B12'].z = currencyFormat; // Total Investment
-            if (ws1['B13']) ws1['B13'].z = numberFormat;   // Total Impressions
-            if (ws1['B14']) ws1['B14'].z = currencyFormat; // Overall CPM
-            if (ws1['B15']) ws1['B15'].z = currencyFormat; // Talent Cost
-            if (ws1['B16']) ws1['B16'].z = currencyFormat; // Media Cost
-            if (ws1['B17']) ws1['B17'].z = currencyFormat; // Total Cost
-            if (ws1['B18']) ws1['B18'].z = currencyFormat; // Total Margin
-            if (ws1['B19']) ws1['B19'].z = percentFormat;  // Margin %
-            
-            XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
-            
-            // === SHEET 2: PACKAGE DETAILS ===
-            const typeLabels = {
-                'influencer': 'Influencer',
-                'branded': 'Branded Content',
-                'branded-blended': 'Branded Content',  // Export as 'Branded Content' to group with Creative
-                'talent': 'Talent and Production',
-                'media': 'Paid Media',
-                'streaming': 'Streaming Video',
-                'fees': 'Fees',
-                'partnership': 'Social Partnerships',
-                'sponsorship': 'Sponsorship Packages',
-                'added-value': 'Added Value',
-                'brand-funded-content': 'Brand Funded Content'
-            };
-            
-            const packageData = [];
-            packageData.push(['PACKAGE DETAILS']);
-            packageData.push([]);
-            packageData.push(['Package Name', 'Type', 'Investment', 'P&T Investment', 'Media Investment', 'Impressions/Views', 'CPM/CPV', 'Pricing Type', 'Talent Cost', 'Media Cost', 'Total Cost', 'Margin $', 'Margin %']);
-            
-            packages.forEach(pkg => {
-                const pkgType = pkg.type;
-                const metricInfo = getPackageMetricInfo(pkg);
-                
-                let metricValue;
-                let pricingValue;
-                let pricingType;
-                
-                if (metricInfo.usesViews) {
-                    // CPV package
-                    metricValue = pkg.views || 0;
-                    pricingValue = pkg.cpv || 0;
-                    pricingType = 'CPV';
-                } else {
-                    // CPM package
-                    if (['streaming', 'partnership', 'sponsorship', 'branded-blended'].includes(pkgType)) {
-                        metricValue = pkg.impressions || 0;
-                        pricingValue = pkg.cpm || pkg.packageCPM || 0;
-                    } else {
-                        metricValue = pkg.totalImpressions || 0;
-                        pricingValue = pkg.overallCPM || 0;
-                    }
-                    pricingType = 'CPM';
-                }
-                
-                const talentCost = pkg.talentCost || 0;
-                const totalCost = pkg.totalCost || 0;
-                const mediaCost = pkgType === 'brand-funded-content' ? 0 : totalCost - talentCost;
-                
-                // Get investment split for Branded Content and Influencer packages
-                const talentInvestment = pkg.talentInvestment || 0;
-                const mediaInvestment = pkg.mediaInvestmentDollar || 0;
-                
-                packageData.push([
-                    pkg.title || '',
-                    typeLabels[pkgType] || pkgType,
-                    pkg.totalInvestment || 0,
-                    talentInvestment,  // P&T Investment
-                    mediaInvestment,   // Media Investment
-                    pkgType === 'fees' ? '-' : metricValue,
-                    pkgType === 'fees' ? '-' : pricingValue,
-                    pkgType === 'fees' ? '-' : pricingType,
-                    talentCost,
-                    mediaCost,
-                    totalCost,
-                    pkg.totalMargin || (pkg.totalInvestment - totalCost),
-                    (pkg.totalMarginPercent || 0) / 100
-                ]);
-            });
-            
-            // Add totals row with formulas (updated column references - now 13 columns)
-            const totalRowNum = packages.length + 4; // Header at row 3, data starts at row 4
-            packageData.push([
-                '',
-                '',
-                { f: `SUM(C4:C${totalRowNum - 1})`, t: 'n' },  // Investment
-                { f: `SUM(D4:D${totalRowNum - 1})`, t: 'n' },  // P&T Investment
-                { f: `SUM(E4:E${totalRowNum - 1})`, t: 'n' },  // Media Investment
-                { f: `SUM(F4:F${totalRowNum - 1})`, t: 'n' },  // Impressions/Views (mixed)
-                '',  // CPM/CPV (can't average mixed)
-                '',  // Pricing Type (mixed)
-                { f: `SUM(I4:I${totalRowNum - 1})`, t: 'n' },  // Talent Cost
-                { f: `SUM(J4:J${totalRowNum - 1})`, t: 'n' },  // Media Cost
-                { f: `SUM(K4:K${totalRowNum - 1})`, t: 'n' },  // Total Cost
-                { f: `SUM(L4:L${totalRowNum - 1})`, t: 'n' },  // Margin $
-                { f: `L${totalRowNum}/C${totalRowNum}`, t: 'n' }  // Margin %
-            ]);
-            
-            const ws2 = XLSX.utils.aoa_to_sheet(packageData);
-            ws2['!cols'] = [{ wch: 36 }, { wch: 23 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 13 }, { wch: 13 }, { wch: 16 }, { wch: 13 }, { wch: 13 }, { wch: 13 }, { wch: 13 }];
-            XLSX.utils.book_append_sheet(wb, ws2, 'Package Details');
-            
-            // === SHEET 3: PLATFORM BREAKDOWN ===
-            const platformData = [];
-            platformData.push(['PLATFORM BREAKDOWN']);
-            platformData.push([]);
-            
-            packages.forEach(pkg => {
-                // Handle regular packages with platform allocations
-                if (pkg.platformAllocations && pkg.platformAllocations.length > 0) {
-                    platformData.push([pkg.title || '']);
-                    platformData.push(['Platform', 'Media Type', 'Handle Type', '% of Media', 'Investment', 'CPM', 'Impressions', 'Cost CPM', 'Cost', 'Margin %']);
-                    
-                    const mediaInvestment = pkg.mediaInvestmentDollar || 0;
-                    pkg.platformAllocations.forEach(allocation => {
-                        const investment = mediaInvestment * ((allocation.percentage || 0) / 100);
-                        const handleType = allocation.handleType || '';
-                        
-                        platformData.push([
-                            allocation.platform || '',
-                            allocation.mediaType || 'N/A',
-                            handleType === 'paramount' ? 'Paramount' : handleType === 'influencer' ? 'Influencer' : 'N/A',
-                            (allocation.percentage || 0) / 100,
-                            investment,
-                            allocation.finalCPM || 0,
-                            allocation.impressions || 0,
-                            allocation.costCPM || 0,
-                            allocation.totalCost || 0,
-                            (allocation.marginPercent || 0) / 100
-                        ]);
-                    });
-                    
-                    platformData.push([]);
-                }
-                
-                // Handle branded-blended packages - show as single TBD row with package totals
-                if (pkg.type === 'branded-blended') {
-                    platformData.push([pkg.title || '']);
-                    platformData.push(['Platform', 'Media Type', 'Handle Type', '% of Media', 'Investment', 'CPM', 'Impressions', 'Cost CPM', 'Cost', 'Margin %']);
-                    
-                    // Single row with TBD/N/A values as specified
-                    platformData.push([
-                        'TBD',                                    // Platform
-                        'TBD',                                    // Media Type
-                        'TBD',                                    // Handle Type
-                        'N/A',                                    // % of Media
-                        pkg.totalInvestment || 0,                 // Investment (Total Package Investment)
-                        pkg.packageCPM || 0,                      // CPM (Package CPM)
-                        pkg.impressions || 0,                     // Impressions (Total Package Impressions)
-                        pkg.cpmCost || 0,                         // Cost CPM
-                        pkg.mediaCost || 0,                       // Cost (Total Package Media Cost)
-                        'N/A'                                     // Margin %
-                    ]);
-                    
-                    platformData.push([]);
-                }
-            });
-            
-            const ws3 = XLSX.utils.aoa_to_sheet(platformData);
-            ws3['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 13 }, { wch: 13 }, { wch: 16 }, { wch: 13 }, { wch: 16 }, { wch: 13 }, { wch: 16 }, { wch: 13 }];
-            XLSX.utils.book_append_sheet(wb, ws3, 'Platform Breakdown');
-            
-            // Apply formatting to all sheets
-            applySheetFormatting(wb);
-            
-            // Generate filename
-            const projectName = (currentProject.projectName || 'MediaPlan').replace(/[^a-z0-9]/gi, '_');
-            const versionName = (currentVersion.name || 'Version').replace(/[^a-z0-9]/gi, '_');
-            const dateStr = new Date().toISOString().split('T')[0];
-            const filename = `${projectName}_${versionName}_${dateStr}.xlsx`;
-            
-            // Try to use File System Access API for "Save As" dialog (modern browsers)
-            if (window.showSaveFilePicker) {
-                try {
-                    // Show save dialog
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: filename,
-                        types: [{
-                            description: 'Excel Files',
-                            accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
-                        }]
-                    });
-                    
-                    // Write file to user-selected location
-                    const writable = await handle.createWritable();
-                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                    await writable.write(wbout);
-                    await writable.close();
-                    
-                    // Success message
-                    setTimeout(() => {
-                        customAlert(`Excel file has been saved successfully!`);
-                    }, 100);
-                    
-                    return;
-                } catch (err) {
-                    // User cancelled - don't download
-                    if (err.name === 'AbortError') {
-                        return;
-                    }
-                    // Other errors - log and fall through to download
-                    console.error('Save dialog error:', err);
-                }
-            }
-            
-            // Fallback: Regular download to default folder (for older browsers only)
-            XLSX.writeFile(wb, filename);
-            
-            // Success message
-            setTimeout(() => {
-                customAlert(`Excel file "${filename}" has been downloaded to your default downloads folder!`);
-            }, 100);
-        }
 
         // Utility functions
         function formatNumber(num) {
             if (num === undefined || num === null || isNaN(num)) return '0.00';
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // 7.14: Consistent campaign date formatting, used everywhere a
+        // campaignStartDate/campaignEndDate is shown to the user. Previously
+        // some views (project card, project info summary) parsed and
+        // formatted these nicely while others (View Summary overlay, PDF
+        // export, Excel export) displayed the raw stored string as-is.
+        function formatCampaignDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr; // fall back to raw string if unparseable
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatCampaignPeriod(startDate, endDate) {
+            if (startDate && endDate) {
+                return `${formatCampaignDate(startDate)} \u2013 ${formatCampaignDate(endDate)}`;
+            } else if (startDate) {
+                return `From ${formatCampaignDate(startDate)}`;
+            } else if (endDate) {
+                return `Until ${formatCampaignDate(endDate)}`;
+            }
+            return 'N/A';
         }
 
         // Escape HTML to prevent XSS attacks
@@ -9145,19 +8793,8 @@
             };
         }
         
-        function formatPercentage(num) {
-            if (num === undefined || num === null || isNaN(num)) return '0.000';
-            return num.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-        }
         
         // Auto-format currency input fields with commas as user types
-        function formatCurrencyInput(input) {
-            let value = input.value.replace(/,/g, '');
-            if (value && !isNaN(value)) {
-                const num = parseFloat(value);
-                input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-        }
         
         // Helper to parse currency values (strips commas)
         function parseCurrency(value) {
@@ -9189,28 +8826,10 @@
         }
         
         // Auto-format number input fields with commas (no decimals)
-        function formatNumberInput(input) {
-            let value = input.value.replace(/,/g, '');
-            if (value && !isNaN(value)) {
-                const num = parseFloat(value);
-                input.value = num.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            }
-        }
         
         // Auto-format percentage input fields with 3 decimals
-        function formatPercentageInput(input) {
-            let value = input.value.replace(/,/g, '');
-            if (value && !isNaN(value)) {
-                const num = parseFloat(value);
-                input.value = num.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-            }
-        }
         
         // Parse formatted input value back to number
-        function parseFormattedNumber(value) {
-            if (!value) return 0;
-            return parseFloat(value.toString().replace(/,/g, '')) || 0;
-        }
 
         // Export/Import Functions
         // =====================================================================
@@ -9552,15 +9171,17 @@
             // Handle dropped files
             screen0.addEventListener('drop', handleDrop);
         }
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const files = event.dataTransfer.files;
             if (files.length > 0) {
                 handleDroppedFile(files[0]);
             }
         }
+        
         
         function handleDroppedFile(file) {
             // Check if it's a JSON file
@@ -9620,7 +9241,7 @@
                         document.getElementById('importOptionsDialog').style.display = 'flex';
                     } else {
                         // New project - import directly
-                        importedProject.id = Date.now();
+                        importedProject.id = generateId();
                         projects.push(importedProject);
                         saveProjects();
                         displayProjects();
@@ -9692,7 +9313,7 @@
                             document.getElementById('importOptionsDialog').style.display = 'flex';
                         } else {
                             // New project - import directly
-                            importedProject.id = Date.now();
+                            importedProject.id = generateId();
                             
                             // Normalize sponsorship data (lineItems → sponsorshipLineItems)
                             importedProject.versions.forEach(version => {
@@ -9753,7 +9374,7 @@
                     (newName) => {
                         if (newName && newName.trim()) {
                             // Import with new name and new ID
-                            pendingImportProject.id = Date.now();
+                            pendingImportProject.id = generateId();
                             pendingImportProject.projectName = newName.trim();
                             
                             // Normalize sponsorship data (lineItems → sponsorshipLineItems)
@@ -9872,7 +9493,7 @@
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Sub-Brand:</td><td style="padding: 0.5rem;">${currentProject?.subBrandName || 'N/A'}</td></tr>
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Project:</td><td style="padding: 0.5rem;">${currentProject?.projectName || 'N/A'}</td></tr>
                         <tr><td style="padding: 0.5rem; font-weight: bold;">Version:</td><td style="padding: 0.5rem;">${currentVersion?.name || 'N/A'}</td></tr>
-                        <tr><td style="padding: 0.5rem; font-weight: bold;">Campaign Period:</td><td style="padding: 0.5rem;">${currentProject?.campaignStartDate || 'N/A'} to ${currentProject?.campaignEndDate || 'N/A'}</td></tr>
+                        <tr><td style="padding: 0.5rem; font-weight: bold;">Campaign Period:</td><td style="padding: 0.5rem;">${formatCampaignPeriod(currentProject?.campaignStartDate, currentProject?.campaignEndDate)}</td></tr>
                         ${currentProject?.salesforceLink ? `<tr><td style="padding: 0.5rem; font-weight: bold;">Salesforce Link:</td><td style="padding: 0.5rem;"><a href="${escapeHtml(currentProject.salesforceLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(currentProject.salesforceLink)}</a></td></tr>` : ''}
                     </table>
                 </div>
@@ -9903,106 +9524,7 @@
             `;
             
              // Investment Category Breakdown
-             const sponsorshipFeeTypesNoFees = ['INTEGRATION_FEE', 'EXPERIENTIAL_FEE', 'IP_LICENSING'];
-             const categories = {
-                 creative: { 
-                     types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], 
-                     label: 'Creative', 
-                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0,
-                     investmentNoFees: 0, costNoFees: 0, marginNoFees: 0
-                 },
-                 oo: { 
-                     types: ['streaming', 'linear'], 
-                     label: 'O&O', 
-                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 
-                 },
-                 addedvalue: { 
-                     types: ['added-value'], 
-                     label: 'Added Value', 
-                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 
-                 },
-                 brandfunded: {
-                     types: ['brand-funded-content'],
-                     label: 'Brand Funded Content',
-                     investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0
-                 }
-             };
-             
-             packages.forEach(pkg => {
-                 // Special handling for detailed sponsorships - distribute line items to categories
-                 if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
-                     pkg.sponsorshipLineItems.forEach(item => {
-                         const placementType = item.placementType;
-                         let targetCategory = null;
-                         
-                         // Map placement types to categories
-                         if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
-                              'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
-                             targetCategory = categories.creative;
-                         } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
-                             targetCategory = categories.oo;
-                         } else if (placementType === 'ADDED_VALUE') {
-                             targetCategory = categories.addedvalue;
-                         }
-                         
-                         if (targetCategory) {
-                             targetCategory.investment += item.netCost || 0;
-                             targetCategory.cost += item.totalCost || 0;
-                             targetCategory.margin += (item.margin || 0);
-                             targetCategory.impressions += (item.quantity || 0);
-                             
-                             // Track no-fees for creative
-                             if (targetCategory === categories.creative && !sponsorshipFeeTypesNoFees.includes(placementType)) {
-                                 targetCategory.investmentNoFees += item.netCost || 0;
-                                 targetCategory.costNoFees += item.totalCost || 0;
-                                 targetCategory.marginNoFees += (item.margin || 0);
-                             }
-                             
-                             // For added value, track the value provided
-                             if (placementType === 'ADDED_VALUE') {
-                                 targetCategory.value += (item.netCost || 0);
-                             }
-                         }
-                     });
-                 } else {
-                     // Regular package handling
-                     for (const [key, cat] of Object.entries(categories)) {
-                         if (cat.types.includes(pkg.type)) {
-                             cat.count++;
-                             cat.investment += pkg.totalInvestment;
-                             cat.cost += pkg.totalCost;
-                             cat.margin += (pkg.totalInvestment - pkg.totalCost);
-                             
-                             // Track no-fees for creative (exclude 'fees' package type)
-                             if (key === 'creative' && pkg.type !== 'fees') {
-                                 cat.investmentNoFees += pkg.totalInvestment;
-                                 cat.costNoFees += pkg.totalCost;
-                                 cat.marginNoFees += (pkg.totalInvestment - pkg.totalCost);
-                             }
-                             
-                             // For Added Value, track additional fields
-                             if (pkg.type === 'added-value') {
-                                 cat.value += (pkg.totalValue || 0);
-                                 if (pkg.addedValueType === 'talent') {
-                                     cat.talentCost += (pkg.talentCost || 0);
-                                     // Talent packages have no impressions
-                                 } else {
-                                     // Distribution and Streaming
-                                     cat.mediaCost += (pkg.totalCost || 0);
-                                     cat.impressions += (pkg.impressions || 0);
-                                 }
-                             } else if (['streaming', 'partnership', 'branded-blended'].includes(pkg.type)) {
-                                 // Other simple packages
-                                 cat.impressions += (pkg.impressions || 0);
-                             } else {
-                                 // Complex packages
-                                 cat.impressions += (pkg.totalImpressions || 0);
-                             }
-                             break;
-                         }
-                     }
-                 }
-             });
+             const categories = calculateInvestmentCategoryBreakdown(packages);
              
             const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
             
@@ -10787,7 +10309,7 @@
                 
                 pkg.sponsorshipLineItems.forEach((item, idx) => {
                     const placementTypeLabel = getPlacementTypeLabel(item.placementType);
-                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'distribution' ? 'Distribution' : item.addedValueSubType === 'streaming' ? 'Streaming' : 'Other'})` : '';
                     const metricLabel = item.costMethod === 'CPV' ? 'Views' : 'Impressions';
                     
                     // Calculate internal costs breakdown
@@ -10981,7 +10503,7 @@
                 ['Sub-Brand:', currentProject?.subBrandName || 'N/A'],
                 ['Project:', currentProject?.projectName || 'N/A'],
                 ['Version:', currentVersion?.name || 'N/A'],
-                ['Campaign Period:', `${currentProject?.campaignStartDate || 'N/A'} to ${currentProject?.campaignEndDate || 'N/A'}`]
+                ['Campaign Period:', formatCampaignPeriod(currentProject?.campaignStartDate, currentProject?.campaignEndDate)]
             ];
             
             if (currentProject?.salesforceLink) {
@@ -11043,89 +10565,7 @@
             yPos = doc.lastAutoTable.finalY + 10;
             
             // Investment Category Breakdown
-            const pdfFeeTypesNoFees = ['INTEGRATION_FEE', 'EXPERIENTIAL_FEE', 'IP_LICENSING'];
-            const categories = {
-                creative: { types: ['influencer', 'branded', 'branded-blended', 'media', 'talent', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0, investmentNoFees: 0, costNoFees: 0, marginNoFees: 0 },
-                oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0 },
-                addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0 },
-                brandfunded: { types: ['brand-funded-content'], label: 'Brand Funded Content', investment: 0, cost: 0, margin: 0, impressions: 0, count: 0 }
-            };
-            
-            packages.forEach(pkg => {
-                // Special handling for detailed sponsorships - distribute line items to categories
-                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
-                    pkg.sponsorshipLineItems.forEach(item => {
-                        const placementType = item.placementType;
-                        let targetCategory = null;
-                        
-                        // Map placement types to categories
-                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 
-                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
-                            targetCategory = categories.creative;
-                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
-                            targetCategory = categories.oo;
-                        } else if (placementType === 'ADDED_VALUE') {
-                            targetCategory = categories.addedvalue;
-                        }
-                        
-                        if (targetCategory) {
-                            targetCategory.investment += item.netCost || 0;
-                            targetCategory.cost += item.totalCost || 0;
-                            targetCategory.margin += (item.margin || 0);
-                            targetCategory.impressions += (item.quantity || 0);
-                            
-                            // Track no-fees for creative
-                            if (targetCategory === categories.creative && !pdfFeeTypesNoFees.includes(placementType)) {
-                                targetCategory.investmentNoFees += item.netCost || 0;
-                                targetCategory.costNoFees += item.totalCost || 0;
-                                targetCategory.marginNoFees += (item.margin || 0);
-                            }
-                            
-                            // For added value, track the value provided
-                            if (placementType === 'ADDED_VALUE') {
-                                targetCategory.value += (item.netCost || 0);
-                            }
-                        }
-                    });
-                } else {
-                    // Regular package handling
-                    for (const [key, cat] of Object.entries(categories)) {
-                        if (cat.types.includes(pkg.type)) {
-                            cat.count++;
-                            cat.investment += pkg.totalInvestment;
-                            cat.cost += pkg.totalCost;
-                            cat.margin += (pkg.totalInvestment - pkg.totalCost);
-                        
-                            // Track no-fees for creative (exclude 'fees' package type)
-                            if (key === 'creative' && pkg.type !== 'fees') {
-                                cat.investmentNoFees += pkg.totalInvestment;
-                                cat.costNoFees += pkg.totalCost;
-                                cat.marginNoFees += (pkg.totalInvestment - pkg.totalCost);
-                            }
-                        
-                        // For Added Value, track additional fields
-                        if (pkg.type === 'added-value') {
-                            cat.value += (pkg.totalValue || 0);
-                            if (pkg.addedValueType === 'talent') {
-                                cat.talentCost += (pkg.talentCost || 0);
-                                // Talent packages have no impressions
-                            } else {
-                                // Distribution and Streaming
-                                cat.mediaCost += (pkg.totalCost || 0);
-                                cat.impressions += (pkg.impressions || 0);
-                            }
-                        } else if (['streaming', 'partnership', 'branded-blended'].includes(pkg.type)) {
-                            // Other simple packages
-                            cat.impressions += (pkg.impressions || 0);
-                        } else {
-                            // Complex packages
-                            cat.impressions += (pkg.totalImpressions || 0);
-                        }
-                        break;
-                    }
-                }
-            }
-            });
+            const categories = calculateInvestmentCategoryBreakdown(packages);
             const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
             
             if (categoriesWithData.length > 0 && yPos < 250) {
@@ -11332,20 +10772,6 @@
                     yPos = 20;
                 }
                 
-                const typeLabels = {
-                    'influencer': 'Influencer',
-                    'branded': 'Branded Content',
-                    'branded-blended': 'Branded Content - Blended',
-                    'streaming': 'O&O / Paid Distribution',
-                    'partnership': 'Partnership',
-                    'sponsorship': 'Sponsorship',
-                    'fees': 'Fees',
-                    'media': 'Paid Distribution',
-                    'talent': 'Talent and Production Only',
-                    'added-value': 'Added Value',
-                    'brand-funded-content': 'Brand Funded Content'
-                };
-                
                 doc.setFontSize(11);
                 doc.setTextColor(0, 10, 60);
                 doc.text(`${index + 1}. ${pkg.title}`, 14, yPos);
@@ -11353,7 +10779,7 @@
                 
                 doc.setFontSize(9);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`(${typeLabels[pkg.type]})`, 14, yPos);
+                doc.text(`(${getTypeLabel(pkg.type)})`, 14, yPos);
                 yPos += 6;
                 
                 // Calculate costs for breakdown
@@ -11395,7 +10821,7 @@
                 const pkgRows = [];
                 
                 // Package Type row
-                pkgRows.push(['Package Type', typeLabels[pkg.type]]);
+                pkgRows.push(['Package Type', getTypeLabel(pkg.type)]);
                 
                 if (pkg.type === 'added-value') {
                     // Added Value package display
@@ -11914,7 +11340,7 @@
                     // Prepare line items data
                     const lineItemRows = pkg.sponsorshipLineItems.map(item => {
                         const placementTypeLabel = getPlacementTypeLabel(item.placementType);
-                        const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                        const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'distribution' ? 'Distribution' : item.addedValueSubType === 'streaming' ? 'Streaming' : 'Other'})` : '';
                         
                         // Calculate internal costs breakdown
                         const placementType = item.placementType;
@@ -12127,7 +11553,7 @@
                 summaryData.push(['Sub-Brand:', currentProject.subBrandName || 'N/A']);
                 summaryData.push(['Project:', currentProject.projectName || 'N/A']);
                 summaryData.push(['Version:', currentVersion.name || 'N/A']);
-                summaryData.push(['Campaign Period:', `${currentProject.campaignStartDate || 'N/A'} to ${currentProject.campaignEndDate || 'N/A'}`]);
+                summaryData.push(['Campaign Period:', formatCampaignPeriod(currentProject.campaignStartDate, currentProject.campaignEndDate)]);
                 if (currentProject.salesforceLink) summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
                 summaryData.push([]);
 
@@ -12174,23 +11600,7 @@
                 summaryData.push([]);
 
                 // Investment Category Breakdown (Creative / O&O / Added Value / Brand Funded Content)
-                const catDefs = {
-                    creative: { types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'], label: 'Creative', investment: 0, cost: 0, impressions: 0, count: 0 },
-                    oo: { types: ['streaming', 'linear'], label: 'O&O', investment: 0, cost: 0, impressions: 0, count: 0 },
-                    addedvalue: { types: ['added-value'], label: 'Added Value', investment: 0, cost: 0, impressions: 0, count: 0 },
-                    brandfunded: { types: ['brand-funded-content'], label: 'Brand Funded Content', investment: 0, cost: 0, impressions: 0, count: 0 }
-                };
-                packages.forEach(pkg => {
-                    for (const cat of Object.values(catDefs)) {
-                        if (cat.types.includes(pkg.type)) {
-                            cat.investment += pkg.totalInvestment;
-                            cat.cost += (pkg.totalCost || 0);
-                            cat.impressions += (pkg.impressions || pkg.totalImpressions || 0);
-                            cat.count++;
-                            break;
-                        }
-                    }
-                });
+                const catDefs = calculateInvestmentCategoryBreakdown(packages);
 
                 summaryData.push(['INVESTMENT CATEGORY BREAKDOWN']);
                 summaryData.push([]);
@@ -12216,12 +11626,6 @@
                 XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
 
                 // ========== SHEET 2: PACKAGE DETAILS ==========
-                const typeLabels = {
-                    'influencer': 'Influencer', 'branded': 'Branded Content', 'branded-blended': 'Branded Content Blended',
-                    'talent': 'Talent and Production Only', 'media': 'Paid Distribution Only', 'streaming': 'Streaming Video',
-                    'fees': 'Fees', 'linear': 'Linear', 'partnership': 'Social Partnerships', 'sponsorship': 'Sponsorship Packages',
-                    'added-value': 'Added Value', 'brand-funded-content': 'Brand Funded Content'
-                };
                 const pkgData = [];
                 const pkgFormats = [];
                 pkgData.push(['#', 'Package Title', 'Type', 'Investment', 'Production & Talent Investment', 'Production & Talent Cost', 'Media Investment', 'Media Cost', 'Total Cost', 'Margin ($)', 'Margin (%)']);
@@ -12249,7 +11653,7 @@
                     const marginPercent = pkg.totalInvestment > 0 ? (margin / pkg.totalInvestment) * 100 : 0;
                     const row = i + 1;
                     pkgData.push([
-                        row, pkg.title, typeLabels[pkg.type] || pkg.type, pkg.totalInvestment,
+                        row, pkg.title, getTypeLabel(pkg.type), pkg.totalInvestment,
                         talentInvestmentAmount, talentCostAmount, mediaInvestmentAmount, mediaCostAmount,
                         pkg.totalCost || 0, margin, marginPercent / 100
                     ]);
@@ -12357,9 +11761,9 @@
                     });
                     const totalInvestment = Object.values(cats).reduce((s, c) => s + c.investment, 0);
                     const totalCost = Object.values(cats).reduce((s, c) => s + c.cost, 0);
-                    const totalMargin = totalInvestment - totalCost;
-                    const totalMarginPercent = totalInvestment > 0 ? (totalMargin / totalInvestment) * 100 : 0;
-                    rows.push(['Total', totalInvestment, totalCost, totalMargin, totalMarginPercent / 100]);
+                    const totalMarginDollar = totalInvestment - totalCost;
+                    const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
+                    rows.push(['Total', totalInvestment, totalCost, totalMarginDollar, totalMarginPercent / 100]);
                     [1, 2, 3].forEach(col => formats.push([rows.length - 1, col, currencyFmt]));
                     formats.push([rows.length - 1, 4, percentFmt]);
                     rows.push([]);
@@ -13904,7 +13308,6 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             rate: rate,
                             quantity: quantity,
                             netCost: netCost,
-                            isAddedValue: isAddedValue,
                             
                             isGrouped: true,
                             groupId: `group_${groupId++}`,
@@ -13956,7 +13359,6 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                             rate: rate,
                             quantity: quantity,
                             netCost: netCost,
-                            isAddedValue: isAddedValue,
                             
                             isGrouped: false,
                             groupId: null,
@@ -13980,7 +13382,6 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         rate: rate,
                         quantity: quantity,
                         netCost: netCost,
-                        isAddedValue: isAddedValue,
                         
                         isGrouped: false,
                         groupId: null,
@@ -14001,7 +13402,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             console.log('Total Investment calculated from import:', currentPackage.totalInvestment);
             
             // Store in currentPackage (section headers stored separately, never affect financials)
-            currentPackage.lineItems = sponsorshipLineItems;
+            currentPackage.sponsorshipLineItems = sponsorshipLineItems;
             currentPackage.sectionHeaders = sponsorshipSectionHeaders;
             
             // Show line items for type assignment (next screen)
@@ -14356,7 +13757,8 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         <select id="addedValueSubType_${idx}" onchange="updateAddedValueType(${idx}, this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px;">
                             <option value="">-- Select Type --</option>
                             <option value="talent">Talent & Production</option>
-                            <option value="media">Paid Media Distribution</option>
+                            <option value="distribution">Paid Media Distribution</option>
+                            <option value="streaming">Streaming</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
@@ -14412,8 +13814,8 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             
             const addedValueInputsDiv = document.getElementById(`addedValueCostInputs_${idx}`);
             
-            if (!subType || subType === 'other') {
-                // No cost inputs for "other" - it's 100% margin
+            if (!subType || subType === 'other' || subType === 'streaming') {
+                // No cost inputs for "other" or "streaming" - 100% margin
                 addedValueInputsDiv.style.display = 'none';
                 addedValueInputsDiv.innerHTML = '';
                 item.talentCost = 0;
@@ -14435,7 +13837,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         </div>
                     </div>
                 `;
-            } else if (subType === 'media') {
+            } else if (subType === 'distribution') {
                 inputsHTML = `
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem;">Media Cost (CPM or CPV)</label>
@@ -14593,8 +13995,8 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 }
             });
             
-            const totalMargin = totalPrice - totalCost;
-            const totalMarginPercent = totalPrice > 0 ? (totalMargin / totalPrice) * 100 : 0;
+            const totalMarginDollar = totalPrice - totalCost;
+            const totalMarginPercent = totalPrice > 0 ? (totalMarginDollar / totalPrice) * 100 : 0;
             const cpm = totalImpressions > 0 ? (totalPrice / totalImpressions) * 1000 : 0;
             const cpv = totalViews > 0 ? (totalPrice / totalViews) : 0;
             const creativeMargin = creativeTotal - creativeCost;
@@ -14604,7 +14006,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             
             document.getElementById('sponsorshipTotalPrice').textContent = '$' + formatNumber(totalPrice);
             document.getElementById('sponsorshipTotalCost').textContent = '$' + formatNumber(totalCost);
-            document.getElementById('sponsorshipTotalMargin').textContent = '$' + formatNumber(totalMargin) + ' (' + totalMarginPercent.toFixed(1) + '%)';
+            document.getElementById('sponsorshipTotalMargin').textContent = '$' + formatNumber(totalMarginDollar) + ' (' + totalMarginPercent.toFixed(1) + '%)';
             document.getElementById('sponsorshipTotalImpressions').textContent = formatImpressions(totalImpressions);
             document.getElementById('sponsorshipTotalViews').textContent = formatImpressions(totalViews);
             document.getElementById('sponsorshipCPM').textContent = '$' + cpm.toFixed(2);
@@ -14707,9 +14109,9 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             currentPackage.totalImpressions = totalImpressions;
             currentPackage.totalViews = totalViews;
             currentPackage.totalCost = totalCost;
-            currentPackage.totalMargin = currentPackage.totalInvestment - totalCost;
+            currentPackage.totalMarginDollar = currentPackage.totalInvestment - totalCost;
             currentPackage.totalMarginPercent = currentPackage.totalInvestment > 0 
-                ? (currentPackage.totalMargin / currentPackage.totalInvestment) * 100 
+                ? (currentPackage.totalMarginDollar / currentPackage.totalInvestment) * 100 
                 : 0;
             
             // Calculate CPM/CPV
@@ -14833,7 +14235,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 const container = document.getElementById('sponsorshipLineItemsContainer');
                 container.innerHTML = currentPackage.sponsorshipLineItems.map((item, idx) => {
                     const placementTypeLabel = getPlacementTypeLabel(item.placementType);
-                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'media' ? 'Media' : 'Other'})` : '';
+                    const addedValueSubType = item.addedValueSubType ? ` (${item.addedValueSubType === 'talent' ? 'Talent' : item.addedValueSubType === 'distribution' ? 'Distribution' : item.addedValueSubType === 'streaming' ? 'Streaming' : 'Other'})` : '';
                     
                     return `
                         <div class="summary-card" style="padding: 1rem; border: 1px solid var(--border);">
@@ -14887,7 +14289,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     overallCPM: currentPackage.overallCPM,
                     overallCPV: currentPackage.overallCPV,
                     totalCost: currentPackage.totalCost,
-                    totalMargin: currentPackage.totalMargin,
+                    totalMarginDollar: currentPackage.totalMarginDollar,
                     totalMarginPercent: currentPackage.totalMarginPercent
                 });
                 
@@ -14936,7 +14338,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     console.log('Set costEl to:', costEl.textContent);
                 }
                 if (marginDollarEl) {
-                    marginDollarEl.textContent = '$' + formatNumber(currentPackage.totalMargin || 0);
+                    marginDollarEl.textContent = '$' + formatNumber(currentPackage.totalMarginDollar || 0);
                     console.log('Set marginDollarEl to:', marginDollarEl.textContent);
                 }
                 if (marginPercentEl) {
@@ -14969,6 +14371,113 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
         // category buckets (talent/media/social/streaming/linear/fees/brandFunded).
         // Mutates the passed-in `cats` object in place. Shared by the overlay tab,
         // PDF export, Excel export, and the per-sponsorship mini breakdown.
+        // Calculates the Creative / O&O / Added Value / Brand Funded Content
+        // category breakdown for a version's packages, including distributing
+        // Detailed Sponsorship line items into the correct category. This is
+        // the single source of truth for the "Investment Category Breakdown"
+        // section shown on the main screen, the View Summary overlay, the PDF
+        // export, and the Excel export — previously each of those four had its
+        // own independently-copied version of this logic.
+        function calculateInvestmentCategoryBreakdown(packages) {
+            const feeTypesNoFees = ['INTEGRATION_FEE', 'EXPERIENTIAL_FEE', 'IP_LICENSING'];
+            const categories = {
+                creative: {
+                    types: ['influencer', 'branded', 'branded-blended', 'talent', 'media', 'fees', 'partnership'],
+                    label: 'Creative',
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0,
+                    investmentNoFees: 0, costNoFees: 0, marginNoFees: 0
+                },
+                oo: {
+                    types: ['streaming', 'linear'],
+                    label: 'O&O',
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, count: 0
+                },
+                addedvalue: {
+                    types: ['added-value'],
+                    label: 'Added Value',
+                    investment: 0, cost: 0, margin: 0, impressions: 0, talentCost: 0, mediaCost: 0, mediaCPM: 0, value: 0, count: 0
+                },
+                brandfunded: {
+                    types: ['brand-funded-content'],
+                    label: 'Brand Funded Content',
+                    investment: 0, cost: 0, margin: 0, impressions: 0, count: 0
+                }
+            };
+
+            packages.forEach(pkg => {
+                // Detailed Sponsorship packages distribute their line items into
+                // the categories individually, rather than counting the package
+                // as a single unit.
+                if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        const placementType = item.placementType;
+                        let targetCategory = null;
+
+                        if (['TALENT_PRODUCTION', 'PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO',
+                             'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
+                            targetCategory = categories.creative;
+                        } else if (['DIGITAL_OO', 'ADD_INNOVATION', 'LINEAR_OO'].includes(placementType)) {
+                            targetCategory = categories.oo;
+                        } else if (placementType === 'ADDED_VALUE') {
+                            targetCategory = categories.addedvalue;
+                        }
+
+                        if (targetCategory) {
+                            targetCategory.investment += item.netCost || 0;
+                            targetCategory.cost += item.totalCost || 0;
+                            targetCategory.margin += (item.margin || 0);
+                            targetCategory.impressions += (item.quantity || 0);
+
+                            if (targetCategory === categories.creative && !feeTypesNoFees.includes(placementType)) {
+                                targetCategory.investmentNoFees += item.netCost || 0;
+                                targetCategory.costNoFees += item.totalCost || 0;
+                                targetCategory.marginNoFees += (item.margin || 0);
+                            }
+
+                            if (placementType === 'ADDED_VALUE') {
+                                targetCategory.value += (item.netCost || 0);
+                            }
+                        }
+                    });
+                } else {
+                    // Regular package handling
+                    for (const [key, cat] of Object.entries(categories)) {
+                        if (cat.types.includes(pkg.type)) {
+                            cat.count++;
+                            cat.investment += pkg.totalInvestment;
+                            cat.cost += (pkg.totalCost || 0);
+                            cat.margin += (pkg.totalInvestment - (pkg.totalCost || 0));
+
+                            if (key === 'creative' && pkg.type !== 'fees') {
+                                cat.investmentNoFees += pkg.totalInvestment;
+                                cat.costNoFees += (pkg.totalCost || 0);
+                                cat.marginNoFees += (pkg.totalInvestment - (pkg.totalCost || 0));
+                            }
+
+                            if (pkg.type === 'added-value') {
+                                cat.value += (pkg.totalValue || 0);
+                                if (pkg.addedValueType === 'talent') {
+                                    cat.talentCost += (pkg.talentCost || 0);
+                                    // Talent-type Added Value has no impressions
+                                } else {
+                                    // Distribution and Streaming
+                                    cat.mediaCost += (pkg.totalCost || 0);
+                                    cat.impressions += (pkg.impressions || 0);
+                                }
+                            } else if (['streaming', 'partnership', 'branded-blended'].includes(pkg.type)) {
+                                cat.impressions += (pkg.impressions || 0);
+                            } else {
+                                cat.impressions += (pkg.totalImpressions || 0);
+                            }
+                            break;
+                        }
+                    }
+                }
+            });
+
+            return categories;
+        }
+
         function categorizeSponsorshipLineItem(item, cats) {
             const type = item.placementType;
             const netCost = item.netCost || 0;
@@ -15004,10 +14513,10 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             } else if (type === 'ADDED_VALUE') {
                 if (item.addedValueSubType === 'talent') {
                     cats.talent.cost += totalCost;
-                } else if (item.addedValueSubType === 'media') {
+                } else if (item.addedValueSubType === 'distribution') {
                     cats.media.cost += totalCost;
                 }
-                // 'other' / unset: no clear mapping, excluded
+                // 'streaming' / 'other' / unset: no clear mapping, excluded
             }
         }
 
