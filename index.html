@@ -1925,6 +1925,11 @@
                         </div>
                         <button onclick="removeSponsorshipFile()" style="flex-shrink: 0; padding: 0.3rem 0.75rem; background: none; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; font-size: 0.75rem; white-space: nowrap;">Remove</button>
                     </div>
+                    <div id="sponsorshipSheetPicker" style="display: none; margin-top: 0.75rem; padding: 0.75rem 0.875rem; background: #FFFBEB; border: 1px solid #F59E0B; border-radius: 6px;">
+                        <label style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.8125rem; color: #92400E;">⚠ This workbook has multiple sheets — which one has your plan?</label>
+                        <select id="sponsorshipSheetSelect" onchange="selectSponsorshipSheet(this.value)" style="width: 100%; padding: 0.5rem 0.6rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.8125rem;"></select>
+                        <p style="margin: 0.4rem 0 0 0; font-size: 0.75rem; color: #92400E;">Other sheets in this file are not imported automatically — check each one if your plan has more than one package or rate structure.</p>
+                    </div>
                 </div>
 
                 <div class="button-group">
@@ -2015,11 +2020,12 @@
                         <div>
                             <label style="font-weight: 600; font-size: 0.875rem; color: var(--primary); display: block; margin-bottom: 0.3rem;">Last Data Row <span class="required">*</span></label>
                             <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">Enter the last row number that contains actual line item data. Rows after this will be ignored (footnotes, notes, totals).</p>
+                            <p id="lastDataRowHint" style="font-size: 0.75rem; margin: 0 0 0.5rem 0; font-weight: 600;"></p>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                             <span style="font-size: 0.875rem; color: var(--text-muted);">Row</span>
                             <input type="number" id="lastDataRow" min="1" placeholder="e.g. 28" style="width: 90px; padding: 0.4rem 0.6rem; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9rem; text-align: center;">
-                            <button class="btn-secondary btn-sm" onclick="document.getElementById('lastDataRow').value = ''" style="font-size: 0.8rem;">Clear</button>
+                            <button class="btn-secondary btn-sm" onclick="document.getElementById('lastDataRow').value = ''; document.getElementById('lastDataRowHint').textContent = 'Please enter the last row of real data yourself.'; document.getElementById('lastDataRowHint').style.color = '';" style="font-size: 0.8rem;">Clear</button>
                         </div>
                     </div>
                 </div>
@@ -4716,16 +4722,31 @@
             const project = projects[index];
             const versionCount = project.versions.length;
             const packageCount = project.versions.reduce((sum, v) => sum + v.packages.length, 0);
-            
+            const trackedVersions = project.versions.filter(v => v.dealStatus);
+            const verifiedVersions = project.versions.filter(v => v.dealStatus === 'verified' || v.dealStatus === 'needs_reverification');
+
+            let message = `Are you sure you want to delete "${project.projectName}"?\n\nThis will delete ${versionCount} version${versionCount !== 1 ? 's' : ''} and ${packageCount} package${packageCount !== 1 ? 's' : ''}.`;
+
+            if (verifiedVersions.length > 0) {
+                const names = verifiedVersions.map(v => v.name || 'Untitled Version').join(', ');
+                message += `\n\n⚠️ WARNING: This project contains ${verifiedVersions.length} VERIFIED SOLD deal${verifiedVersions.length !== 1 ? 's' : ''} (${names}) with a permanently recorded financial snapshot. Deleting this project will permanently destroy that record — it will not be recoverable, and won't appear in any future Closed Deals export.`;
+            } else if (trackedVersions.length > 0) {
+                message += `\n\nNote: this project has ${trackedVersions.length} version${trackedVersions.length !== 1 ? 's' : ''} marked as closed/pending verification. Deleting it will remove that tracking status too.`;
+            }
+
+            message += '\n\nThis action cannot be undone.';
+
             showConfirm(
-                `Are you sure you want to delete "${project.projectName}"?\n\nThis will delete ${versionCount} version${versionCount !== 1 ? 's' : ''} and ${packageCount} package${packageCount !== 1 ? 's' : ''}.\n\nThis action cannot be undone.`,
+                message,
                 (confirmed) => {
                     if (confirmed) {
                         projects.splice(index, 1);
                         saveProjects();
                         displayProjects();
                     }
-                }
+                },
+                verifiedVersions.length > 0 ? 'Delete Anyway' : 'Delete',
+                'btn-danger'
             );
         }
 
@@ -5088,6 +5109,7 @@
                     delete version.verifiedAt;
                     delete version.verificationNotes;
                     delete version.markedClosedAt;
+                    delete version.dealSnapshot;
                     saveProjects();
                     displayVersions();
                 },
@@ -5114,6 +5136,95 @@
             verifyDealVersionIndex = null;
         }
 
+        // Captures a complete, frozen snapshot of a version's computed
+        // financial summary at the moment of verification — Total Investment,
+        // both category-breakdown schemes, and per-package detail. This is
+        // "stored, not calculated": once captured, this data does not change
+        // even if the app's calculation logic changes later, or (until
+        // re-verified) if the underlying packages are edited. Building this
+        // depended on Overall Totals / both category breakdowns being a
+        // single, verified source of truth rather than 4 diverging copies —
+        // that consolidation is what the last several turns of work went into.
+        function captureDealSnapshot(project, version) {
+            const packages = version.packages || [];
+            const overall = calculateOverallTotals(packages);
+            const cat4 = calculateInvestmentCategoryBreakdown(packages);
+            const cat7 = calculateFullInvestmentBreakdown(packages);
+
+            function marginPct(investment, cost) {
+                return investment > 0 ? ((investment - cost) / investment) * 100 : 0;
+            }
+
+            return {
+                capturedAt: new Date().toISOString(),
+                identification: {
+                    projectName: project.projectName || '',
+                    brandName: project.brandName || '',
+                    subBrandName: project.subBrandName || '',
+                    agencyName: project.agencyName || '',
+                    plannerName: project.plannerName || '',
+                    plannerEmail: project.plannerEmail || '',
+                    salesforceLink: project.salesforceLink || '',
+                    versionName: version.name || '',
+                    campaignPeriod: formatCampaignPeriod(project.campaignStartDate, project.campaignEndDate)
+                },
+                overallTotals: {
+                    totalInvestment: overall.totalPrice,
+                    totalImpressions: overall.totalImpressions,
+                    totalViews: overall.totalViews,
+                    overallCPM: overall.overallCPM,
+                    overallCPV: overall.overallCPV,
+                    productionTalentCost: overall.totalTalentCost,
+                    mediaPlacementsCost: overall.totalMediaCost,
+                    totalCost: overall.totalCost,
+                    totalMarginDollar: overall.totalMarginDollar,
+                    totalMarginPercent: overall.totalMarginPercent
+                },
+                categoryBreakdown4: Object.fromEntries(
+                    Object.entries(cat4).map(([key, cat]) => [key, {
+                        label: cat.label,
+                        investment: cat.investment,
+                        cost: cat.cost,
+                        marginDollar: cat.investment - cat.cost,
+                        marginPercent: marginPct(cat.investment, cat.cost),
+                        impressions: cat.impressions,
+                        cpm: (cat.impressions > 0 && cat.investment > 0) ? (cat.investment / cat.impressions * 1000) : 0,
+                        count: cat.count,
+                        investmentNoFees: cat.investmentNoFees,
+                        costNoFees: cat.costNoFees,
+                        marginNoFeesDollar: cat.investmentNoFees !== undefined ? (cat.investmentNoFees - cat.costNoFees) : undefined,
+                        marginNoFeesPercent: cat.investmentNoFees !== undefined ? marginPct(cat.investmentNoFees, cat.costNoFees) : undefined
+                    }])
+                ),
+                categoryBreakdown7: Object.fromEntries(
+                    Object.entries(cat7).map(([key, cat]) => [key, {
+                        label: cat.label,
+                        investment: cat.investment,
+                        cost: cat.hasCost ? cat.cost : null,
+                        marginDollar: cat.investment - cat.cost,
+                        marginPercent: marginPct(cat.investment, cat.cost)
+                    }])
+                ),
+                packages: packages.map(pkg => {
+                    const metricInfo = getPackageMetricInfo(pkg);
+                    return {
+                        title: pkg.title || '',
+                        type: pkg.type,
+                        typeLabel: getTypeLabel(pkg.type),
+                        investment: pkg.totalInvestment || 0,
+                        cost: pkg.totalCost || 0,
+                        marginDollar: (pkg.totalInvestment || 0) - (pkg.totalCost || 0),
+                        marginPercent: pkg.totalMarginPercent || 0,
+                        metricLabel: metricInfo.metricLabel,
+                        metricValue: metricInfo.metricValue,
+                        pricingLabel: metricInfo.pricingLabel,
+                        pricingValue: metricInfo.pricingValue,
+                        notes: pkg.notes || ''
+                    };
+                })
+            };
+        }
+
         function confirmVerifyDeal() {
             const name = document.getElementById('verifyDealName').value.trim();
             if (!name) {
@@ -5126,6 +5237,7 @@
             version.verifiedBy = name;
             version.verifiedAt = new Date().toISOString();
             version.verificationNotes = notes;
+            version.dealSnapshot = captureDealSnapshot(currentProject, version);
             document.getElementById('verifyDealDialog').style.display = 'none';
             verifyDealVersionIndex = null;
             saveProjects();
@@ -5183,14 +5295,58 @@
             (projects || []).forEach(project => {
                 (project.versions || []).forEach(version => {
                     if (!version.dealStatus) return;
-                    const totalInvestment = (version.packages || []).reduce((s, p) => s + (p.totalInvestment || 0), 0);
-                    const totalCost = (version.packages || []).reduce((s, p) => s + (p.totalCost || 0), 0);
-                    const marginDollar = totalInvestment - totalCost;
-                    const marginPercent = totalInvestment > 0 ? (marginDollar / totalInvestment) * 100 : 0;
+
+                    // Prefer the frozen snapshot captured at verification time.
+                    // Only a version that has never been verified at all (still
+                    // 'closed_pending_verification') has no snapshot yet — for
+                    // that one case, fall back to a live calculation so it can
+                    // still be listed before anyone has confirmed it.
+                    const snapshot = version.dealSnapshot;
+                    const isLive = !snapshot;
+
+                    const totalInvestment = snapshot ? snapshot.overallTotals.totalInvestment
+                        : (version.packages || []).reduce((s, p) => s + (p.totalInvestment || 0), 0);
+                    const totalCost = snapshot ? snapshot.overallTotals.totalCost
+                        : (version.packages || []).reduce((s, p) => s + (p.totalCost || 0), 0);
+                    const marginDollar = snapshot ? snapshot.overallTotals.totalMarginDollar
+                        : totalInvestment - totalCost;
+                    const marginPercent = snapshot ? snapshot.overallTotals.totalMarginPercent
+                        : (totalInvestment > 0 ? (marginDollar / totalInvestment) * 100 : 0);
+
+                    // For the category breakdown, the snapshot already stores
+                    // it in the {label, investment, cost, ...} shape rather
+                    // than the live calculateFullInvestmentBreakdown() shape
+                    // (which has hasCost instead of a nullable cost) — normalize
+                    // both to the same shape so callers don't need to care.
+                    const categories = snapshot ? Object.fromEntries(
+                        Object.entries(snapshot.categoryBreakdown7).map(([key, cat]) => [key, {
+                            label: cat.label, investment: cat.investment,
+                            cost: cat.cost === null ? 0 : cat.cost, hasCost: cat.cost !== null
+                        }])
+                    ) : calculateFullInvestmentBreakdown(version.packages);
+
+                    // Same idea for the original 4-category breakdown (Creative
+                    // / O&O / Added Value / Brand Funded Content) shown on the
+                    // main Packages screen — normalize snapshot vs. live shape.
+                    const categories4 = snapshot ? snapshot.categoryBreakdown4
+                        : Object.fromEntries(
+                            Object.entries(calculateInvestmentCategoryBreakdown(version.packages)).map(([key, cat]) => [key, {
+                                label: cat.label, investment: cat.investment, cost: cat.cost,
+                                marginDollar: cat.investment - cat.cost,
+                                marginPercent: cat.investment > 0 ? ((cat.investment - cat.cost) / cat.investment) * 100 : 0,
+                                impressions: cat.impressions,
+                                cpm: (cat.impressions > 0 && cat.investment > 0) ? (cat.investment / cat.impressions * 1000) : 0,
+                                count: cat.count,
+                                investmentNoFees: cat.investmentNoFees, costNoFees: cat.costNoFees,
+                                marginNoFeesDollar: cat.investmentNoFees !== undefined ? (cat.investmentNoFees - cat.costNoFees) : undefined,
+                                marginNoFeesPercent: cat.investmentNoFees !== undefined && cat.investmentNoFees > 0 ? ((cat.investmentNoFees - cat.costNoFees) / cat.investmentNoFees) * 100 : undefined
+                            }])
+                        );
+
                     results.push({
-                        project, version,
+                        project, version, isLive,
                         totalInvestment, totalCost, marginDollar, marginPercent,
-                        categories: calculateFullInvestmentBreakdown(version.packages)
+                        categories, categories4
                     });
                 });
             });
@@ -5220,6 +5376,7 @@
                             <th style="padding: 0.75rem; text-align: left;">Version</th>
                             <th style="padding: 0.75rem; text-align: left;">Status</th>
                             <th style="padding: 0.75rem; text-align: left;">Verified By</th>
+                            <th style="padding: 0.75rem; text-align: left;">Data</th>
                             <th style="padding: 0.75rem; text-align: right;">Investment</th>
                             <th style="padding: 0.75rem; text-align: right;">Margin %</th>
                         </tr>
@@ -5234,6 +5391,9 @@
                                 <td style="padding: 0.6rem 0.75rem;">${escapeHtml(d.version.name || '')}</td>
                                 <td style="padding: 0.6rem 0.75rem;">${dealStatusBadgeHTML(d.version)}</td>
                                 <td style="padding: 0.6rem 0.75rem; font-size: 0.85rem;">${d.version.verifiedBy ? escapeHtml(d.version.verifiedBy) + '<br><span style="color:var(--text-muted);">' + new Date(d.version.verifiedAt).toLocaleDateString() + '</span>' : '—'}</td>
+                                <td style="padding: 0.6rem 0.75rem; font-size: 0.8rem;">${d.isLive
+                                    ? '<span style="color:#92400E;" title="Not yet verified — these numbers will keep changing as the plan is edited.">⏳ Live (unverified)</span>'
+                                    : '<span style="color:#166534;" title="Frozen at the moment of verification, will not change even if the plan is edited later.">📌 Verified snapshot</span>'}</td>
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(d.totalInvestment)}</td>
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; color: ${getMarginColor(d.marginPercent)}; font-weight: 600;">${d.marginPercent.toFixed(3)}%</td>
                             </tr>
@@ -5257,14 +5417,24 @@
             const rows = [];
             const formats = [];
             rows.push([
-                'Project', 'Brand', 'Sub-Brand', 'Agency', 'Version', 'Deal Status',
+                'Project', 'Brand', 'Sub-Brand', 'Agency', 'Version', 'Deal Status', 'Data Source',
                 'Verified By', 'Verified At', 'Verification Notes',
                 'Total Investment', 'Total Cost', 'Margin ($)', 'Margin (%)',
+                // 4-category breakdown (Creative / O&O / Added Value / Brand Funded Content)
+                // — matches the "Investment Category Breakdown" shown on the main Packages screen.
+                'Creative Investment', 'Creative Impressions', 'Creative CPM', 'Creative Cost',
+                'Creative Margin ($)', 'Creative Margin (%)', 'Creative Margin w/o Fees ($)', 'Creative Margin w/o Fees (%)',
+                'O&O Investment', 'O&O Impressions', 'O&O CPM', 'O&O Cost', 'O&O Margin ($)', 'O&O Margin (%)',
+                'Added Value Investment (always $0)', 'Added Value Cost', 'Added Value Margin ($)',
+                'Brand Funded Content Investment', 'Brand Funded Content Cost', 'Brand Funded Content Margin ($)',
+                // 7-category breakdown (Production & Talent / Paid Media / Social Partnership /
+                // Streaming / Linear / Fees / Brand Funded Content) — the more granular,
+                // component-level view used in the Investment Breakdown (Beta) tab.
                 'Production & Talent Investment', 'Production & Talent Cost',
                 'Paid Media Investment', 'Paid Media Cost',
                 'Social Partnership Investment', 'Social Partnership Cost',
                 'Streaming Investment', 'Linear Investment', 'Fees Investment',
-                'Brand Funded Content Investment', 'Brand Funded Content Cost'
+                'Brand Funded Content Investment (7-Cat)', 'Brand Funded Content Cost (7-Cat)'
             ]);
 
             const statusLabels = {
@@ -5275,12 +5445,21 @@
 
             deals.forEach(d => {
                 const c = d.categories;
+                const c4 = d.categories4;
+                const verifiedAtDate = d.version.verifiedAt ? new Date(d.version.verifiedAt) : '';
                 const row = [
                     d.project.projectName || '', d.project.brandName || '', d.project.subBrandName || '', d.project.agencyName || '',
                     d.version.name || '', statusLabels[d.version.dealStatus] || d.version.dealStatus,
-                    d.version.verifiedBy || '', d.version.verifiedAt ? new Date(d.version.verifiedAt).toLocaleDateString() : '',
+                    d.isLive ? 'Live (unverified — will change if edited)' : 'Verified snapshot (frozen at verification)',
+                    d.version.verifiedBy || '', verifiedAtDate,
                     d.version.verificationNotes || '',
                     d.totalInvestment, d.totalCost, d.marginDollar, d.marginPercent / 100,
+                    c4.creative.investment, c4.creative.impressions, c4.creative.cpm, c4.creative.cost,
+                    c4.creative.marginDollar, (c4.creative.marginPercent || 0) / 100,
+                    c4.creative.marginNoFeesDollar, (c4.creative.marginNoFeesPercent || 0) / 100,
+                    c4.oo.investment, c4.oo.impressions, c4.oo.cpm, c4.oo.cost, c4.oo.marginDollar, (c4.oo.marginPercent || 0) / 100,
+                    c4.addedvalue.investment, c4.addedvalue.cost, c4.addedvalue.marginDollar,
+                    c4.brandfunded.investment, c4.brandfunded.cost, c4.brandfunded.marginDollar,
                     c.talent.investment, c.talent.cost,
                     c.media.investment, c.media.cost,
                     c.social.investment, c.social.cost,
@@ -5289,8 +5468,14 @@
                 ];
                 rows.push(row);
                 const rowIdx = rows.length - 1;
-                [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].forEach(col => formats.push([rowIdx, col, currencyFmt]));
-                formats.push([rowIdx, 12, percentFmt]);
+                if (verifiedAtDate) formats.push([rowIdx, 8, 'mm/dd/yyyy']);
+                [10, 11, 12,
+                 14, 16, 17, 18, 20,
+                 22, 24, 25, 26,
+                 28, 29, 30,
+                 31, 32, 33,
+                 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44].forEach(col => formats.push([rowIdx, col, currencyFmt]));
+                [13, 19, 21, 27].forEach(col => formats.push([rowIdx, col, percentFmt]));
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -5343,16 +5528,28 @@
             const version = currentProject.versions[index];
             const packageCount = version.packages.length;
             const versionName = version.name || `Version ${index + 1}`;
-            
+
+            let message = `Are you sure you want to delete "${versionName}"?\n\nThis will delete ${packageCount} package${packageCount !== 1 ? 's' : ''}.`;
+
+            if (version.dealStatus === 'verified' || version.dealStatus === 'needs_reverification') {
+                message += `\n\n⚠️ WARNING: This version is a VERIFIED SOLD deal with a permanently recorded financial snapshot. Deleting it will permanently destroy that record — it will not be recoverable, and won't appear in any future Closed Deals export.`;
+            } else if (version.dealStatus === 'closed_pending_verification') {
+                message += `\n\nNote: this version is marked as closed/pending verification. Deleting it will remove that tracking status too.`;
+            }
+
+            message += '\n\nThis action cannot be undone.';
+
             showConfirm(
-                `Are you sure you want to delete "${versionName}"?\n\nThis will delete ${packageCount} package${packageCount !== 1 ? 's' : ''}.\n\nThis action cannot be undone.`,
+                message,
                 (confirmed) => {
                     if (confirmed) {
                         currentProject.versions.splice(index, 1);
                         saveProjects();
                         displayVersions();
                     }
-                }
+                },
+                (version.dealStatus === 'verified' || version.dealStatus === 'needs_reverification') ? 'Delete Anyway' : 'Delete',
+                'btn-danger'
             );
         }
 
@@ -7875,56 +8072,12 @@
             }
             
             // Calculate version totals
-            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-            
-            // Separate CPV packages from CPM packages
-            const hasCPVPackages = packages.some(pkg => 
-                pkg.type === 'partnership' && 
-                pkg.partnershipType === 'x_amplify' && 
-                pkg.pricingMetric === 'cpv'
-            );
-            
-            let totalViews = 0;
-            let totalCPVInvestment = 0;
-            let totalImpressions = 0;
-            let totalCPMInvestment = 0;
-            
-            packages.forEach(pkg => {
-                const metricInfo = getPackageMetricInfo(pkg);
-                
-                if (metricInfo.usesViews) {
-                    // CPV package - count views
-                    totalViews += (pkg.views || 0);
-                    totalCPVInvestment += pkg.totalInvestment;
-                } else {
-                    // CPM package - count impressions
-                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
-                        // Detailed sponsorships use totalImpressions field
-                        totalImpressions += (pkg.totalImpressions || 0);
-                    } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
-                        totalImpressions += (pkg.impressions || 0);
-                    } else {
-                        totalImpressions += (pkg.totalImpressions || 0);
-                    }
-                    totalCPMInvestment += pkg.totalInvestment;
-                }
-            });
-            
-            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
-            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
-            const totalMarginDollar = totalPrice - totalCost;
-            const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
-            
-            // Calculate CPM only from non-CPV packages
-            const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0) 
-                ? (totalCPMInvestment / totalImpressions * 1000) 
-                : 0;
-            
-            // Calculate CPV from CPV packages
-            const overallCPV = (totalViews > 0 && totalCPVInvestment > 0)
-                ? (totalCPVInvestment / totalViews)
-                : 0;
+            const {
+                totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
+                totalImpressions, totalCPMInvestment, totalCost,
+                totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                overallCPM, overallCPV
+            } = calculateOverallTotals(packages);
             
             // Build summary cards HTML with gray-blue unified design
             let summaryHTML = `
@@ -9859,54 +10012,12 @@
             }
             
             const packages = currentVersion.packages;
-            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-
-            // Separate CPV packages from CPM packages (matches main screen logic exactly)
-            const hasCPVPackages = packages.some(pkg =>
-                pkg.type === 'partnership' &&
-                pkg.partnershipType === 'x_amplify' &&
-                pkg.pricingMetric === 'cpv'
-            );
-
-            let totalViews = 0;
-            let totalCPVInvestment = 0;
-            let totalImpressions = 0;
-            let totalCPMInvestment = 0;
-
-            packages.forEach(pkg => {
-                const metricInfo = getPackageMetricInfo(pkg);
-
-                if (metricInfo.usesViews) {
-                    totalViews += (pkg.views || 0);
-                    totalCPVInvestment += pkg.totalInvestment;
-                } else {
-                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
-                        totalImpressions += (pkg.totalImpressions || 0);
-                    } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
-                        totalImpressions += (pkg.impressions || 0);
-                    } else {
-                        totalImpressions += (pkg.totalImpressions || 0);
-                    }
-                    totalCPMInvestment += pkg.totalInvestment;
-                }
-            });
-
-            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
-            const totalMarginDollar = totalPrice - totalCost;
-            const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
-
-            // Calculate CPM only from non-CPV packages (matches main screen)
-            const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0)
-                ? (totalCPMInvestment / totalImpressions * 1000)
-                : 0;
-
-            // Calculate CPV from CPV packages (matches main screen)
-            const overallCPV = (totalViews > 0 && totalCPVInvestment > 0)
-                ? (totalCPVInvestment / totalViews)
-                : 0;
-
-            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+            const {
+                totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
+                totalImpressions, totalCPMInvestment, totalCost,
+                totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                overallCPM, overallCPV
+            } = calculateOverallTotals(packages);
 
             
             let html = `
@@ -10833,33 +10944,12 @@
                 const doc = new jsPDF('p', 'mm', 'letter');
             
             const packages = currentVersion.packages;
-            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-            const totalImpressions = packages.reduce((sum, pkg) => {
-                if (pkg.type === 'branded-blended') {
-                    const pkgCPM = pkg.packageCPM || 0;
-                    return sum + (pkgCPM > 0 ? Math.round((pkg.totalInvestment / pkgCPM) * 1000) : (pkg.impressions || 0));
-                }
-                if (pkg.type === 'sponsorship') {
-                    // Detailed sponsorships store impressions in totalImpressions; simple ones use impressions
-                    return sum + (pkg.totalImpressions || pkg.impressions || 0);
-                }
-                if (['streaming', 'partnership', 'added-value'].includes(pkg.type)) {
-                    return sum + (pkg.impressions || 0);
-                }
-                return sum + (pkg.totalImpressions || 0);
-            }, 0);
-            const totalCost = packages.reduce((sum, pkg) => sum + pkg.totalCost, 0);
-            const totalMarginDollar = totalPrice - totalCost;
-            const totalMarginPercent = (totalMarginDollar / totalPrice) * 100;
-            const overallCPM = totalImpressions > 0 ? (totalPrice / totalImpressions * 1000) : 0;
-            
-            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = packages.reduce((sum, pkg) => {
-                if (pkg.platformAllocations) {
-                    return sum + pkg.platformAllocations.reduce((s, a) => s + (a.totalCost || 0), 0);
-                }
-                return sum + (pkg.totalCost || 0) - (pkg.talentCost || 0);
-            }, 0);
+            const {
+                totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
+                totalImpressions, totalCPMInvestment, totalCost,
+                totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                overallCPM, overallCPV
+            } = calculateOverallTotals(packages);
             
             let yPos = 20;
             
@@ -10921,6 +11011,10 @@
                     ['Total Investment', '$' + formatNumber(totalPrice)],
                     ['Total Impressions', formatImpressions(totalImpressions)],
                     ['Overall CPM', '$' + overallCPM.toFixed(2)],
+                    ...(hasCPVPackages && totalViews > 0 ? [
+                        ['Total Views', formatImpressions(totalViews)],
+                        ['Overall CPV', overallCPV > 0 ? '$' + overallCPV.toFixed(2) : 'N/A']
+                    ] : []),
                     ['Production & Talent Cost', '$' + formatNumber(totalTalentCost)],
                     ['Media Placements Cost', '$' + formatNumber(totalMediaCost)],
                     ['Total Cost', '$' + formatNumber(totalCost)],
@@ -11886,32 +11980,12 @@
                 if (currentProject.salesforceLink) summaryData.push(['Salesforce Link:', currentProject.salesforceLink]);
                 summaryData.push([]);
 
-                const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
-                const hasCPVPackages = packages.some(pkg => pkg.type === 'partnership' && pkg.partnershipType === 'x_amplify' && pkg.pricingMetric === 'cpv');
-                let totalViews = 0, totalCPVInvestment = 0, totalImpressions = 0, totalCPMInvestment = 0;
-                packages.forEach(pkg => {
-                    const metricInfo = getPackageMetricInfo(pkg);
-                    if (metricInfo.usesViews) {
-                        totalViews += (pkg.views || 0);
-                        totalCPVInvestment += pkg.totalInvestment;
-                    } else {
-                        if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
-                            totalImpressions += (pkg.totalImpressions || 0);
-                        } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
-                            totalImpressions += (pkg.impressions || 0);
-                        } else {
-                            totalImpressions += (pkg.totalImpressions || 0);
-                        }
-                        totalCPMInvestment += pkg.totalInvestment;
-                    }
-                });
-                const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
-                const totalMarginDollar = totalPrice - totalCost;
-                const totalMarginPercent = totalPrice > 0 ? (totalMarginDollar / totalPrice) * 100 : 0;
-                const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0) ? (totalCPMInvestment / totalImpressions * 1000) : 0;
-                const overallCPV = (totalViews > 0 && totalCPVInvestment > 0) ? (totalCPVInvestment / totalViews) : 0;
-                const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-                const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+                const {
+                    totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
+                    totalImpressions, totalCPMInvestment, totalCost,
+                    totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                    overallCPM, overallCPV
+                } = calculateOverallTotals(packages);
 
                 summaryData.push(['OVERALL TOTALS']);
                 summaryData.push(['Total Investment', totalPrice]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
@@ -12864,7 +12938,12 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     // Read with cellFormula to get calculated values
                     const workbook = XLSX.read(data, { type: 'array', cellStyles: true, cellFormula: true });
                     
-                    // Get first sheet
+                    // Default to the first sheet, but let the user pick a
+                    // different one if the workbook has more than one — a
+                    // single Excel file can contain multiple distinct
+                    // sponsorship packages/rate structures on separate tabs,
+                    // and silently only reading the first sheet means real
+                    // plan data on other tabs is invisible to the tool.
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     
@@ -12874,6 +12953,17 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                         worksheet: worksheet,
                         sheetName: firstSheetName
                     };
+
+                    const sheetPicker = document.getElementById('sponsorshipSheetPicker');
+                    if (workbook.SheetNames.length > 1) {
+                        const select = document.getElementById('sponsorshipSheetSelect');
+                        select.innerHTML = workbook.SheetNames.map(name =>
+                            `<option value="${escapeHtml(name)}" ${name === firstSheetName ? 'selected' : ''}>${escapeHtml(name)}</option>`
+                        ).join('');
+                        sheetPicker.style.display = 'block';
+                    } else {
+                        sheetPicker.style.display = 'none';
+                    }
                     
                     console.log('Sponsorship file loaded successfully:', file.name);
                     console.log('Worksheet:', worksheet);
@@ -12990,15 +13080,29 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             document.getElementById('sponsorshipUploadBox').style.display = 'block';
         }
 
+        function selectSponsorshipSheet(sheetName) {
+            if (!sponsorshipImportData || !sponsorshipImportData.workbook) return;
+            sponsorshipImportData.worksheet = sponsorshipImportData.workbook.Sheets[sheetName];
+            sponsorshipImportData.sheetName = sheetName;
+        }
+
         function removeSponsorshipFile() {
             // Clear the file input
             document.getElementById('sponsorshipFileInput').value = '';
             
-            // Clear stored data
+            // Clear stored data — previously this only cleared sponsorshipImportData,
+            // leaving sponsorshipLineItems, sponsorshipSectionHeaders, and
+            // sponsorshipColumnMapping (from any earlier successful parse) stale.
+            // A stale columnMapping in particular could cause the NEXT uploaded
+            // file to be parsed using the wrong column layout, not just show old data.
             sponsorshipImportData = null;
+            sponsorshipLineItems = [];
+            sponsorshipSectionHeaders = [];
+            sponsorshipColumnMapping = {};
             
             // Hide success message and file name
             document.getElementById('sponsorshipUploadSuccess').style.display = 'none';
+            document.getElementById('sponsorshipSheetPicker').style.display = 'none';
             
             
             // Show the upload box again
@@ -13205,6 +13309,29 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             sponsorshipImportData.headerRow = headerRow;
             sponsorshipImportData.detectedColumns = detectedColumns;
             sponsorshipImportData.range = range;
+
+            // Try to auto-suggest a "Last Data Row" cutoff by looking for a
+            // row that says exactly "TOTAL" or "TOTALS" — real plans commonly
+            // have a totals row right after the actual placements, with terms
+            // and legal disclaimer text below it. Suggesting this cutoff (the
+            // user can still change it) helps avoid that disclaimer text
+            // getting swept in and misclassified as section headers.
+            let suggestedLastDataRow = null;
+            for (let R = headerRow + 1; R <= range.e.r; R++) {
+                for (let C = range.s.c; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cellAddress];
+                    if (cell && cell.v) {
+                        const cellText = String(cell.v).toLowerCase().trim();
+                        if (cellText === 'total' || cellText === 'totals') {
+                            suggestedLastDataRow = R + 1; // convert 0-based row index to 1-based Excel row number
+                            break;
+                        }
+                    }
+                }
+                if (suggestedLastDataRow) break;
+            }
+            sponsorshipImportData.suggestedLastDataRow = suggestedLastDataRow;
             
             // Populate column mapping UI
             populateColumnMappingUI();
@@ -13227,6 +13354,27 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
             // Pre-fill override input with detected row
             const overrideInput = document.getElementById('headerRowOverride');
             if (overrideInput) overrideInput.value = data.headerRow + 1;
+
+            // Pre-fill Last Data Row with the auto-detected TOTAL row, if
+            // found — this is a suggestion, not a certainty, so it's clearly
+            // marked as such and the user can still change it.
+            const lastDataRowInput = document.getElementById('lastDataRow');
+            const lastDataRowHint = document.getElementById('lastDataRowHint');
+            if (lastDataRowInput) {
+                if (data.suggestedLastDataRow) {
+                    lastDataRowInput.value = data.suggestedLastDataRow;
+                    if (lastDataRowHint) {
+                        lastDataRowHint.textContent = `Auto-detected from a "Total" row — please verify this is correct before continuing.`;
+                        lastDataRowHint.style.color = '#92400E';
+                    }
+                } else {
+                    lastDataRowInput.value = '';
+                    if (lastDataRowHint) {
+                        lastDataRowHint.textContent = `No "Total" row was found automatically — please enter the last row of real data yourself.`;
+                        lastDataRowHint.style.color = '';
+                    }
+                }
+            }
             
             // Populate dropdowns
             const dropdowns = ['colPlatform', 'colPackage', 'colDescription', 'colSize', 'colFlight', 'colCostMethod', 'colRate', 'colQuantity', 'colNetCost'];
@@ -14833,6 +14981,73 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
         // Breakdown tab, PDF export, and Excel export — extracted here as one
         // reusable function for the Closed Deals export, rather than writing
         // a fourth independent copy of it.
+        // Computes the version-level "Overall Totals" block (Total Investment,
+        // Impressions/Views, CPM/CPV, Cost, Margin) for a given array of
+        // packages. This is the single source of truth for that block —
+        // previously independently duplicated across the main screen, the
+        // View Summary overlay, the PDF export, and the Excel export, with
+        // the PDF export's copy having drifted out of sync (missing the
+        // CPV/CPM separation fix, and deriving Media Cost differently).
+        function calculateOverallTotals(packages) {
+            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
+
+            // Separate CPV packages from CPM packages
+            const hasCPVPackages = packages.some(pkg =>
+                pkg.type === 'partnership' &&
+                pkg.partnershipType === 'x_amplify' &&
+                pkg.pricingMetric === 'cpv'
+            );
+
+            let totalViews = 0;
+            let totalCPVInvestment = 0;
+            let totalImpressions = 0;
+            let totalCPMInvestment = 0;
+
+            packages.forEach(pkg => {
+                const metricInfo = getPackageMetricInfo(pkg);
+
+                if (metricInfo.usesViews) {
+                    // CPV package - count views
+                    totalViews += (pkg.views || 0);
+                    totalCPVInvestment += pkg.totalInvestment;
+                } else {
+                    // CPM package - count impressions
+                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed') {
+                        // Detailed sponsorships use totalImpressions field
+                        totalImpressions += (pkg.totalImpressions || 0);
+                    } else if (['streaming', 'partnership', 'branded-blended', 'added-value'].includes(pkg.type)) {
+                        totalImpressions += (pkg.impressions || 0);
+                    } else {
+                        totalImpressions += (pkg.totalImpressions || 0);
+                    }
+                    totalCPMInvestment += pkg.totalInvestment;
+                }
+            });
+
+            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
+            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
+            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+            const totalMarginDollar = totalPrice - totalCost;
+            const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
+
+            // Calculate CPM only from non-CPV packages
+            const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0)
+                ? (totalCPMInvestment / totalImpressions * 1000)
+                : 0;
+
+            // Calculate CPV from CPV packages
+            const overallCPV = (totalViews > 0 && totalCPVInvestment > 0)
+                ? (totalCPVInvestment / totalViews)
+                : 0;
+
+            return {
+                totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
+                totalImpressions, totalCPMInvestment, totalCost,
+                totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                overallCPM, overallCPV
+            };
+        }
+
         function calculateFullInvestmentBreakdown(packages) {
             const cats = makeEmptyInvestmentBreakdownCats();
             (packages || []).forEach(pkg => {
