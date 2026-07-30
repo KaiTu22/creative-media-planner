@@ -5120,6 +5120,11 @@
 
         let verifyDealVersionIndex = null;
 
+        // Closed Deals list UI state
+        let closedDealsSelectedIds = new Set();
+        let closedDealsExpandedIds = new Set();
+        let closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
+
         function openVerifyDealModal(versionIndex) {
             const version = currentProject.versions[versionIndex];
             verifyDealVersionIndex = versionIndex;
@@ -5178,7 +5183,9 @@
                     mediaPlacementsCost: overall.totalMediaCost,
                     totalCost: overall.totalCost,
                     totalMarginDollar: overall.totalMarginDollar,
-                    totalMarginPercent: overall.totalMarginPercent
+                    totalMarginPercent: overall.totalMarginPercent,
+                    addedValueCost: overall.addedValueCost,
+                    addedValueValue: overall.addedValueValue
                 },
                 categoryBreakdown4: Object.fromEntries(
                     Object.entries(cat4).map(([key, cat]) => [key, {
@@ -5344,6 +5351,7 @@
                         );
 
                     results.push({
+                        dealId: `${project.id}::${version.id}`,
                         project, version, isLive,
                         totalInvestment, totalCost, marginDollar, marginPercent,
                         categories, categories4
@@ -5354,12 +5362,168 @@
             return results;
         }
 
+        // Shared breakdown-table renderer, reused for both the single-deal
+        // detail view and the multi-deal aggregation view — takes an
+        // explicit totalInvestment so "% of Total" can be computed against
+        // either one deal's total or a combined total across several deals.
+        function renderBreakdownTableHTML(categories, includeExtras, totalInvestment) {
+            function pctOfTotal(investment) {
+                return totalInvestment > 0 ? (investment / totalInvestment) * 100 : 0;
+            }
+            const rows = Object.values(categories).filter(cat => cat.investment !== 0 || cat.cost !== 0);
+            return `
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin-bottom: 1rem;">
+                    <thead>
+                        <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 0.5rem 0.6rem; text-align: left;">Category</th>
+                            <th style="padding: 0.5rem 0.6rem; text-align: right;">Investment</th>
+                            <th style="padding: 0.5rem 0.6rem; text-align: right; background: #EFF6FF;">% of Total Investment</th>
+                            <th style="padding: 0.5rem 0.6rem; text-align: right;">Cost</th>
+                            <th style="padding: 0.5rem 0.6rem; text-align: right;">Margin ($)</th>
+                            <th style="padding: 0.5rem 0.6rem; text-align: right;">Margin (%)</th>
+                            ${includeExtras ? '<th style="padding: 0.5rem 0.6rem; text-align: right;">Impressions</th><th style="padding: 0.5rem 0.6rem; text-align: right;">CPM</th><th style="padding: 0.5rem 0.6rem; text-align: right;" title="Only ever populated for the Creative category — everything else shows a dash.">Margin w/o Fees ($)</th><th style="padding: 0.5rem 0.6rem; text-align: right;" title="Only ever populated for the Creative category — everything else shows a dash.">Margin w/o Fees (%)</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(cat => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem 0.6rem;">${escapeHtml(cat.label)}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; font-weight: 600;">$${formatNumber(cat.investment)}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; background: #EFF6FF; font-weight: 600;">${pctOfTotal(cat.investment).toFixed(1)}%</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.cost === null || cat.cost === undefined ? '—' : '$' + formatNumber(cat.cost)}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${cat.label === 'Added Value' ? '' : `color: ${getMarginColor(cat.marginPercent || 0)};`}" ${cat.label === 'Added Value' ? 'title="Margin isn\'t a meaningful concept for Added Value — its cost is tracked separately and doesn\'t offset against any investment."' : ''}>${cat.label === 'Added Value' ? 'N/A' : '$' + formatNumber(cat.marginDollar !== undefined ? cat.marginDollar : (cat.investment - (cat.cost || 0)))}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${cat.label === 'Added Value' ? '' : `color: ${getMarginColor(cat.marginPercent || 0)};`}">${cat.label === 'Added Value' ? 'N/A' : (cat.marginPercent || 0).toFixed(1) + '%'}</td>
+                                ${includeExtras ? `<td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.impressions ? formatImpressions(cat.impressions) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.cpm ? '$' + cat.cpm.toFixed(2) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.marginNoFeesDollar !== undefined && cat.marginNoFeesDollar !== null ? '$' + formatNumber(cat.marginNoFeesDollar) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.marginNoFeesPercent !== undefined && cat.marginNoFeesPercent !== null ? cat.marginNoFeesPercent.toFixed(1) + '%' : '—'}</td>` : ''}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Renders the full "all levels" detail view for one Closed Deal —
+        // identification, overall totals, both category breakdowns (each
+        // with a % of Total Investment column), and per-package detail.
+        // Works whether the deal has a frozen snapshot or is still live.
+        // Derives the full "all levels" view of a tracked deal — identification,
+        // overall totals, and per-package detail — from its frozen snapshot if
+        // verified, or live-calculated if not. Shared by the detail overlay and
+        // the Excel export so both always show identical data from one source.
+        function getDealFullDetail(deal) {
+            const snapshot = deal.version.dealSnapshot;
+
+            const identification = snapshot ? snapshot.identification : {
+                projectName: deal.project.projectName || '',
+                brandName: deal.project.brandName || '',
+                subBrandName: deal.project.subBrandName || '',
+                agencyName: deal.project.agencyName || '',
+                plannerName: deal.project.plannerName || '',
+                plannerEmail: deal.project.plannerEmail || '',
+                salesforceLink: deal.project.salesforceLink || '',
+                versionName: deal.version.name || '',
+                campaignPeriod: formatCampaignPeriod(deal.project.campaignStartDate, deal.project.campaignEndDate)
+            };
+
+            const overallTotals = snapshot ? snapshot.overallTotals : (() => {
+                const o = calculateOverallTotals(deal.version.packages || []);
+                return {
+                    totalInvestment: o.totalPrice, totalImpressions: o.totalImpressions, totalViews: o.totalViews,
+                    overallCPM: o.overallCPM, overallCPV: o.overallCPV,
+                    productionTalentCost: o.totalTalentCost, mediaPlacementsCost: o.totalMediaCost,
+                    totalCost: o.totalCost, totalMarginDollar: o.totalMarginDollar, totalMarginPercent: o.totalMarginPercent,
+                    addedValueCost: o.addedValueCost, addedValueValue: o.addedValueValue
+                };
+            })();
+
+            const packages = snapshot ? snapshot.packages : (deal.version.packages || []).map(pkg => {
+                const metricInfo = getPackageMetricInfo(pkg);
+                return {
+                    title: pkg.title || '', type: pkg.type, typeLabel: getTypeLabel(pkg.type),
+                    investment: pkg.totalInvestment || 0, cost: pkg.totalCost || 0,
+                    marginDollar: (pkg.totalInvestment || 0) - (pkg.totalCost || 0), marginPercent: pkg.totalMarginPercent || 0,
+                    metricLabel: metricInfo.metricLabel, metricValue: metricInfo.metricValue,
+                    pricingLabel: metricInfo.pricingLabel, pricingValue: metricInfo.pricingValue,
+                    notes: pkg.notes || ''
+                };
+            });
+
+            return { identification, overallTotals, packages };
+        }
+
+        function renderDealDetailHTML(deal) {
+            const totalInvestment = deal.totalInvestment;
+            const { identification: id, overallTotals: overall, packages } = getDealFullDetail(deal);
+
+            return `
+                <div style="padding: 1.25rem 1.5rem; background: #F8FAFC; border-top: 2px solid var(--border);">
+                    <h4 style="margin: 0 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Identification</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem 1rem; margin-bottom: 1.25rem; font-size: 0.8125rem;">
+                        <div><strong>Project:</strong> ${escapeHtml(id.projectName)}</div>
+                        <div><strong>Brand:</strong> ${escapeHtml(id.brandName)}${id.subBrandName ? ' / ' + escapeHtml(id.subBrandName) : ''}</div>
+                        <div><strong>Agency:</strong> ${escapeHtml(id.agencyName)}</div>
+                        <div><strong>Planner:</strong> ${escapeHtml(id.plannerName || '—')}</div>
+                        <div><strong>Version:</strong> ${escapeHtml(id.versionName)}</div>
+                        <div><strong>Campaign Period:</strong> ${escapeHtml(id.campaignPeriod || '—')}</div>
+                        ${id.salesforceLink ? `<div><strong>Salesforce:</strong> <a href="${escapeHtml(id.salesforceLink)}" target="_blank" rel="noopener">Link</a></div>` : ''}
+                    </div>
+
+                    ${deal.version.verificationNotes ? `
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Verification Notes</h4>
+                    <div style="margin: 0 0 1.25rem 0; padding: 0.6rem 0.75rem; background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 4px; font-size: 0.8125rem; white-space: pre-wrap;">${escapeHtml(deal.version.verificationNotes)}</div>
+                    ` : ''}
+
+                    <h4 style="margin: 0 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Overall Totals</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-bottom: 1.25rem;">
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Investment</div><div style="font-weight: 700;">$${formatNumber(overall.totalInvestment)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Impressions</div><div style="font-weight: 700;">${formatImpressions(overall.totalImpressions)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">CPM</div><div style="font-weight: 700;">$${overall.overallCPM.toFixed(2)}</div></div>
+                        ${overall.totalViews > 0 ? `<div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Views</div><div style="font-weight: 700;">${formatImpressions(overall.totalViews)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">CPV</div><div style="font-weight: 700;">$${overall.overallCPV.toFixed(2)}</div></div>` : ''}
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Total Cost</div><div style="font-weight: 700;">$${formatNumber(overall.totalCost)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Margin</div><div style="font-weight: 700; color: ${getMarginColor(overall.totalMarginPercent)};">$${formatNumber(overall.totalMarginDollar)} (${overall.totalMarginPercent.toFixed(1)}%)</div></div>
+                    </div>
+
+                    <h4 style="margin: 0 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Investment Category Breakdown</h4>
+                    ${renderBreakdownTableHTML(deal.categories4, true, totalInvestment)}
+
+                    <h4 style="margin: 1rem 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Investment Breakdown (Beta)</h4>
+                    ${renderBreakdownTableHTML(deal.categories, false, totalInvestment)}
+
+                    <h4 style="margin: 1rem 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Packages</h4>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem;">
+                        <thead>
+                            <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                                <th style="padding: 0.5rem 0.6rem; text-align: left;">Title</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: left;">Type</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Investment</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Cost</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Margin</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">${packages[0]?.metricLabel || 'Impressions'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${packages.map(pkg => `
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem 0.6rem;">${escapeHtml(pkg.title)}</td>
+                                    <td style="padding: 0.5rem 0.6rem;">${escapeHtml(pkg.typeLabel)}</td>
+                                    <td style="padding: 0.5rem 0.6rem; text-align: right;">$${formatNumber(pkg.investment)}</td>
+                                    <td style="padding: 0.5rem 0.6rem; text-align: right;">$${formatNumber(pkg.cost)}</td>
+                                    <td style="padding: 0.5rem 0.6rem; text-align: right; color: ${getMarginColor(pkg.marginPercent)};">${pkg.marginPercent.toFixed(1)}%</td>
+                                    <td style="padding: 0.5rem 0.6rem; text-align: right;">${formatImpressions(pkg.metricValue)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         function renderClosedDealsList() {
             const container = document.getElementById('closedDealsListContainer');
             if (!container) return;
-            const deals = collectAllTrackedDeals();
+            const allDeals = collectAllTrackedDeals();
 
-            if (deals.length === 0) {
+            if (allDeals.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
                         <p>No deals have been marked as closed yet.</p>
@@ -5368,10 +5532,62 @@
                 return;
             }
 
+            // Filter options, built from the full (unfiltered) list
+            const brands = [...new Set(allDeals.map(d => d.project.brandName).filter(Boolean))].sort();
+            const agencies = [...new Set(allDeals.map(d => d.project.agencyName).filter(Boolean))].sort();
+
+            const deals = allDeals.filter(d => {
+                if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
+                if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
+                if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
+                return true;
+            });
+
+            // Selection can only ever refer to currently-visible deals — drop
+            // any stale selected ids that a filter change has hidden.
+            const visibleIds = new Set(deals.map(d => d.dealId));
+            closedDealsSelectedIds.forEach(id => { if (!visibleIds.has(id)) closedDealsSelectedIds.delete(id); });
+
             container.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1rem; padding: 0.875rem 1rem; background: var(--background); border-radius: 8px; border: 1px solid var(--border);">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Brand</label>
+                        <select onchange="updateClosedDealsFilter('brand', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                            <option value="">All Brands</option>
+                            ${brands.map(b => `<option value="${escapeHtml(b)}" ${closedDealsFilters.brand === b ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Agency</label>
+                        <select onchange="updateClosedDealsFilter('agency', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                            <option value="">All Agencies</option>
+                            ${agencies.map(a => `<option value="${escapeHtml(a)}" ${closedDealsFilters.agency === a ? 'selected' : ''}>${escapeHtml(a)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">From</label>
+                        <input type="date" value="${closedDealsFilters.dateFrom}" onchange="updateClosedDealsFilter('dateFrom', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">To</label>
+                        <input type="date" value="${closedDealsFilters.dateTo}" onchange="updateClosedDealsFilter('dateTo', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="clearClosedDealsFilters()">Clear Filters</button>
+                    <div style="flex: 1;"></div>
+                    <button class="btn-secondary btn-sm" onclick="selectAllVisibleClosedDeals()">Select All (${deals.length})</button>
+                    <button class="btn-secondary btn-sm" onclick="clearClosedDealsSelection()">Clear Selection</button>
+                    <button class="btn-primary btn-sm" onclick="aggregateClosedDeals('selected')" ${closedDealsSelectedIds.size === 0 ? 'disabled' : ''}>Aggregate Selected (${closedDealsSelectedIds.size})</button>
+                    <button class="btn-primary btn-sm" onclick="aggregateClosedDeals('all')">Aggregate All Visible</button>
+                </div>
+
+                <div id="closedDealsAggregateResult"></div>
+
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 0.75rem 0.5rem; text-align: center; width: 2rem;"></th>
                             <th style="padding: 0.75rem; text-align: left;">Project</th>
                             <th style="padding: 0.75rem; text-align: left;">Version</th>
                             <th style="padding: 0.75rem; text-align: left;">Status</th>
@@ -5383,10 +5599,13 @@
                     </thead>
                     <tbody>
                         ${deals.map(d => `
-                            <tr style="border-bottom: 1px solid var(--border);">
+                            <tr onclick="toggleClosedDealExpand('${d.dealId}')" style="border-bottom: 1px solid var(--border); cursor: pointer;" onmouseover="this.style.background='var(--background)'" onmouseout="this.style.background=''">
+                                <td style="padding: 0.6rem 0.5rem; text-align: center;" onclick="event.stopPropagation()">
+                                    <input type="checkbox" ${closedDealsSelectedIds.has(d.dealId) ? 'checked' : ''} onchange="toggleClosedDealSelect('${d.dealId}')">
+                                </td>
                                 <td style="padding: 0.6rem 0.75rem;">
-                                    <div style="font-weight: 600;">${escapeHtml(d.project.projectName || '')}</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(d.project.brandName || '')}${d.project.agencyName ? ' • ' + escapeHtml(d.project.agencyName) : ''}</div>
+                                    <div style="font-weight: 600;">${closedDealsExpandedIds.has(d.dealId) ? '▼' : '▶'} ${escapeHtml(d.project.projectName || '')}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); padding-left: 1.1rem;">${escapeHtml(d.project.brandName || '')}${d.project.agencyName ? ' • ' + escapeHtml(d.project.agencyName) : ''}</div>
                                 </td>
                                 <td style="padding: 0.6rem 0.75rem;">${escapeHtml(d.version.name || '')}</td>
                                 <td style="padding: 0.6rem 0.75rem;">${dealStatusBadgeHTML(d.version)}</td>
@@ -5397,11 +5616,133 @@
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(d.totalInvestment)}</td>
                                 <td style="padding: 0.6rem 0.75rem; text-align: right; color: ${getMarginColor(d.marginPercent)}; font-weight: 600;">${d.marginPercent.toFixed(3)}%</td>
                             </tr>
+                            ${closedDealsExpandedIds.has(d.dealId) ? `<tr><td colspan="8" style="padding: 0;">${renderDealDetailHTML(d)}</td></tr>` : ''}
                         `).join('')}
                     </tbody>
                 </table>
             `;
         }
+
+        function updateClosedDealsFilter(key, value) {
+            closedDealsFilters[key] = value;
+            renderClosedDealsList();
+        }
+
+        function clearClosedDealsFilters() {
+            closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
+            renderClosedDealsList();
+        }
+
+        function toggleClosedDealExpand(dealId) {
+            if (closedDealsExpandedIds.has(dealId)) {
+                closedDealsExpandedIds.delete(dealId);
+            } else {
+                closedDealsExpandedIds.add(dealId);
+            }
+            renderClosedDealsList();
+        }
+
+        function toggleClosedDealSelect(dealId) {
+            if (closedDealsSelectedIds.has(dealId)) {
+                closedDealsSelectedIds.delete(dealId);
+            } else {
+                closedDealsSelectedIds.add(dealId);
+            }
+            renderClosedDealsList();
+        }
+
+        function selectAllVisibleClosedDeals() {
+            const allDeals = collectAllTrackedDeals();
+            const deals = allDeals.filter(d => {
+                if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
+                if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
+                if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
+                return true;
+            });
+            deals.forEach(d => closedDealsSelectedIds.add(d.dealId));
+            renderClosedDealsList();
+        }
+
+        function clearClosedDealsSelection() {
+            closedDealsSelectedIds.clear();
+            renderClosedDealsList();
+        }
+
+        // Combines category breakdown data (either the 4-category or
+        // 7-category scheme) across multiple deals into one aggregate view,
+        // preserving the "null cost" semantics for categories that never
+        // track a cost (Streaming/Linear/Fees in the 7-category scheme).
+        function aggregateCategoryData(deals, categoryField) {
+            const noCostKeys = new Set(['streaming', 'linear', 'fees']);
+            const combined = {};
+            deals.forEach(deal => {
+                Object.entries(deal[categoryField] || {}).forEach(([key, cat]) => {
+                    if (!combined[key]) {
+                        combined[key] = { label: cat.label, investment: 0, cost: 0 };
+                    }
+                    combined[key].investment += cat.investment || 0;
+                    if (!noCostKeys.has(key)) {
+                        combined[key].cost += (cat.cost || 0);
+                    }
+                });
+            });
+            Object.entries(combined).forEach(([key, cat]) => {
+                cat.cost = noCostKeys.has(key) ? null : cat.cost;
+                cat.marginDollar = cat.investment - (cat.cost || 0);
+                cat.marginPercent = cat.investment > 0 ? (cat.marginDollar / cat.investment) * 100 : 0;
+            });
+            return combined;
+        }
+
+        function aggregateClosedDeals(mode) {
+            const allDeals = collectAllTrackedDeals();
+            const filtered = allDeals.filter(d => {
+                if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
+                if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
+                if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
+                return true;
+            });
+            const deals = mode === 'selected' ? filtered.filter(d => closedDealsSelectedIds.has(d.dealId)) : filtered;
+
+            const resultContainer = document.getElementById('closedDealsAggregateResult');
+            if (!resultContainer) return;
+
+            if (deals.length === 0) {
+                resultContainer.innerHTML = `<div style="padding: 1rem; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">No deals to aggregate — ${mode === 'selected' ? 'select at least one deal first' : 'no deals match the current filters'}.</div>`;
+                return;
+            }
+
+            const totalInvestment = deals.reduce((s, d) => s + d.totalInvestment, 0);
+            const totalCost = deals.reduce((s, d) => s + d.totalCost, 0);
+            const marginDollar = totalInvestment - totalCost;
+            const marginPercent = totalInvestment > 0 ? (marginDollar / totalInvestment) * 100 : 0;
+
+            const cat4 = aggregateCategoryData(deals, 'categories4');
+            const cat7 = aggregateCategoryData(deals, 'categories');
+
+            resultContainer.innerHTML = `
+                <div style="padding: 1.25rem 1.5rem; background: #EFF6FF; border: 2px solid #93C5FD; border-radius: 8px; margin-bottom: 1.25rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+                        <h3 style="margin: 0; font-size: 1rem; color: var(--primary);">Aggregate: ${deals.length} Deal${deals.length !== 1 ? 's' : ''} ${mode === 'selected' ? '(Selected)' : '(All Visible)'}</h3>
+                        <button class="btn-secondary btn-sm" onclick="document.getElementById('closedDealsAggregateResult').innerHTML = ''">✕ Close</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin-bottom: 1.25rem;">
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Total Investment</div><div style="font-weight: 700;">$${formatNumber(totalInvestment)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Total Cost</div><div style="font-weight: 700;">$${formatNumber(totalCost)}</div></div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.75rem;"><div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Margin</div><div style="font-weight: 700; color: ${getMarginColor(marginPercent)};">$${formatNumber(marginDollar)} (${marginPercent.toFixed(1)}%)</div></div>
+                    </div>
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Investment Category Breakdown (Combined)</h4>
+                    ${renderBreakdownTableHTML(cat4, true, totalInvestment)}
+                    <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Investment Breakdown Beta (Combined)</h4>
+                    ${renderBreakdownTableHTML(cat7, false, totalInvestment)}
+                </div>
+            `;
+        }
+
 
         async function exportClosedDeals() {
             const deals = collectAllTrackedDeals();
@@ -5413,29 +5754,7 @@
             const wb = XLSX.utils.book_new();
             const currencyFmt = '$#,##0.00';
             const percentFmt = '0.000%';
-
-            const rows = [];
-            const formats = [];
-            rows.push([
-                'Project', 'Brand', 'Sub-Brand', 'Agency', 'Version', 'Deal Status', 'Data Source',
-                'Verified By', 'Verified At', 'Verification Notes',
-                'Total Investment', 'Total Cost', 'Margin ($)', 'Margin (%)',
-                // 4-category breakdown (Creative / O&O / Added Value / Brand Funded Content)
-                // — matches the "Investment Category Breakdown" shown on the main Packages screen.
-                'Creative Investment', 'Creative Impressions', 'Creative CPM', 'Creative Cost',
-                'Creative Margin ($)', 'Creative Margin (%)', 'Creative Margin w/o Fees ($)', 'Creative Margin w/o Fees (%)',
-                'O&O Investment', 'O&O Impressions', 'O&O CPM', 'O&O Cost', 'O&O Margin ($)', 'O&O Margin (%)',
-                'Added Value Investment (always $0)', 'Added Value Cost', 'Added Value Margin ($)',
-                'Brand Funded Content Investment', 'Brand Funded Content Cost', 'Brand Funded Content Margin ($)',
-                // 7-category breakdown (Production & Talent / Paid Media / Social Partnership /
-                // Streaming / Linear / Fees / Brand Funded Content) — the more granular,
-                // component-level view used in the Investment Breakdown (Beta) tab.
-                'Production & Talent Investment', 'Production & Talent Cost',
-                'Paid Media Investment', 'Paid Media Cost',
-                'Social Partnership Investment', 'Social Partnership Cost',
-                'Streaming Investment', 'Linear Investment', 'Fees Investment',
-                'Brand Funded Content Investment (7-Cat)', 'Brand Funded Content Cost (7-Cat)'
-            ]);
+            const dateFmt = 'mm/dd/yyyy';
 
             const statusLabels = {
                 closed_pending_verification: 'Pending Verification',
@@ -5443,48 +5762,198 @@
                 needs_reverification: 'Needs Re-Verification'
             };
 
-            deals.forEach(d => {
+            // Each row is built as a list of {header, value, format} cells —
+            // rather than a plain array of values with manually-tracked column
+            // indices for currency/percent formatting. With ~65 columns now
+            // (after adding the identification, overall-metric, and % of Total
+            // Investment fields), hand-tracking indices is exactly the kind of
+            // error-prone bookkeeping that caused real bugs earlier in this
+            // project. Formats are derived automatically from this list instead.
+            function buildDealRow(d) {
                 const c = d.categories;
                 const c4 = d.categories4;
+                const full = getDealFullDetail(d);
+                const overall = full.overallTotals;
+                const id = full.identification;
                 const verifiedAtDate = d.version.verifiedAt ? new Date(d.version.verifiedAt) : '';
-                const row = [
-                    d.project.projectName || '', d.project.brandName || '', d.project.subBrandName || '', d.project.agencyName || '',
-                    d.version.name || '', statusLabels[d.version.dealStatus] || d.version.dealStatus,
-                    d.isLive ? 'Live (unverified — will change if edited)' : 'Verified snapshot (frozen at verification)',
-                    d.version.verifiedBy || '', verifiedAtDate,
-                    d.version.verificationNotes || '',
-                    d.totalInvestment, d.totalCost, d.marginDollar, d.marginPercent / 100,
-                    c4.creative.investment, c4.creative.impressions, c4.creative.cpm, c4.creative.cost,
-                    c4.creative.marginDollar, (c4.creative.marginPercent || 0) / 100,
-                    c4.creative.marginNoFeesDollar, (c4.creative.marginNoFeesPercent || 0) / 100,
-                    c4.oo.investment, c4.oo.impressions, c4.oo.cpm, c4.oo.cost, c4.oo.marginDollar, (c4.oo.marginPercent || 0) / 100,
-                    c4.addedvalue.investment, c4.addedvalue.cost, c4.addedvalue.marginDollar,
-                    c4.brandfunded.investment, c4.brandfunded.cost, c4.brandfunded.marginDollar,
-                    c.talent.investment, c.talent.cost,
-                    c.media.investment, c.media.cost,
-                    c.social.investment, c.social.cost,
-                    c.streaming.investment, c.linear.investment, c.fees.investment,
-                    c.brandFunded.investment, c.brandFunded.cost
+
+                function pctOfTotal(investment) {
+                    return d.totalInvestment > 0 ? investment / d.totalInvestment : 0;
+                }
+
+                return [
+                    { value: id.projectName || '' },
+                    { value: id.brandName || '' },
+                    { value: id.subBrandName || '' },
+                    { value: id.agencyName || '' },
+                    { value: id.plannerName || '' },
+                    { value: id.plannerEmail || '' },
+                    { value: id.salesforceLink || '' },
+                    { value: id.campaignPeriod || '' },
+                    { value: id.versionName || '' },
+                    { value: statusLabels[d.version.dealStatus] || d.version.dealStatus },
+                    { value: d.isLive ? 'Live (unverified — will change if edited)' : 'Verified snapshot (frozen at verification)' },
+                    { value: d.version.verifiedBy || '' },
+                    { value: verifiedAtDate, format: verifiedAtDate ? dateFmt : null },
+                    { value: d.version.verificationNotes || '' },
+
+                    { value: overall.totalInvestment, format: currencyFmt },
+                    { value: overall.totalImpressions },
+                    { value: overall.overallCPM, format: currencyFmt },
+                    { value: overall.totalViews },
+                    { value: overall.overallCPV, format: currencyFmt },
+                    { value: overall.totalCost, format: currencyFmt },
+                    { value: overall.totalMarginDollar, format: currencyFmt },
+                    { value: overall.totalMarginPercent / 100, format: percentFmt },
+                    { value: overall.addedValueCost || 0, format: currencyFmt },
+                    { value: overall.addedValueValue || 0, format: currencyFmt },
+
+                    // 4-category breakdown (Creative / O&O / Added Value / Brand
+                    // Funded Content) — matches the "Investment Category
+                    // Breakdown" shown on the main Packages screen.
+                    { value: c4.creative.investment, format: currencyFmt },
+                    { value: pctOfTotal(c4.creative.investment), format: percentFmt },
+                    { value: c4.creative.impressions },
+                    { value: c4.creative.cpm, format: currencyFmt },
+                    { value: c4.creative.cost, format: currencyFmt },
+                    { value: c4.creative.marginDollar, format: currencyFmt },
+                    { value: (c4.creative.marginPercent || 0) / 100, format: percentFmt },
+                    { value: c4.creative.marginNoFeesDollar, format: currencyFmt },
+                    { value: (c4.creative.marginNoFeesPercent || 0) / 100, format: percentFmt },
+
+                    { value: c4.oo.investment, format: currencyFmt },
+                    { value: pctOfTotal(c4.oo.investment), format: percentFmt },
+                    { value: c4.oo.impressions },
+                    { value: c4.oo.cpm, format: currencyFmt },
+                    { value: c4.oo.cost, format: currencyFmt },
+                    { value: c4.oo.marginDollar, format: currencyFmt },
+                    { value: (c4.oo.marginPercent || 0) / 100, format: percentFmt },
+
+                    { value: c4.addedvalue.investment, format: currencyFmt },
+                    { value: pctOfTotal(c4.addedvalue.investment), format: percentFmt },
+                    { value: c4.addedvalue.cost, format: currencyFmt },
+                    { value: 'N/A' },
+
+                    { value: c4.brandfunded.investment, format: currencyFmt },
+                    { value: pctOfTotal(c4.brandfunded.investment), format: percentFmt },
+                    { value: c4.brandfunded.cost, format: currencyFmt },
+                    { value: c4.brandfunded.marginDollar, format: currencyFmt },
+
+                    // 7-category breakdown (Production & Talent / Paid Media /
+                    // Social Partnership / Streaming / Linear / Fees / Brand
+                    // Funded Content) — the more granular, component-level view
+                    // used in the Investment Breakdown (Beta) tab.
+                    { value: c.talent.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.talent.investment), format: percentFmt },
+                    { value: c.talent.cost, format: currencyFmt },
+
+                    { value: c.media.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.media.investment), format: percentFmt },
+                    { value: c.media.cost, format: currencyFmt },
+
+                    { value: c.social.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.social.investment), format: percentFmt },
+                    { value: c.social.cost, format: currencyFmt },
+
+                    { value: c.streaming.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.streaming.investment), format: percentFmt },
+
+                    { value: c.linear.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.linear.investment), format: percentFmt },
+
+                    { value: c.fees.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.fees.investment), format: percentFmt },
+
+                    { value: c.addedValue.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.addedValue.investment), format: percentFmt },
+                    { value: c.addedValue.cost, format: currencyFmt },
+
+                    { value: c.brandFunded.investment, format: currencyFmt },
+                    { value: pctOfTotal(c.brandFunded.investment), format: percentFmt },
+                    { value: c.brandFunded.cost, format: currencyFmt }
                 ];
-                rows.push(row);
+            }
+
+            const headerRow = [
+                'Project', 'Brand', 'Sub-Brand', 'Agency', 'Planner Name', 'Planner Email', 'Salesforce Link', 'Campaign Period',
+                'Version', 'Deal Status', 'Data Source', 'Verified By', 'Verified At', 'Verification Notes',
+                'Total Investment', 'Total Impressions', 'Overall CPM', 'Total Views', 'Overall CPV', 'Total Cost', 'Margin ($)', 'Margin (%)',
+                'Added Value Cost (tracked separately, not in Total Cost/Margin)', 'Added Value Notional Value',
+                'Creative Investment', 'Creative % of Total Investment', 'Creative Impressions', 'Creative CPM', 'Creative Cost',
+                'Creative Margin ($)', 'Creative Margin (%)', 'Creative Margin w/o Fees ($)', 'Creative Margin w/o Fees (%)',
+                'O&O Investment', 'O&O % of Total Investment', 'O&O Impressions', 'O&O CPM', 'O&O Cost', 'O&O Margin ($)', 'O&O Margin (%)',
+                'Added Value Investment (always $0)', 'Added Value % of Total Investment', 'Added Value Cost', 'Added Value Margin ($)',
+                'Brand Funded Content Investment', 'Brand Funded Content % of Total Investment', 'Brand Funded Content Cost', 'Brand Funded Content Margin ($)',
+                'Production & Talent Investment', 'Production & Talent % of Total Investment', 'Production & Talent Cost',
+                'Paid Media Investment', 'Paid Media % of Total Investment', 'Paid Media Cost',
+                'Social Partnership Investment', 'Social Partnership % of Total Investment', 'Social Partnership Cost',
+                'Streaming Investment', 'Streaming % of Total Investment',
+                'Linear Investment', 'Linear % of Total Investment',
+                'Fees Investment', 'Fees % of Total Investment',
+                'Added Value Investment (7-Cat)', 'Added Value % of Total Investment (7-Cat)', 'Added Value Cost (7-Cat)',
+                'Brand Funded Content Investment (7-Cat)', 'Brand Funded Content % of Total Investment (7-Cat)', 'Brand Funded Content Cost (7-Cat)'
+            ];
+
+            const rows = [headerRow];
+            const formats = [];
+            deals.forEach(d => {
+                const cells = buildDealRow(d);
+                rows.push(cells.map(cell => cell.value));
                 const rowIdx = rows.length - 1;
-                if (verifiedAtDate) formats.push([rowIdx, 8, 'mm/dd/yyyy']);
-                [10, 11, 12,
-                 14, 16, 17, 18, 20,
-                 22, 24, 25, 26,
-                 28, 29, 30,
-                 31, 32, 33,
-                 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44].forEach(col => formats.push([rowIdx, col, currencyFmt]));
-                [13, 19, 21, 27].forEach(col => formats.push([rowIdx, col, percentFmt]));
+                cells.forEach((cell, colIdx) => {
+                    if (cell.format) formats.push([rowIdx, colIdx, cell.format]);
+                });
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = rows[0].map(() => ({ wch: 20 }));
+            ws['!cols'] = headerRow.map(() => ({ wch: 20 }));
             formats.forEach(([row, col, fmt]) => {
                 const addr = XLSX.utils.encode_cell({ r: row, c: col });
                 if (ws[addr]) ws[addr].z = fmt;
             });
             XLSX.utils.book_append_sheet(wb, ws, 'Closed Deals');
+
+            // Package Detail sheet — one row per package across every exported
+            // deal, so the Excel export shows the same package-level detail as
+            // the "click to expand" overlay, not just deal-level rollups.
+            const pkgHeaderRow = [
+                'Project', 'Version', 'Package Title', 'Package Type', 'Investment', 'Cost',
+                'Margin ($)', 'Margin (%)', 'Metric', 'Metric Value', 'Pricing', 'Pricing Value', 'Notes'
+            ];
+            const pkgRows = [pkgHeaderRow];
+            const pkgFormats = [];
+            deals.forEach(d => {
+                const full = getDealFullDetail(d);
+                full.packages.forEach(pkg => {
+                    const cells = [
+                        { value: full.identification.projectName || '' },
+                        { value: full.identification.versionName || '' },
+                        { value: pkg.title || '' },
+                        { value: pkg.typeLabel || '' },
+                        { value: pkg.investment || 0, format: currencyFmt },
+                        { value: pkg.cost || 0, format: currencyFmt },
+                        { value: pkg.marginDollar || 0, format: currencyFmt },
+                        { value: (pkg.marginPercent || 0) / 100, format: percentFmt },
+                        { value: pkg.metricLabel || '' },
+                        { value: pkg.metricValue || 0 },
+                        { value: pkg.pricingLabel || '' },
+                        { value: pkg.pricingValue || 0, format: currencyFmt },
+                        { value: pkg.notes || '' }
+                    ];
+                    pkgRows.push(cells.map(cell => cell.value));
+                    const rowIdx = pkgRows.length - 1;
+                    cells.forEach((cell, colIdx) => {
+                        if (cell.format) pkgFormats.push([rowIdx, colIdx, cell.format]);
+                    });
+                });
+            });
+            const pkgWs = XLSX.utils.aoa_to_sheet(pkgRows);
+            pkgWs['!cols'] = pkgHeaderRow.map(() => ({ wch: 20 }));
+            pkgFormats.forEach(([row, col, fmt]) => {
+                const addr = XLSX.utils.encode_cell({ r: row, c: col });
+                if (pkgWs[addr]) pkgWs[addr].z = fmt;
+            });
+            XLSX.utils.book_append_sheet(wb, pkgWs, 'Package Detail');
 
             const dateStr = new Date().toISOString().split('T')[0];
             XLSX.writeFile(wb, `Closed_Deals_Export_${dateStr}.xlsx`);
@@ -8076,6 +8545,7 @@
                 totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
                 totalImpressions, totalCPMInvestment, totalCost,
                 totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                addedValueCost, addedValueValue,
                 overallCPM, overallCPV
             } = calculateOverallTotals(packages);
             
@@ -8135,6 +8605,12 @@
                     <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Media Placements Cost</div>
                     <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(totalMediaCost)}</div>
                 </div>
+                ${addedValueCost > 0 ? `
+                <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;" title="Tracked separately — not included in Total Cost or Total Margin above, since it isn't tied to anything actually sold.">
+                    <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Added Value Cost</div>
+                    <div class="summary-value" style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 6px;">$${formatNumber(addedValueCost)}</div>
+                </div>
+                ` : ''}
                 <div class="summary-card" style="background: white; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border-radius: 6px; padding: 12px;">
                     <div class="summary-label" style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Total Margin</div>
                     <div class="summary-value success" style="font-size: 18px; font-weight: 700; color: var(--success); margin-top: 6px;">$${formatNumber(totalMarginDollar)}</div>
@@ -8154,7 +8630,7 @@
             
             // Display investment category breakdown
             const categoryHTML = Object.entries(categories)
-                .filter(([key, cat]) => cat.investment > 0) // Show if has investment (not just package count)
+                .filter(([key, cat]) => cat.investment > 0 || cat.cost > 0) // Show if has investment OR cost — Added Value always has $0 investment by design, so investment alone would never surface it
                 .map(([key, cat]) => {
                     const marginPercent = cat.investment > 0 ? ((cat.margin / cat.investment) * 100) : 0;
                     const cpm = cat.impressions > 0 ? (cat.investment / cat.impressions * 1000) : 0;
@@ -8201,7 +8677,7 @@
                                     </div>
                                     <div class="summary-card">
                                         <div class="summary-label">Margin</div>
-                                        <div class="summary-value" style="color: var(--danger);">$${formatNumber(cat.margin)}</div>
+                                        <div class="summary-value" style="color: var(--text-muted);" title="Margin isn't a meaningful concept for Added Value — its cost is tracked separately and doesn't offset against any investment.">N/A</div>
                                     </div>
                                 ` : `
                                     <div class="summary-card">
@@ -10016,6 +10492,7 @@
                 totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
                 totalImpressions, totalCPMInvestment, totalCost,
                 totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                addedValueCost, addedValueValue,
                 overallCPM, overallCPV
             } = calculateOverallTotals(packages);
 
@@ -10051,6 +10528,7 @@
                         ` : ''}
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Production & Talent Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalTalentCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Media Placements Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(totalMediaCost)}</td></tr>
+                        ${addedValueCost > 0 ? `<tr style="border-bottom: 1px solid var(--border);" title="Tracked separately — not included in Total Cost or Total Margin, since it isn't tied to anything actually sold."><td style="padding: 0.75rem;">Added Value Cost</td><td style="padding: 0.75rem; text-align: right;">$${formatNumber(addedValueCost)}</td></tr>` : ''}
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Cost</td><td style="padding: 0.75rem; text-align: right; font-weight: bold;">$${formatNumber(totalCost)}</td></tr>
                         <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 0.75rem;">Total Margin</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">$${formatNumber(totalMarginDollar)}</td></tr>
                         <tr><td style="padding: 0.75rem;">Margin %</td><td style="padding: 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">${totalMarginPercent.toFixed(3)}%</td></tr>
@@ -10061,7 +10539,7 @@
              // Investment Category Breakdown
              const categories = calculateInvestmentCategoryBreakdown(packages);
              
-            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
+            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0 || cat.cost > 0);
             
             if (categoriesWithData.length > 0) {
                 html += `<h3 style="color: var(--primary); margin: 2rem 0 1rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem;">INVESTMENT CATEGORY BREAKDOWN</h3>`;
@@ -10149,7 +10627,15 @@
         }
         
         function investmentBreakdownTableHTML(cats, showZeroRows) {
-            const rows = Object.values(cats).filter(cat => showZeroRows || cat.investment !== 0 || cat.cost !== 0);
+            // Added Value is pulled out of the main rows and the Total row's
+            // sum entirely — its cost isn't tied to anything sold, so it
+            // shouldn't be blended into the Total Investment Breakdown's
+            // totals. It's rendered as its own line below the Total instead,
+            // with "N/A" for margin since that concept doesn't apply to it.
+            const allRows = Object.values(cats).filter(cat => showZeroRows || cat.investment !== 0 || cat.cost !== 0);
+            const addedValueRow = allRows.find(cat => cat.label === 'Added Value');
+            const rows = allRows.filter(cat => cat.label !== 'Added Value');
+
             const totalInvestment = rows.reduce((sum, c) => sum + c.investment, 0);
             const totalCost = rows.reduce((sum, c) => sum + c.cost, 0);
             const totalMarginDollar = totalInvestment - totalCost;
@@ -10187,6 +10673,15 @@
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">$${formatNumber(totalMarginDollar)}</td>
                             <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: bold; color: ${getMarginColor(totalMarginPercent)};">${totalMarginPercent.toFixed(3)}%</td>
                         </tr>
+                        ${addedValueRow && (showZeroRows || addedValueRow.investment !== 0 || addedValueRow.cost !== 0) ? `
+                        <tr style="border-top: 2px solid var(--border);" title="Added Value is shown separately, below the Total — its cost isn't tied to anything sold, so it's excluded from the Total row above.">
+                            <td style="padding: 0.6rem 0.75rem; font-style: italic;">${addedValueRow.label}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 600;">$${formatNumber(addedValueRow.investment)}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right; color: var(--danger);">${addedValueRow.hasCost ? '$' + formatNumber(addedValueRow.cost) : '—'}</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right;">N/A</td>
+                            <td style="padding: 0.6rem 0.75rem; text-align: right;">N/A</td>
+                        </tr>
+                        ` : ''}
                     </tbody>
                 </table>
             `;
@@ -10948,6 +11443,7 @@
                 totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
                 totalImpressions, totalCPMInvestment, totalCost,
                 totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                addedValueCost, addedValueValue,
                 overallCPM, overallCPV
             } = calculateOverallTotals(packages);
             
@@ -11017,6 +11513,7 @@
                     ] : []),
                     ['Production & Talent Cost', '$' + formatNumber(totalTalentCost)],
                     ['Media Placements Cost', '$' + formatNumber(totalMediaCost)],
+                    ...(addedValueCost > 0 ? [['Added Value Cost (tracked separately, not in Total Cost/Margin)', '$' + formatNumber(addedValueCost)]] : []),
                     ['Total Cost', '$' + formatNumber(totalCost)],
                     ['Total Margin', '$' + formatNumber(totalMarginDollar)],
                     ['Margin %', totalMarginPercent.toFixed(3) + '%']
@@ -11035,7 +11532,7 @@
             
             // Investment Category Breakdown
             const categories = calculateInvestmentCategoryBreakdown(packages);
-            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0);
+            const categoriesWithData = Object.values(categories).filter(cat => cat.investment > 0 || cat.cost > 0);
             
             if (categoriesWithData.length > 0 && yPos < 250) {
                 doc.setFontSize(12);
@@ -11124,7 +11621,15 @@
                 doc.text(title, 14, yPos);
                 yPos += 5;
 
-                const rows = Object.values(cats).map(cat => {
+                // Added Value is excluded from the Total row's sum and shown
+                // as its own line below it — its cost isn't tied to anything
+                // sold, so it shouldn't be blended into the Total, and margin
+                // isn't a meaningful concept for it.
+                const allCats = Object.values(cats);
+                const addedValueCat = allCats.find(cat => cat.label === 'Added Value');
+                const mainCats = allCats.filter(cat => cat.label !== 'Added Value');
+
+                const rows = mainCats.map(cat => {
                     const marginDollar = cat.investment - cat.cost;
                     const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
                     return [
@@ -11135,11 +11640,14 @@
                         marginPercent.toFixed(3) + '%'
                     ];
                 });
-                const totalInvestment = Object.values(cats).reduce((s, c) => s + c.investment, 0);
-                const totalCost = Object.values(cats).reduce((s, c) => s + c.cost, 0);
+                const totalInvestment = mainCats.reduce((s, c) => s + c.investment, 0);
+                const totalCost = mainCats.reduce((s, c) => s + c.cost, 0);
                 const totalMarginDollar = totalInvestment - totalCost;
                 const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
                 rows.push(['Total', '$' + formatNumber(totalInvestment), '$' + formatNumber(totalCost), '$' + formatNumber(totalMarginDollar), totalMarginPercent.toFixed(3) + '%']);
+                if (addedValueCat && (addedValueCat.investment !== 0 || addedValueCat.cost !== 0)) {
+                    rows.push([addedValueCat.label, '$' + formatNumber(addedValueCat.investment), addedValueCat.hasCost ? '$' + formatNumber(addedValueCat.cost) : '—', 'N/A', 'N/A']);
+                }
 
                 doc.autoTable({
                     startY: yPos,
@@ -11984,6 +12492,7 @@
                     totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
                     totalImpressions, totalCPMInvestment, totalCost,
                     totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                    addedValueCost, addedValueValue,
                     overallCPM, overallCPV
                 } = calculateOverallTotals(packages);
 
@@ -11997,6 +12506,10 @@
                 }
                 summaryData.push(['Production & Talent Cost', totalTalentCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                 summaryData.push(['Media Placements Cost', totalMediaCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                if (addedValueCost > 0) {
+                    summaryData.push(['Added Value Cost (tracked separately, not in Total Cost/Margin)', addedValueCost]);
+                    summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                }
                 summaryData.push(['Total Cost', totalCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                 summaryData.push(['Total Margin', totalMarginDollar]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                 summaryData.push(['Margin %', totalMarginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
@@ -12009,16 +12522,31 @@
                 summaryData.push([]);
                 Object.values(catDefs).forEach(cat => {
                     if (cat.count > 0) {
-                        const margin = cat.investment - cat.cost;
-                        const marginPercent = cat.investment > 0 ? (margin / cat.investment) * 100 : 0;
                         summaryData.push([`${cat.label} (${cat.count} package${cat.count !== 1 ? 's' : ''})`]);
-                        summaryData.push(['Investment', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
-                        if (cat.impressions > 0) {
-                            summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                        if (cat.label === 'Added Value') {
+                            // Added Value doesn't have a meaningful "margin" —
+                            // its cost is tracked separately, not offset
+                            // against any investment, matching the treatment
+                            // used everywhere else this category is shown.
+                            summaryData.push(['Client Price', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            summaryData.push(['Value Provided', cat.value]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            if (cat.impressions > 0) {
+                                summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                            }
+                            summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            summaryData.push(['Margin ($)', 'N/A']);
+                            summaryData.push(['Margin (%)', 'N/A']);
+                        } else {
+                            const margin = cat.investment - cat.cost;
+                            const marginPercent = cat.investment > 0 ? (margin / cat.investment) * 100 : 0;
+                            summaryData.push(['Investment', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            if (cat.impressions > 0) {
+                                summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                            }
+                            summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            summaryData.push(['Margin ($)', margin]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            summaryData.push(['Margin (%)', marginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
                         }
-                        summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
-                        summaryData.push(['Margin ($)', margin]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
-                        summaryData.push(['Margin (%)', marginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
                         summaryData.push([]);
                     }
                 });
@@ -12114,7 +12642,14 @@
                 function pushInvestmentBreakdownSection(rows, formats, sectionTitle, cats) {
                     rows.push([sectionTitle]);
                     rows.push(['Category', 'Investment', 'Cost', 'Margin ($)', 'Margin (%)']);
-                    Object.values(cats).forEach(cat => {
+                    // Added Value is excluded from the Total row's sum and
+                    // pushed as its own line below it — its cost isn't tied to
+                    // anything sold, so it shouldn't be blended into the
+                    // Total, and margin isn't a meaningful concept for it.
+                    const allCats = Object.values(cats);
+                    const addedValueCat = allCats.find(cat => cat.label === 'Added Value');
+                    const mainCats = allCats.filter(cat => cat.label !== 'Added Value');
+                    mainCats.forEach(cat => {
                         const marginDollar = cat.investment - cat.cost;
                         const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
                         rows.push([cat.label, cat.investment, cat.hasCost ? cat.cost : '—', marginDollar, marginPercent / 100]);
@@ -12123,13 +12658,18 @@
                         formats.push([rows.length - 1, 3, currencyFmt]);
                         formats.push([rows.length - 1, 4, percentFmt]);
                     });
-                    const totalInvestment = Object.values(cats).reduce((s, c) => s + c.investment, 0);
-                    const totalCost = Object.values(cats).reduce((s, c) => s + c.cost, 0);
+                    const totalInvestment = mainCats.reduce((s, c) => s + c.investment, 0);
+                    const totalCost = mainCats.reduce((s, c) => s + c.cost, 0);
                     const totalMarginDollar = totalInvestment - totalCost;
                     const totalMarginPercent = totalInvestment > 0 ? (totalMarginDollar / totalInvestment) * 100 : 0;
                     rows.push(['Total', totalInvestment, totalCost, totalMarginDollar, totalMarginPercent / 100]);
                     [1, 2, 3].forEach(col => formats.push([rows.length - 1, col, currencyFmt]));
                     formats.push([rows.length - 1, 4, percentFmt]);
+                    if (addedValueCat && (addedValueCat.investment !== 0 || addedValueCat.cost !== 0)) {
+                        rows.push([addedValueCat.label, addedValueCat.investment, addedValueCat.hasCost ? addedValueCat.cost : '—', 'N/A', 'N/A']);
+                        formats.push([rows.length - 1, 1, currencyFmt]);
+                        if (addedValueCat.hasCost) formats.push([rows.length - 1, 2, currencyFmt]);
+                    }
                     rows.push([]);
                 }
 
@@ -14969,7 +15509,8 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 streaming: { label: 'Streaming', investment: 0, cost: 0, hasCost: false },
                 linear: { label: 'Linear', investment: 0, cost: 0, hasCost: false },
                 fees: { label: 'Fees', investment: 0, cost: 0, hasCost: false },
-                brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true }
+                brandFunded: { label: 'Brand Funded Content', investment: 0, cost: 0, hasCost: true },
+                addedValue: { label: 'Added Value', investment: 0, cost: 0, hasCost: true }
             };
         }
 
@@ -14989,7 +15530,17 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
         // the PDF export's copy having drifted out of sync (missing the
         // CPV/CPM separation fix, and deriving Media Cost differently).
         function calculateOverallTotals(packages) {
-            const totalPrice = packages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
+            // Added Value packages represent bonus/no-charge value given to
+            // the client — they carry a cost to provide, but that cost isn't
+            // tied to anything actually sold, so it shouldn't drag down the
+            // margin math for the rest of the deal. Everything below that
+            // feeds Total Investment / Total Cost / Total Margin excludes
+            // them; their cost and notional value are tracked separately
+            // instead, never blended in.
+            const nonAddedValuePackages = packages.filter(pkg => pkg.type !== 'added-value');
+            const addedValuePackages = packages.filter(pkg => pkg.type === 'added-value');
+
+            const totalPrice = nonAddedValuePackages.reduce((sum, pkg) => sum + pkg.totalInvestment, 0);
 
             // Separate CPV packages from CPM packages
             const hasCPVPackages = packages.some(pkg =>
@@ -15024,11 +15575,16 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 }
             });
 
-            const totalCost = packages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
-            const totalTalentCost = packages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
-            const totalMediaCost = packages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
+            const totalCost = nonAddedValuePackages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
+            const totalTalentCost = nonAddedValuePackages.reduce((sum, pkg) => sum + (pkg.talentCost || 0), 0);
+            const totalMediaCost = nonAddedValuePackages.reduce((sum, pkg) => sum + (pkg.mediaCost || 0), 0);
             const totalMarginDollar = totalPrice - totalCost;
             const totalMarginPercent = (totalPrice > 0) ? (totalMarginDollar / totalPrice) * 100 : 0;
+
+            // Added Value's own cost and notional value, tracked separately —
+            // never blended into totalCost/totalMarginDollar/totalMarginPercent above.
+            const addedValueCost = addedValuePackages.reduce((sum, pkg) => sum + (pkg.totalCost || 0), 0);
+            const addedValueValue = addedValuePackages.reduce((sum, pkg) => sum + (pkg.totalValue || 0), 0);
 
             // Calculate CPM only from non-CPV packages
             const overallCPM = (totalImpressions > 0 && totalCPMInvestment > 0)
@@ -15044,6 +15600,7 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                 totalPrice, hasCPVPackages, totalViews, totalCPVInvestment,
                 totalImpressions, totalCPMInvestment, totalCost,
                 totalTalentCost, totalMediaCost, totalMarginDollar, totalMarginPercent,
+                addedValueCost, addedValueValue,
                 overallCPM, overallCPV
             };
         }
@@ -15093,11 +15650,13 @@ Media %: ${document.getElementById('bl-c-output-media-pct').textContent}`;
                     cats.brandFunded.investment += (pkg.totalInvestment || 0);
                     cats.brandFunded.cost += (pkg.totalCost || 0);
                 } else if (pkg.type === 'added-value') {
-                    if (pkg.addedValueType === 'talent') {
-                        cats.talent.cost += (pkg.totalCost || 0);
-                    } else if (pkg.addedValueType === 'distribution') {
-                        cats.media.cost += (pkg.totalCost || 0);
-                    }
+                    // Added Value now gets its own explicit category, rather
+                    // than being folded into Production & Talent / Paid Media
+                    // based on its sub-type — this money represents bonus
+                    // value given to the client, not a paid placement, so it
+                    // shouldn't be mixed into either of those "real" categories.
+                    cats.addedValue.investment += (pkg.totalInvestment || 0);
+                    cats.addedValue.cost += (pkg.totalCost || 0);
                 }
             });
             return cats;
