@@ -97,6 +97,7 @@
     <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
 @font-face {
@@ -3047,7 +3048,11 @@
                 <p style="color: var(--text-muted); font-size: 1rem;">Versions marked as the closed/sold plan across all projects, with Finance/Ops verification status</p>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <span id="supabaseSyncIndicator" style="display: none; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: #92400E; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px; padding: 0.4rem 0.75rem;">
+                    ⏳ <span class="sync-count">0</span> deal(s) not yet synced to the shared list
+                    <button class="btn-secondary btn-sm" onclick="retryPendingSupabaseSyncs().then(() => renderClosedDealsList())" style="margin-left: 0.25rem;">Retry Now</button>
+                </span>
                 <button class="btn-primary" onclick="exportClosedDeals()">📊 Export Closed Deals to Excel</button>
             </div>
 
@@ -3977,6 +3982,8 @@
             displayProjects();
             showScreen('screen-0');
             initializeInputFormatting();
+            updateSupabaseSyncIndicator();
+            retryPendingSupabaseSyncs(); // pick up anything left unsynced from a previous session
             
             // Add warning when closing browser with unsaved changes
             window.addEventListener('beforeunload', function(e) {
@@ -5085,6 +5092,7 @@
         // creating an accountability trail rather than real access control.
 
         function markVersionClosed(projectIndexOrNull, versionIndex) {
+            const project = currentProject;
             const version = currentProject.versions[versionIndex];
             showConfirm(
                 `Mark "${version.name || 'this version'}" as the closed/sold version of this plan? A Finance/Ops team member or Manager will still need to verify it before it counts as confirmed.`,
@@ -5093,6 +5101,14 @@
                     version.markedClosedAt = new Date().toISOString();
                     saveProjects();
                     displayVersions();
+
+                    const dealId = `${project.id}::${version.id}`;
+                    const overall = calculateOverallTotals(version.packages || []);
+                    syncDealToSupabase({
+                        dealId, project, version,
+                        totalInvestment: overall.totalPrice,
+                        marginPercent: overall.totalMarginPercent
+                    });
                 },
                 'Mark as Closed',
                 'btn-primary'
@@ -5100,6 +5116,7 @@
         }
 
         function unmarkVersionClosed(versionIndex) {
+            const project = currentProject;
             const version = currentProject.versions[versionIndex];
             showConfirm(
                 `Remove the closed-deal status from "${version.name || 'this version'}"? Any existing verification will be cleared.`,
@@ -5112,6 +5129,9 @@
                     delete version.dealSnapshot;
                     saveProjects();
                     displayVersions();
+
+                    deleteDealFromSupabase(`${project.id}::${version.id}`);
+                    clearDealPendingSync(`${project.id}::${version.id}`);
                 },
                 'Remove Closed Status',
                 'btn-danger'
@@ -5124,6 +5144,167 @@
         let closedDealsSelectedIds = new Set();
         let closedDealsExpandedIds = new Set();
         let closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
+
+        // ====================================================================
+        // SHARED CLOSED DEAL STORAGE (Supabase)
+        // ====================================================================
+        // Closed Deal tracking is the one part of this app that's genuinely
+        // shared across everyone who uses it — everything else (draft
+        // projects, in-progress versions) stays local to each person's
+        // browser, matching how the app has always worked. Only verified/
+        // pending-verification deals sync to a shared table.
+        //
+        // Design: local save always happens first and instantly — nothing
+        // about marking a deal closed or verifying it should ever be blocked
+        // by network conditions. The push to Supabase happens in the
+        // background afterward; if it fails, the deal is queued and retried
+        // automatically (on next load, or when manually triggered), rather
+        // than silently lost. Reading the Closed Deals list prefers the
+        // shared table (so everyone sees the same data) but falls back to
+        // local data with a clear "offline" note if Supabase is unreachable.
+        const SUPABASE_URL = 'https://xybahqtnyviofvynljhw.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_klh9Ue6-vG4aQ3XpeFBQHg_0h5gGvsm';
+        let supabaseClient = null;
+        function getSupabaseClient() {
+            if (supabaseClient) return supabaseClient;
+            if (typeof supabase === 'undefined' || !supabase.createClient) return null; // CDN not loaded (offline, or blocked)
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            return supabaseClient;
+        }
+
+        function getPendingSupabaseSyncs() {
+            try {
+                return JSON.parse(localStorage.getItem('mediaPlanner_pendingSupabaseSyncs') || '[]');
+            } catch (e) { return []; }
+        }
+        function setPendingSupabaseSyncs(dealIds) {
+            localStorage.setItem('mediaPlanner_pendingSupabaseSyncs', JSON.stringify(dealIds));
+        }
+        function markDealPendingSync(dealId) {
+            const pending = getPendingSupabaseSyncs();
+            if (!pending.includes(dealId)) {
+                pending.push(dealId);
+                setPendingSupabaseSyncs(pending);
+            }
+        }
+        function clearDealPendingSync(dealId) {
+            setPendingSupabaseSyncs(getPendingSupabaseSyncs().filter(id => id !== dealId));
+        }
+
+        // Builds the Supabase row for a tracked deal, using the same
+        // full-detail derivation the overlay and Excel export already use —
+        // so the shared record always matches what's shown locally.
+        function buildSupabaseDealRow(deal) {
+            // For a deal that hasn't been verified yet (no frozen snapshot),
+            // build one fresh from the current live state rather than a
+            // partial reconstruction — captureDealSnapshot() doesn't actually
+            // require verification, it just needs a project/version, so this
+            // guarantees the shared table always gets the complete shape
+            // (including both category breakdowns), not just identification/
+            // overallTotals/packages, regardless of verification status. This
+            // live-built snapshot is never saved back onto the version itself
+            // — only a real verification does that — it's purely for what
+            // gets synced right now.
+            const snapshotForSync = deal.version.dealSnapshot || captureDealSnapshot(deal.project, deal.version);
+            return {
+                deal_id: deal.dealId,
+                project_id: deal.project.id,
+                version_id: deal.version.id,
+                project_name: deal.project.projectName || '',
+                brand_name: deal.project.brandName || '',
+                sub_brand_name: deal.project.subBrandName || '',
+                agency_name: deal.project.agencyName || '',
+                version_name: deal.version.name || '',
+                deal_status: deal.version.dealStatus,
+                verified_by: deal.version.verifiedBy || null,
+                verified_at: deal.version.verifiedAt || null,
+                verification_notes: deal.version.verificationNotes || null,
+                marked_closed_at: deal.version.markedClosedAt || null,
+                total_investment: deal.totalInvestment,
+                total_margin_percent: deal.marginPercent,
+                snapshot: snapshotForSync,
+                updated_at: new Date().toISOString()
+            };
+        }
+
+        // Pushes one deal to Supabase in the background. Never blocks the
+        // caller — local save has already happened by the time this runs.
+        async function syncDealToSupabase(deal) {
+            const dealId = deal.dealId;
+            const client = getSupabaseClient();
+            if (!client) { markDealPendingSync(dealId); updateSupabaseSyncIndicator(); return false; }
+            try {
+                const row = buildSupabaseDealRow(deal);
+                const { error } = await client.from('closed_deals').upsert(row, { onConflict: 'deal_id' });
+                if (error) throw error;
+                clearDealPendingSync(dealId);
+                updateSupabaseSyncIndicator();
+                return true;
+            } catch (e) {
+                console.error('Supabase sync failed, queued for retry:', e);
+                markDealPendingSync(dealId);
+                updateSupabaseSyncIndicator();
+                return false;
+            }
+        }
+
+        // Retries every deal currently queued as unsynced. Safe to call
+        // repeatedly (e.g. on page load, or a manual "Retry Sync" click).
+        async function retryPendingSupabaseSyncs() {
+            const pending = getPendingSupabaseSyncs();
+            if (pending.length === 0) return;
+            const allDeals = collectAllTrackedDeals();
+            for (const dealId of pending) {
+                const deal = allDeals.find(d => d.dealId === dealId);
+                if (deal) await syncDealToSupabase(deal);
+            }
+        }
+
+        // Fetches the full shared Closed Deals list from Supabase. Returns
+        // null (not an empty array) on failure, so callers can distinguish
+        // "genuinely no deals yet" from "couldn't reach the shared table".
+        async function fetchSharedClosedDeals() {
+            const client = getSupabaseClient();
+            if (!client) return null;
+            try {
+                const { data, error } = await client.from('closed_deals').select('*');
+                if (error) throw error;
+                return data;
+            } catch (e) {
+                console.error('Could not fetch shared Closed Deals from Supabase:', e);
+                return null;
+            }
+        }
+
+        // Removes a deal's shared record entirely — used when a version's
+        // closed-deal tracking is removed locally, so a stale record doesn't
+        // linger in the shared table after someone's undone the tracking.
+        // Best-effort: if this fails while offline, the stale record is left
+        // in place rather than queued for retry (a minor cosmetic gap, not a
+        // data-loss risk) — retrying deletes would need a second queue with
+        // different semantics than the upsert-retry queue above.
+        async function deleteDealFromSupabase(dealId) {
+            const client = getSupabaseClient();
+            if (!client) return;
+            try {
+                const { error } = await client.from('closed_deals').delete().eq('deal_id', dealId);
+                if (error) throw error;
+            } catch (e) {
+                console.error('Could not delete shared record from Supabase (will remain until manually removed):', e);
+            }
+        }
+
+        function updateSupabaseSyncIndicator() {
+            const el = document.getElementById('supabaseSyncIndicator');
+            if (!el) return;
+            const pending = getPendingSupabaseSyncs();
+            if (pending.length === 0) {
+                el.style.display = 'none';
+            } else {
+                el.style.display = 'inline-flex';
+                el.querySelector('.sync-count').textContent = pending.length;
+            }
+        }
 
         function openVerifyDealModal(versionIndex) {
             const version = currentProject.versions[versionIndex];
@@ -5239,6 +5420,7 @@
                 return;
             }
             const notes = document.getElementById('verifyDealNotes').value.trim();
+            const project = currentProject;
             const version = currentProject.versions[verifyDealVersionIndex];
             version.dealStatus = 'verified';
             version.verifiedBy = name;
@@ -5249,6 +5431,15 @@
             verifyDealVersionIndex = null;
             saveProjects();
             displayVersions();
+
+            // Local save is done — now sync to the shared table in the
+            // background. Never blocks the UI; queued for retry if it fails.
+            const dealId = `${project.id}::${version.id}`;
+            syncDealToSupabase({
+                dealId, project, version,
+                totalInvestment: version.dealSnapshot.overallTotals.totalInvestment,
+                marginPercent: version.dealSnapshot.overallTotals.totalMarginPercent
+            });
         }
 
         // Call this after any edit that changes a version's packages/content.
@@ -5518,10 +5709,80 @@
             `;
         }
 
-        function renderClosedDealsList() {
+        // Converts a Supabase row (flat columns + a snapshot JSONB blob) back
+        // into the same shape collectAllTrackedDeals() produces locally, so
+        // the exact same rendering functions (this list, the detail overlay,
+        // aggregation) work identically regardless of where the data came from.
+        function supabaseRowToDealShape(row) {
+            const snapshot = row.snapshot || {};
+            const hasRealSnapshot = !!snapshot.identification;
+            const fakeProject = {
+                id: row.project_id, projectName: row.project_name, brandName: row.brand_name,
+                subBrandName: row.sub_brand_name, agencyName: row.agency_name
+            };
+            const fakeVersion = {
+                id: row.version_id, name: row.version_name, dealStatus: row.deal_status,
+                verifiedBy: row.verified_by, verifiedAt: row.verified_at,
+                verificationNotes: row.verification_notes, markedClosedAt: row.marked_closed_at,
+                dealSnapshot: hasRealSnapshot ? snapshot : null, packages: []
+            };
+            const categories = snapshot.categoryBreakdown7 ? Object.fromEntries(
+                Object.entries(snapshot.categoryBreakdown7).map(([key, cat]) => [key, {
+                    label: cat.label, investment: cat.investment,
+                    cost: cat.cost === null ? 0 : cat.cost, hasCost: cat.cost !== null
+                }])
+            ) : {};
+            return {
+                dealId: row.deal_id, project: fakeProject, version: fakeVersion,
+                totalInvestment: row.total_investment || 0,
+                totalCost: snapshot.overallTotals ? snapshot.overallTotals.totalCost : 0,
+                marginDollar: snapshot.overallTotals ? snapshot.overallTotals.totalMarginDollar : 0,
+                marginPercent: row.total_margin_percent || 0,
+                isLive: !hasRealSnapshot,
+                categories, categories4: snapshot.categoryBreakdown4 || {}
+            };
+        }
+
+        // Entry point: tries the shared table first (so everyone sees the
+        // same list), falls back to local-only data with a visible "offline"
+        // note if Supabase can't be reached. Also retries any locally-queued
+        // syncs while it's at it.
+        // Cache of the last successful fetch — local-only UI actions (expand
+        // a row, change a filter, toggle a selection) re-render from this
+        // cache instead of re-fetching from Supabase every single click,
+        // which would otherwise make simple UI interactions feel sluggish
+        // and waste network calls for data that hasn't actually changed.
+        // Only renderClosedDealsList() itself (called on tab switch, or
+        // explicit Retry) does a fresh fetch.
+        let cachedClosedDeals = null;
+        let cachedClosedDealsOffline = false;
+
+        function rerenderClosedDealsFromCache() {
+            const deals = cachedClosedDeals !== null ? cachedClosedDeals : collectAllTrackedDeals();
+            renderClosedDealsListWithData(deals, cachedClosedDealsOffline);
+        }
+
+        async function renderClosedDealsList() {
             const container = document.getElementById('closedDealsListContainer');
             if (!container) return;
-            const allDeals = collectAllTrackedDeals();
+            container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading shared Closed Deals...</div>`;
+
+            retryPendingSupabaseSyncs(); // fire and forget, don't block the render below
+
+            const sharedRows = await fetchSharedClosedDeals();
+            if (sharedRows !== null) {
+                cachedClosedDeals = sharedRows.map(supabaseRowToDealShape);
+                cachedClosedDealsOffline = false;
+            } else {
+                cachedClosedDeals = collectAllTrackedDeals();
+                cachedClosedDealsOffline = true;
+            }
+            renderClosedDealsListWithData(cachedClosedDeals, cachedClosedDealsOffline);
+        }
+
+        function renderClosedDealsListWithData(allDeals, isOffline) {
+            const container = document.getElementById('closedDealsListContainer');
+            if (!container) return;
 
             if (allDeals.length === 0) {
                 container.innerHTML = `
@@ -5551,6 +5812,11 @@
             closedDealsSelectedIds.forEach(id => { if (!visibleIds.has(id)) closedDealsSelectedIds.delete(id); });
 
             container.innerHTML = `
+                ${isOffline ? `
+                <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; font-size: 0.875rem; color: #92400E;">
+                    ⚠ Couldn't reach the shared Closed Deals table — showing this browser's local data only, which may not reflect everyone's latest verified deals. <button class="btn-secondary btn-sm" onclick="renderClosedDealsList()" style="margin-left: 0.5rem;">Retry</button>
+                </div>
+                ` : ''}
                 <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1rem; padding: 0.875rem 1rem; background: var(--background); border-radius: 8px; border: 1px solid var(--border);">
                     <div>
                         <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Brand</label>
@@ -5625,12 +5891,12 @@
 
         function updateClosedDealsFilter(key, value) {
             closedDealsFilters[key] = value;
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         function clearClosedDealsFilters() {
             closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         function toggleClosedDealExpand(dealId) {
@@ -5639,7 +5905,7 @@
             } else {
                 closedDealsExpandedIds.add(dealId);
             }
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         function toggleClosedDealSelect(dealId) {
@@ -5648,11 +5914,11 @@
             } else {
                 closedDealsSelectedIds.add(dealId);
             }
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         function selectAllVisibleClosedDeals() {
-            const allDeals = collectAllTrackedDeals();
+            const allDeals = cachedClosedDeals !== null ? cachedClosedDeals : collectAllTrackedDeals();
             const deals = allDeals.filter(d => {
                 if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
                 if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
@@ -5662,12 +5928,12 @@
                 return true;
             });
             deals.forEach(d => closedDealsSelectedIds.add(d.dealId));
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         function clearClosedDealsSelection() {
             closedDealsSelectedIds.clear();
-            renderClosedDealsList();
+            rerenderClosedDealsFromCache();
         }
 
         // Combines category breakdown data (either the 4-category or
@@ -5697,7 +5963,7 @@
         }
 
         function aggregateClosedDeals(mode) {
-            const allDeals = collectAllTrackedDeals();
+            const allDeals = cachedClosedDeals !== null ? cachedClosedDeals : collectAllTrackedDeals();
             const filtered = allDeals.filter(d => {
                 if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
                 if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
