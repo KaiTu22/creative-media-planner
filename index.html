@@ -4438,7 +4438,10 @@
                         <button onclick="event.stopPropagation();moveProject(${index},-1)" ${index===0?'disabled':''} class="btn-secondary btn-sm" style="padding:2px 6px;font-size:0.7rem;line-height:1;">▲</button>
                         <button onclick="event.stopPropagation();moveProject(${index},1)" ${index===projects.length-1?'disabled':''} class="btn-secondary btn-sm" style="padding:2px 6px;font-size:0.7rem;line-height:1;">▼</button>
                     </div>` : '';
-                const folderOpts = folders.map(f => '<option value="'+f.id+'" '+(project.projectFolderId===f.id?'selected':'')+'>'+escapeHtml(f.name)+'</option>').join('');
+                const folderOpts = [...folders]
+                    .map(f => ({ f, path: getProjectFolderPath(f.id, folders) }))
+                    .sort((a, b) => a.path.localeCompare(b.path))
+                    .map(({ f, path }) => '<option value="'+f.id+'" '+(project.projectFolderId===f.id?'selected':'')+'>'+escapeHtml(path)+'</option>').join('');
                 const folderSelect = folders.length > 0 ? `<select onchange="moveProjectToFolder(${index},this.value)" onclick="event.stopPropagation()" style="font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-muted);cursor:pointer;max-width:110px;"><option value="">📁 Move to...</option><option value="__none__" ${!project.projectFolderId?'selected':''}>No folder</option>${folderOpts}</select>` : '';
                 const sfBtn = project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration:none;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center;gap:3px;line-height:1.25;box-sizing:border-box;font-family:inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : '';
                 const bsBtn = project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration:none;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center;gap:3px;line-height:1.25;box-sizing:border-box;font-family:inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : '';
@@ -4468,28 +4471,41 @@
 
             let html = '';
 
-            // Render folders first
-            folders.forEach(folder => {
+            // Render folders first, as a recursive tree (folders can now
+            // contain sub-folders, which can contain sub-sub-folders).
+            function renderFolderNode(folder, depth) {
                 const folderIndices = sortedIndices.filter(i => projects[i].projectFolderId === folder.id);
-                const isCollapsed = collapsedProjectFolders[folder.id];
+                const childFolders = folders.filter(f => f.parentId === folder.id);
+                const isCollapsed = collapsedProjectFolders[folder.id] !== false; // collapsed by default; only an explicit false (user expanded it) counts as open
                 const totalVersions = folderIndices.reduce((sum, i) => sum + projects[i].versions.length, 0);
-                html += `<div style="margin-bottom:0.75rem;">
+                const countLabel = `${folderIndices.length} project${folderIndices.length!==1?'s':''}`
+                    + (childFolders.length > 0 ? ` · ${childFolders.length} subfolder${childFolders.length!==1?'s':''}` : '')
+                    + ` · ${totalVersions} version${totalVersions!==1?'s':''}`;
+
+                let html = `<div style="margin-bottom:0.75rem;">
                     <div style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;background:var(--surface);border:1.5px solid var(--border);border-radius:6px;cursor:pointer;" onclick="toggleProjectFolder('${folder.id}')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform 0.15s;transform:rotate(${isCollapsed?'0':'90'}deg)"><polyline points="9 18 15 12 9 6"/></svg>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#185FA5" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         <span style="font-weight:600;font-size:0.9rem;color:var(--text-primary);flex:1;">${escapeHtml(folder.name)}</span>
-                        <span style="font-size:0.8rem;color:var(--text-muted);">${folderIndices.length} project${folderIndices.length!==1?'s':''} · ${totalVersions} version${totalVersions!==1?'s':''}</span>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">${countLabel}</span>
                         <div style="display:flex;gap:0.35rem;" onclick="event.stopPropagation()">
+                            <button class="btn-secondary btn-sm" onclick="createProjectFolder('${folder.id}')" style="padding:0.25rem 0.55rem;font-size:0.72rem;">+ Subfolder</button>
                             <button class="btn-secondary btn-sm" onclick="renameProjectFolder('${folder.id}')" style="padding:0.25rem 0.55rem;font-size:0.72rem;">Rename</button>
                             <button class="btn-danger btn-sm" onclick="deleteProjectFolder('${folder.id}')" style="padding:0.25rem 0.55rem;font-size:0.72rem;">Delete</button>
                         </div>
                     </div>
                     ${isCollapsed ? '' : '<div style="padding-left:1.25rem;border-left:2px solid #b5d4f4;margin-left:0.5rem;margin-top:0.35rem;">' +
-                        (folderIndices.length === 0
+                        childFolders.map(cf => renderFolderNode(cf, depth + 1)).join('') +
+                        (folderIndices.length === 0 && childFolders.length === 0
                             ? '<div style="padding:0.75rem 0.5rem;font-size:0.85rem;color:var(--text-muted);font-style:italic;">No projects in this folder yet.</div>'
                             : folderIndices.map(i => makeProjectCard(i)).join(''))
                         + '</div>'}
                 </div>`;
+                return html;
+            }
+
+            folders.filter(f => !f.parentId).forEach(folder => {
+                html += renderFolderNode(folder, 0);
             });
 
             // Uncategorized
@@ -4747,6 +4763,14 @@
                 message,
                 (confirmed) => {
                     if (confirmed) {
+                        // Clean up any shared Supabase records for tracked
+                        // deals in this project before removing it locally —
+                        // otherwise a deleted deal would keep showing up for
+                        // everyone else, orphaned in the shared table.
+                        trackedVersions.forEach(v => {
+                            deleteDealFromSupabase(`${project.id}::${v.id}`);
+                            clearDealPendingSync(`${project.id}::${v.id}`);
+                        });
                         projects.splice(index, 1);
                         saveProjects();
                         displayProjects();
@@ -4986,18 +5010,43 @@
             localStorage.setItem('projectFolders', JSON.stringify(folders));
         }
 
-        function createProjectFolder() {
+        // Builds "Grandparent › Parent › Folder" for a folder, so nested
+        // folders remain unambiguous in dropdowns even if two sub-folders
+        // in different branches happen to share a name.
+        function getProjectFolderPath(folderId, allFolders) {
+            const folder = allFolders.find(f => f.id === folderId);
+            if (!folder) return '';
+            if (!folder.parentId) return folder.name;
+            const parentPath = getProjectFolderPath(folder.parentId, allFolders);
+            return parentPath ? parentPath + ' › ' + folder.name : folder.name;
+        }
+
+        // Recursively collects every descendant folder id (children,
+        // grandchildren, etc.) — used when deleting a folder, so everything
+        // nested inside it (not just direct children) gets handled too.
+        function getDescendantFolderIds(folderId, allFolders) {
+            const directChildren = allFolders.filter(f => f.parentId === folderId);
+            let ids = directChildren.map(f => f.id);
+            directChildren.forEach(child => {
+                ids = ids.concat(getDescendantFolderIds(child.id, allFolders));
+            });
+            return ids;
+        }
+
+        function createProjectFolder(parentId) {
+            parentId = parentId || null;
             showRename('Name this folder:', 'New Folder', (name) => {
                 if (!name || !name.trim()) return;
                 const folders = getProjectFolders();
-                folders.push({ id: 'pf_' + generateId(), name: name.trim(), createdAt: new Date().toISOString() });
+                folders.push({ id: 'pf_' + generateId(), name: name.trim(), createdAt: new Date().toISOString(), parentId: parentId });
                 saveProjectFolders(folders);
                 displayProjects();
-            }, 'Create Project Folder', 'Create');
+            }, parentId ? 'Create Subfolder' : 'Create Project Folder', 'Create');
         }
 
         function toggleProjectFolder(folderId) {
-            collapsedProjectFolders[folderId] = !collapsedProjectFolders[folderId];
+            const isCurrentlyCollapsed = collapsedProjectFolders[folderId] !== false;
+            collapsedProjectFolders[folderId] = isCurrentlyCollapsed ? false : true;
             displayProjects();
         }
 
@@ -5017,15 +5066,22 @@
             const folders = getProjectFolders();
             const folder = folders.find(f => f.id === folderId);
             if (!folder) return;
-            const count = projects.filter(p => p.projectFolderId === folderId).length;
+            // Deleting a folder deletes its whole sub-tree (sub-folders,
+            // sub-sub-folders, etc.) — but never the projects inside any of
+            // them. Every project anywhere in that sub-tree moves up to
+            // Uncategorized, matching how a single-level delete already worked.
+            const descendantIds = getDescendantFolderIds(folderId, folders);
+            const allIdsToRemove = [folderId, ...descendantIds];
+            const count = projects.filter(p => allIdsToRemove.includes(p.projectFolderId)).length;
+            const subfolderNote = descendantIds.length > 0 ? ` (and ${descendantIds.length} subfolder${descendantIds.length !== 1 ? 's' : ''} inside it)` : '';
             const msg = count > 0
-                ? `Delete folder "${folder.name}"? The ${count} project${count!==1?'s':''} inside will be moved to Uncategorized.`
-                : `Delete folder "${folder.name}"?`;
+                ? `Delete folder "${folder.name}"${subfolderNote}? The ${count} project${count!==1?'s':''} inside will be moved to Uncategorized.`
+                : `Delete folder "${folder.name}"${subfolderNote}?`;
             showConfirm(msg, (confirmed) => {
                 if (!confirmed) return;
-                projects.forEach(p => { if (p.projectFolderId === folderId) p.projectFolderId = null; });
-                saveProjectFolders(folders.filter(f => f.id !== folderId));
-                delete collapsedProjectFolders[folderId];
+                projects.forEach(p => { if (allIdsToRemove.includes(p.projectFolderId)) p.projectFolderId = null; });
+                saveProjectFolders(folders.filter(f => !allIdsToRemove.includes(f.id)));
+                allIdsToRemove.forEach(id => delete collapsedProjectFolders[id]);
                 saveProjects();
                 displayProjects();
             });
@@ -6260,6 +6316,7 @@
         }
 
         function deleteVersion(index) {
+            const project = currentProject;
             const version = currentProject.versions[index];
             const packageCount = version.packages.length;
             const versionName = version.name || `Version ${index + 1}`;
@@ -6278,6 +6335,10 @@
                 message,
                 (confirmed) => {
                     if (confirmed) {
+                        if (version.dealStatus) {
+                            deleteDealFromSupabase(`${project.id}::${version.id}`);
+                            clearDealPendingSync(`${project.id}::${version.id}`);
+                        }
                         currentProject.versions.splice(index, 1);
                         saveProjects();
                         displayVersions();
