@@ -5632,17 +5632,30 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${rows.map(cat => `
+                        ${rows.map(cat => {
+                            // Some callers (the 7-category breakdown in
+                            // particular) only provide investment/cost, not
+                            // pre-computed marginDollar/marginPercent — always
+                            // derive both from the same investment/cost figures
+                            // here, rather than trusting a possibly-missing
+                            // marginPercent and silently showing 0% instead of
+                            // the real number.
+                            const effectiveCost = cat.cost || 0;
+                            const marginDollar = cat.marginDollar !== undefined ? cat.marginDollar : (cat.investment - effectiveCost);
+                            const marginPercent = cat.investment > 0 ? (marginDollar / cat.investment) * 100 : 0;
+                            const isAddedValue = cat.label === 'Added Value';
+                            return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 0.5rem 0.6rem;">${escapeHtml(cat.label)}</td>
                                 <td style="padding: 0.5rem 0.6rem; text-align: right; font-weight: 600;">$${formatNumber(cat.investment)}</td>
                                 <td style="padding: 0.5rem 0.6rem; text-align: right; background: #EFF6FF; font-weight: 600;">${pctOfTotal(cat.investment).toFixed(1)}%</td>
                                 <td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.cost === null || cat.cost === undefined ? '—' : '$' + formatNumber(cat.cost)}</td>
-                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${cat.label === 'Added Value' ? '' : `color: ${getMarginColor(cat.marginPercent || 0)};`}" ${cat.label === 'Added Value' ? 'title="Margin isn\'t a meaningful concept for Added Value — its cost is tracked separately and doesn\'t offset against any investment."' : ''}>${cat.label === 'Added Value' ? 'N/A' : '$' + formatNumber(cat.marginDollar !== undefined ? cat.marginDollar : (cat.investment - (cat.cost || 0)))}</td>
-                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${cat.label === 'Added Value' ? '' : `color: ${getMarginColor(cat.marginPercent || 0)};`}">${cat.label === 'Added Value' ? 'N/A' : (cat.marginPercent || 0).toFixed(1) + '%'}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${isAddedValue ? '' : `color: ${getMarginColor(marginPercent)};`}" ${isAddedValue ? 'title="Margin isn\'t a meaningful concept for Added Value — its cost is tracked separately and doesn\'t offset against any investment."' : ''}>${isAddedValue ? 'N/A' : '$' + formatNumber(marginDollar)}</td>
+                                <td style="padding: 0.5rem 0.6rem; text-align: right; ${isAddedValue ? '' : `color: ${getMarginColor(marginPercent)};`}">${isAddedValue ? 'N/A' : marginPercent.toFixed(1) + '%'}</td>
                                 ${includeExtras ? `<td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.impressions ? formatImpressions(cat.impressions) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.cpm ? '$' + cat.cpm.toFixed(2) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.marginNoFeesDollar !== undefined && cat.marginNoFeesDollar !== null ? '$' + formatNumber(cat.marginNoFeesDollar) : '—'}</td><td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.marginNoFeesPercent !== undefined && cat.marginNoFeesPercent !== null ? cat.marginNoFeesPercent.toFixed(1) + '%' : '—'}</td>` : ''}
                             </tr>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </tbody>
                 </table>
             `;
@@ -5697,13 +5710,45 @@
             return { identification, overallTotals, packages };
         }
 
+        // Navigates from a Closed Deal to the live, interactive View Summary
+        // overlay for that exact project/version — only possible if that
+        // project actually exists in THIS browser's local storage. Deals
+        // synced in from someone else's session (via the shared Supabase
+        // table) won't have a local copy to open; the frozen snapshot detail
+        // already shown in the Closed Deals view is accurate regardless, but
+        // the live, editable plan itself simply isn't stored here.
+        function openLiveSummaryForDeal(dealId) {
+            const [projectId, versionId] = dealId.split('::');
+            const projectIndex = projects.findIndex(p => p.id === projectId);
+            if (projectIndex === -1) {
+                customAlert('This project isn\'t available in your local copy of the tool — it was likely verified from a different browser or by someone else. The detail shown here reflects the accurate shared record, but the full interactive plan can only be opened from the browser it was created in.');
+                return;
+            }
+            const project = projects[projectIndex];
+            const versionIndex = project.versions.findIndex(v => v.id === versionId);
+            if (versionIndex === -1) {
+                customAlert('This specific version isn\'t available in your local copy of this project — it was likely created or verified from a different browser or by someone else.');
+                return;
+            }
+            switchTab('planner');
+            selectProject(projectIndex);
+            selectVersion(versionIndex);
+            viewVersionSummary();
+        }
+
         function renderDealDetailHTML(deal) {
             const totalInvestment = deal.totalInvestment;
             const { identification: id, overallTotals: overall, packages } = getDealFullDetail(deal);
 
             return `
                 <div style="padding: 1.25rem 1.5rem; background: #F8FAFC; border-top: 2px solid var(--border);">
-                    <h4 style="margin: 0 0 0.75rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Identification</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                        <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Identification</h4>
+                        <button class="btn-primary btn-sm" onclick="event.stopPropagation(); openLiveSummaryForDeal('${deal.dealId}');" style="display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                            View Full Summary
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                    </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem 1rem; margin-bottom: 1.25rem; font-size: 0.8125rem;">
                         <div><strong>Project:</strong> ${escapeHtml(id.projectName)}</div>
                         <div><strong>Brand:</strong> ${escapeHtml(id.brandName)}${id.subBrandName ? ' / ' + escapeHtml(id.subBrandName) : ''}</div>
@@ -13131,7 +13176,17 @@
         function switchTab(tabName) {
             // Update tab buttons
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
+            // Normal path: called from a real onclick, so the global `event`
+            // refers to the click and event.target is the button itself.
+            // Fallback: called programmatically (e.g. navigating here from
+            // the Closed Deals view) — no click event exists, so find the
+            // matching button by its onclick attribute instead of crashing.
+            if (typeof event !== 'undefined' && event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                const btn = Array.from(document.querySelectorAll('.tab')).find(t => (t.getAttribute('onclick') || '').includes(`'${tabName}'`));
+                if (btn) btn.classList.add('active');
+            }
             
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
