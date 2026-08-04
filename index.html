@@ -3587,6 +3587,21 @@
         </div>
     </div>
 
+    <!-- Deal Match Picker Dialog (fallback when the exact verified plan isn't
+         available locally, but multiple similarly-named candidates were found) -->
+    <div id="dealMatchPickerDialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 550px; width: 90%; max-height: 80vh; margin: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+            <h3 style="margin-bottom: 0.75rem; color: var(--primary); font-family: 'PeakSans', sans-serif; font-weight: 600; text-transform: uppercase;">Which Plan Did You Mean?</h3>
+            <div style="background: var(--background); border-left: 3px solid var(--primary); border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
+                We couldn't find the exact verified plan locally (it may have been created in a different browser), but found more than one similarly-named project. Pick the one you meant — this may or may not be the exact same plan that was verified elsewhere.
+            </div>
+            <div id="dealMatchPickerList" style="overflow-y: auto; flex: 1;"></div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn-secondary" onclick="closeDealMatchPicker()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Generate External Plan Modal -->
     <div id="externalPlanDialog" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
@@ -5505,6 +5520,21 @@
         function checkAndRevertVerification(version) {
             if (version && version.dealStatus === 'verified') {
                 version.dealStatus = 'needs_reverification';
+                // This status change is exactly the kind of thing the shared
+                // table needs to reflect — otherwise a colleague viewing the
+                // Closed Deals list would keep seeing "Verified Sold" with
+                // stale data even after the underlying plan changed. Reuses
+                // currentProject since this always runs against whatever
+                // version is currently being edited.
+                if (typeof currentProject !== 'undefined' && currentProject) {
+                    const overall = calculateOverallTotals(version.packages || []);
+                    syncDealToSupabase({
+                        dealId: `${currentProject.id}::${version.id}`,
+                        project: currentProject, version,
+                        totalInvestment: overall.totalPrice,
+                        marginPercent: overall.totalMarginPercent
+                    });
+                }
             }
         }
 
@@ -5720,25 +5750,123 @@
         function openLiveSummaryForDeal(dealId) {
             const [projectId, versionId] = dealId.split('::');
             const projectIndex = projects.findIndex(p => p.id === projectId);
-            if (projectIndex === -1) {
-                customAlert('This project isn\'t available in your local copy of the tool — it was likely verified from a different browser or by someone else. The detail shown here reflects the accurate shared record, but the full interactive plan can only be opened from the browser it was created in.');
+            const project = projectIndex !== -1 ? projects[projectIndex] : null;
+            const versionIndex = project ? project.versions.findIndex(v => v.id === versionId) : -1;
+
+            if (projectIndex !== -1 && versionIndex !== -1) {
+                switchTab('planner');
+                selectProject(projectIndex);
+                selectVersion(versionIndex);
+                viewVersionSummary();
                 return;
             }
-            const project = projects[projectIndex];
-            const versionIndex = project.versions.findIndex(v => v.id === versionId);
-            if (versionIndex === -1) {
-                customAlert('This specific version isn\'t available in your local copy of this project — it was likely created or verified from a different browser or by someone else.');
+
+            // Exact id match failed — this happens whenever the deal was
+            // verified from a different browser or by someone else, since
+            // every project/version gets its own independently-generated id
+            // at creation time. Before giving up, try a name-based fallback
+            // search — but NEVER open a candidate without the user explicitly
+            // confirming, since silently opening the wrong plan would be
+            // worse than just saying it isn't available.
+            const fallbackInfo = (window.__dealFallbackInfo || {})[dealId];
+            attemptFallbackDealMatch(fallbackInfo);
+        }
+
+        function attemptFallbackDealMatch(fallbackInfo) {
+            const notFoundMessage = (extra) => 'This project isn\'t available in your local copy of the tool — it was likely verified from a different browser or by someone else.'
+                + (extra ? ' ' + extra : '')
+                + ' The detail shown here reflects the accurate shared record, but the full interactive plan can only be opened from the browser it was created in.';
+
+            if (!fallbackInfo || !fallbackInfo.projectName) {
+                customAlert(notFoundMessage());
                 return;
             }
+
+            // Candidates: same project name (case-insensitive). If a version
+            // name was also given and matches one of that project's versions,
+            // treat that as the specific candidate; otherwise every version
+            // in a name-matching project counts as its own candidate, since
+            // we can't tell which one corresponds to the verified deal.
+            const candidates = [];
+            projects.forEach((p, pIdx) => {
+                if ((p.projectName || '').trim().toLowerCase() !== fallbackInfo.projectName.trim().toLowerCase()) return;
+                const versionNameMatch = fallbackInfo.versionName
+                    ? p.versions.findIndex(v => (v.name || '').trim().toLowerCase() === fallbackInfo.versionName.trim().toLowerCase())
+                    : -1;
+                if (versionNameMatch !== -1) {
+                    candidates.push({ projectIndex: pIdx, versionIndex: versionNameMatch, project: p, version: p.versions[versionNameMatch] });
+                } else {
+                    p.versions.forEach((v, vIdx) => candidates.push({ projectIndex: pIdx, versionIndex: vIdx, project: p, version: v }));
+                }
+            });
+
+            if (candidates.length === 0) {
+                customAlert(notFoundMessage(`We also couldn't find any locally-saved project named "${fallbackInfo.projectName}" to suggest instead.`));
+                return;
+            }
+
+            if (candidates.length === 1) {
+                const c = candidates[0];
+                showConfirm(
+                    `We couldn't find the exact verified plan (it may have been created in a different browser), but found a locally-saved project with the same name: "${escapeHtml(c.project.projectName)}" — ${escapeHtml(c.version.name || 'Version ' + (c.versionIndex + 1))}.\n\nThis may or may not be the exact same plan that was verified elsewhere. Open it anyway?`,
+                    (confirmed) => {
+                        if (!confirmed) return;
+                        switchTab('planner');
+                        selectProject(c.projectIndex);
+                        selectVersion(c.versionIndex);
+                        viewVersionSummary();
+                    },
+                    'Open Anyway',
+                    'btn-primary'
+                );
+                return;
+            }
+
+            // Multiple candidates — let the user pick explicitly rather than
+            // guessing which one is right.
+            showDealMatchPicker(candidates);
+        }
+
+        function showDealMatchPicker(candidates) {
+            const modal = document.getElementById('dealMatchPickerDialog');
+            const list = document.getElementById('dealMatchPickerList');
+            list.innerHTML = candidates.map((c, i) => `
+                <div onclick="chooseDealMatchCandidate(${i})" style="padding: 0.75rem 1rem; border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='var(--background)'" onmouseout="this.style.background='white'">
+                    <div style="font-weight: 600;">${escapeHtml(c.project.projectName)}</div>
+                    <div style="font-size: 0.8125rem; color: var(--text-muted);">${escapeHtml(c.project.brandName || '')}${c.project.agencyName ? ' • ' + escapeHtml(c.project.agencyName) : ''} — ${escapeHtml(c.version.name || 'Version ' + (i + 1))}</div>
+                </div>
+            `).join('');
+            window.__dealMatchCandidates = candidates;
+            modal.style.display = 'flex';
+        }
+
+        function chooseDealMatchCandidate(i) {
+            const c = window.__dealMatchCandidates[i];
+            document.getElementById('dealMatchPickerDialog').style.display = 'none';
             switchTab('planner');
-            selectProject(projectIndex);
-            selectVersion(versionIndex);
+            selectProject(c.projectIndex);
+            selectVersion(c.versionIndex);
             viewVersionSummary();
+        }
+
+        function closeDealMatchPicker() {
+            document.getElementById('dealMatchPickerDialog').style.display = 'none';
         }
 
         function renderDealDetailHTML(deal) {
             const totalInvestment = deal.totalInvestment;
             const { identification: id, overallTotals: overall, packages } = getDealFullDetail(deal);
+
+            // Store identification info for this deal, keyed by dealId, so
+            // the "View Full Summary" button can look it up for the
+            // name-based fallback path without needing to embed a JSON blob
+            // inside an inline onclick attribute (fragile with nested
+            // quote-escaping — exactly the kind of thing worth avoiding).
+            window.__dealFallbackInfo = window.__dealFallbackInfo || {};
+            window.__dealFallbackInfo[deal.dealId] = {
+                projectName: id.projectName, versionName: id.versionName,
+                brandName: id.brandName, agencyName: id.agencyName
+            };
 
             return `
                 <div style="padding: 1.25rem 1.5rem; background: #F8FAFC; border-top: 2px solid var(--border);">
