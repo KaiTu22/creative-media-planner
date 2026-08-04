@@ -5201,8 +5201,13 @@
                     saveProjects();
                     displayVersions();
 
-                    deleteDealFromSupabase(`${project.id}::${version.id}`);
-                    clearDealPendingSync(`${project.id}::${version.id}`);
+                    const dealId = `${project.id}::${version.id}`;
+                    deleteDealFromSupabase(dealId).then(success => {
+                        clearDealPendingSync(dealId);
+                        if (!success) {
+                            customAlert('Removed locally, but couldn\'t remove this deal from the shared Closed Deals table — it may still appear there for you and others until this is resolved. This usually means a permissions issue on the shared database rather than something wrong with your data.');
+                        }
+                    });
                 },
                 'Remove Closed Status',
                 'btn-danger'
@@ -5356,12 +5361,14 @@
         // different semantics than the upsert-retry queue above.
         async function deleteDealFromSupabase(dealId) {
             const client = getSupabaseClient();
-            if (!client) return;
+            if (!client) return false;
             try {
                 const { error } = await client.from('closed_deals').delete().eq('deal_id', dealId);
                 if (error) throw error;
+                return true;
             } catch (e) {
                 console.error('Could not delete shared record from Supabase (will remain until manually removed):', e);
+                return false;
             }
         }
 
