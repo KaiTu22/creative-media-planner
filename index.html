@@ -2496,12 +2496,32 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label>How do you want to size this package? <span class="required">*</span></label>
+                            <div style="display: flex; gap: 1.5rem; margin-top: 0.4rem;">
+                                <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer;">
+                                    <input type="radio" name="blendedInputMode" value="margin" checked onchange="switchBlendedInputMode('margin')"> Input Margin %
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer;">
+                                    <input type="radio" name="blendedInputMode" value="talentCost" onchange="switchBlendedInputMode('talentCost')"> Input Production &amp; Talent Cost
+                                </label>
+                            </div>
+                        </div>
+                        <div id="blendedMarginInputGroup" class="form-group">
                             <label>Margin % <span class="required">*</span></label>
                             <div class="input-group">
-                                <input type="number" id="blendedMarginPercent" step="1" min="0" max="100" value="35" 
+                                <input type="number" id="blendedMarginPercent" step="0.000001" min="0" max="100" value="35" 
                                        oninput="updateBlendedPackageCalcs()">
                                 <span class="input-addon">%</span>
                             </div>
+                        </div>
+                        <div id="blendedTalentCostInputGroup" class="form-group" style="display: none;">
+                            <label>Production &amp; Talent Cost <span class="required">*</span></label>
+                            <div class="input-group">
+                                <span class="input-addon">$</span>
+                                <input type="text" id="blendedTalentCostInput" placeholder="0.00"
+                                       oninput="formatCurrencyLive(event); updateBlendedPackageCalcs();">
+                            </div>
+                            <span class="hint">Margin % will be calculated from this instead.</span>
                         </div>
                         <div class="form-group">
                             <label>Distribution Platforms <span class="required">*</span></label>
@@ -2524,7 +2544,7 @@
                                 <div class="summary-value" id="blendedMediaPercent">0%</div>
                             </div>
                         </div>
-                        <div class="summary-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr);">
                             <div class="summary-card">
                                 <div class="summary-label">Production and Talent Cost</div>
                                 <div class="summary-value" id="blendedPTInvestment">$0</div>
@@ -2532,6 +2552,10 @@
                             <div class="summary-card">
                                 <div class="summary-label">Margin</div>
                                 <div class="summary-value success" id="blendedMargin">$0</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Margin %</div>
+                                <div class="summary-value success" id="blendedMarginPercentOutput">0%</div>
                             </div>
                         </div>
                     </div>
@@ -2600,7 +2624,7 @@
                                     <div class="form-group">
                                         <label>Media Investment % <span class="required">*</span></label>
                                         <div class="input-group">
-                                            <input type="number" id="mediaPercentage" step="1" min="1" max="99" value="50" oninput="updateInvestmentSplit()">
+                                            <input type="number" id="mediaPercentage" step="0.000001" min="1" max="99" value="50" oninput="updateInvestmentSplit()">
                                             <span class="input-addon">%</span>
                                         </div>
                                         <span class="hint" id="mediaInvestmentHint">= $0</span>
@@ -3268,7 +3292,7 @@
                                     <label>Margin</label>
                                     <div class="calc-input-wrapper">
                                         <span class="calc-input-suffix">%</span>
-                                        <input type="number" id="bl-a-margin" class="calc-input has-suffix" value="35" min="0" max="100" step="1">
+                                        <input type="number" id="bl-a-margin" class="calc-input has-suffix" value="35" min="0" max="100" step="0.000001">
                                     </div>
                                 </div>
                                 <div class="calc-input-group">
@@ -3334,7 +3358,7 @@
                                     <label>Margin</label>
                                     <div class="calc-input-wrapper">
                                         <span class="calc-input-suffix">%</span>
-                                        <input type="number" id="bl-b-margin" class="calc-input has-suffix" value="50" min="0" max="100" step="1">
+                                        <input type="number" id="bl-b-margin" class="calc-input has-suffix" value="50" min="0" max="100" step="0.000001">
                                     </div>
                                 </div>
                                 <div class="calc-input-group">
@@ -6998,7 +7022,6 @@
                 } else if (packageType === 'branded-blended') {
                     const packageCPM = document.getElementById('blendedPackageCPM').value;
                     const cpmCost = document.getElementById('blendedCPMCost').value;
-                    const marginPercent = document.getElementById('blendedMarginPercent').value;
                     if (!packageCPM || parseFloat(packageCPM) <= 0) {
                         customAlert('Please enter a valid Package CPM');
                         return false;
@@ -7007,9 +7030,19 @@
                         customAlert('Please enter a valid CPM Cost');
                         return false;
                     }
-                    if (!marginPercent || parseFloat(marginPercent) < 0 || parseFloat(marginPercent) > 100) {
-                        customAlert('Please enter a valid Margin % (0-100)');
-                        return false;
+                    const blendedMode = (document.querySelector('input[name="blendedInputMode"]:checked') || {}).value || 'margin';
+                    if (blendedMode === 'talentCost') {
+                        const talentCostVal = parseCurrency(document.getElementById('blendedTalentCostInput')?.value);
+                        if (!talentCostVal || talentCostVal <= 0) {
+                            customAlert('Please enter a valid Production & Talent Cost');
+                            return false;
+                        }
+                    } else {
+                        const marginPercent = document.getElementById('blendedMarginPercent').value;
+                        if (!marginPercent || parseFloat(marginPercent) < 0 || parseFloat(marginPercent) > 100) {
+                            customAlert('Please enter a valid Margin % (0-100)');
+                            return false;
+                        }
                     }
                 } else if (packageType === 'added-value') {
                     const addedValueType = document.getElementById('addedValueType').value;
@@ -7166,13 +7199,26 @@
                 } else if (packageType === 'branded-blended') {
                     currentPackage.packageCPM = parseFloat(document.getElementById('blendedPackageCPM').value) || 0;
                     currentPackage.cpmCost = parseFloat(document.getElementById('blendedCPMCost').value) || 6;
-                    currentPackage.marginPercent = parseFloat(document.getElementById('blendedMarginPercent').value) || 35;
+                    currentPackage.blendedInputMode = (document.querySelector('input[name="blendedInputMode"]:checked') || {}).value || 'margin';
+
+                    // Impressions/media cost are always derived the same way,
+                    // regardless of which value (Margin % or Production &
+                    // Talent Cost) is the actual input.
+                    const impressions = currentPackage.packageCPM > 0 ? (currentPackage.totalInvestment / currentPackage.packageCPM) * 1000 : 0;
+                    const mediaCostForBlended = (impressions * currentPackage.cpmCost) / 1000;
+
+                    if (currentPackage.blendedInputMode === 'talentCost') {
+                        currentPackage.talentCost = parseCurrency(document.getElementById('blendedTalentCostInput')?.value) || 0;
+                        const marginDollarFromTalent = currentPackage.totalInvestment - currentPackage.talentCost - mediaCostForBlended;
+                        currentPackage.marginPercent = currentPackage.totalInvestment > 0 ? (marginDollarFromTalent / currentPackage.totalInvestment) * 100 : 0;
+                    } else {
+                        currentPackage.marginPercent = parseFloat(document.getElementById('blendedMarginPercent').value) || 35;
+                    }
+
                     currentPackage.blendedPlatforms = [...blendedPlatformAllocations];
                     
                     // Calculate and save media percentage
-                    const impressions = currentPackage.packageCPM > 0 ? (currentPackage.totalInvestment / currentPackage.packageCPM) * 1000 : 0;
-                    const mediaCost = (impressions * currentPackage.cpmCost) / 1000;
-                    currentPackage.mediaPercent = currentPackage.totalInvestment > 0 ? (mediaCost / currentPackage.totalInvestment) * 100 : 0;
+                    currentPackage.mediaPercent = currentPackage.totalInvestment > 0 ? (mediaCostForBlended / currentPackage.totalInvestment) * 100 : 0;
                     currentPackage.impressions = Math.round(impressions);
                 } else if (packageType === 'added-value') {
                     currentPackage.addedValueType = document.getElementById('addedValueType').value;
@@ -7294,6 +7340,18 @@
             // Cost field on Social Partnerships.
             const partnershipTalentCostResetEl = document.getElementById('partnershipTalentCost');
             if (partnershipTalentCostResetEl) partnershipTalentCostResetEl.value = '';
+
+            // Same reset-first pattern for the Branded Content Blended
+            // Package's input mode — default a brand new package back to
+            // Margin % mode rather than leaving whichever mode was last used.
+            const blendedTalentCostResetEl = document.getElementById('blendedTalentCostInput');
+            if (blendedTalentCostResetEl) blendedTalentCostResetEl.value = '';
+            const blendedMarginRadioResetEl = document.querySelector('input[name="blendedInputMode"][value="margin"]');
+            if (blendedMarginRadioResetEl) blendedMarginRadioResetEl.checked = true;
+            const blendedMarginGroupResetEl = document.getElementById('blendedMarginInputGroup');
+            const blendedTalentCostGroupResetEl = document.getElementById('blendedTalentCostInputGroup');
+            if (blendedMarginGroupResetEl) blendedMarginGroupResetEl.style.display = 'block';
+            if (blendedTalentCostGroupResetEl) blendedTalentCostGroupResetEl.style.display = 'none';
             const productionTypeSectionResetEl = document.getElementById('productionTypeDropdownSection');
             if (productionTypeSectionResetEl) productionTypeSectionResetEl.style.display = 'none';
 
@@ -7483,7 +7541,26 @@
                     } else if (type === 'branded-blended') {
                         document.getElementById('blendedPackageCPM').value = pkg.packageCPM || '';
                         document.getElementById('blendedCPMCost').value = pkg.cpmCost || 6;
-                        document.getElementById('blendedMarginPercent').value = pkg.marginPercent || 35;
+
+                        // Reset both mode-specific fields first — otherwise
+                        // editing a Margin%-mode package right after a Talent
+                        // Cost-mode one (or vice versa) leaves the untouched
+                        // field showing a stale value from whichever package
+                        // was edited previously.
+                        document.getElementById('blendedMarginPercent').value = '';
+                        document.getElementById('blendedTalentCostInput').value = '';
+
+                        const restoredMode = pkg.blendedInputMode === 'talentCost' ? 'talentCost' : 'margin';
+                        const marginRadio = document.querySelector(`input[name="blendedInputMode"][value="${restoredMode}"]`);
+                        if (marginRadio) marginRadio.checked = true;
+                        switchBlendedInputMode(restoredMode);
+
+                        if (restoredMode === 'talentCost') {
+                            document.getElementById('blendedTalentCostInput').value = pkg.talentCost ? pkg.talentCost.toFixed(2) : '';
+                        } else {
+                            document.getElementById('blendedMarginPercent').value = pkg.marginPercent || 35;
+                        }
+
                         if (pkg.distributionPlatforms) {
                             pkg.distributionPlatforms.forEach(platform => {
                                 const checkbox = document.querySelector(`.blended-platform[value="${platform}"]`);
@@ -7548,7 +7625,7 @@
                     // edited package if the user toggles modes.
                     const mediaPercentEquivalent = (pkg.mediaInvestmentDollar / pkg.totalInvestment * 100) || 50;
                     document.getElementById('mediaInvestmentDollarInput').value = pkg.mediaInvestmentDollar || 0;
-                    document.getElementById('mediaPercentage').value = mediaPercentEquivalent.toFixed(3);
+                    document.getElementById('mediaPercentage').value = mediaPercentEquivalent.toFixed(6);
                     if (pkg.mediaInputType === 'dollar') {
                         document.getElementById('mediaTypeDollar').checked = true;
                     } else {
@@ -7894,6 +7971,12 @@
             }
         }
 
+        function switchBlendedInputMode(mode) {
+            document.getElementById('blendedMarginInputGroup').style.display = mode === 'margin' ? 'block' : 'none';
+            document.getElementById('blendedTalentCostInputGroup').style.display = mode === 'talentCost' ? 'block' : 'none';
+            updateBlendedPackageCalcs();
+        }
+
         function updateBlendedPackageCalcs() {
             const type = currentPackage.type;
             if (type !== 'branded-blended') return;
@@ -7903,7 +7986,6 @@
             const investment = parseFloat(investmentValue) || 0;
             const packageCPM = parseFloat(document.getElementById('blendedPackageCPM')?.value) || 0;
             const cpmCost = parseFloat(document.getElementById('blendedCPMCost')?.value) || 6;
-            const marginPercent = parseFloat(document.getElementById('blendedMarginPercent')?.value) || 35;
             
             // Calculate impressions based on Investment and Package CPM
             const impressions = packageCPM > 0 ? (investment / packageCPM) * 1000 : 0;
@@ -7913,24 +7995,38 @@
             
             // Calculate Cost of Media % (Media Cost / Investment)
             const mediaCostPercent = investment > 0 ? (mediaCost / investment) * 100 : 0;
-            
-            // Calculate Margin (Investment * Margin %)
-            const margin = investment * (marginPercent / 100);
-            
-            // Calculate Production & Talent Cost (Investment - Margin - Media Cost)
-            const talentCost = investment - margin - mediaCost;
+
+            // Everything above is identical regardless of which value the
+            // user is solving for. From here, exactly one of Margin % /
+            // Production & Talent Cost is the actual input; the other is
+            // derived from it (they're mathematically inverses of each
+            // other once investment and media cost are known).
+            let marginPercent, margin, talentCost;
+            const inputMode = (document.querySelector('input[name="blendedInputMode"]:checked') || {}).value || 'margin';
+
+            if (inputMode === 'talentCost') {
+                talentCost = parseCurrency(document.getElementById('blendedTalentCostInput')?.value) || 0;
+                margin = investment - talentCost - mediaCost;
+                marginPercent = investment > 0 ? (margin / investment) * 100 : 0;
+            } else {
+                marginPercent = parseFloat(document.getElementById('blendedMarginPercent')?.value) || 35;
+                margin = investment * (marginPercent / 100);
+                talentCost = investment - margin - mediaCost;
+            }
             
             // Update display with safe checks
             const impressionsEl = document.getElementById('blendedImpressions');
             const mediaCostEl = document.getElementById('blendedMediaCost');
             const mediaPercentEl = document.getElementById('blendedMediaPercent');
             const marginEl = document.getElementById('blendedMargin');
+            const marginPercentEl = document.getElementById('blendedMarginPercentOutput');
             const ptInvestmentEl = document.getElementById('blendedPTInvestment');
             
             if (impressionsEl) impressionsEl.textContent = formatImpressions(impressions);
             if (mediaCostEl) mediaCostEl.textContent = '$' + formatNumber(mediaCost);
             if (mediaPercentEl) mediaPercentEl.textContent = mediaCostPercent.toFixed(3) + '%';
             if (marginEl) marginEl.textContent = '$' + formatNumber(margin);
+            if (marginPercentEl) marginPercentEl.textContent = marginPercent.toFixed(6) + '%';
             if (ptInvestmentEl) ptInvestmentEl.textContent = '$' + formatNumber(talentCost);
         }
 
@@ -13509,7 +13605,7 @@ Margin: ${margin}`;
             document.getElementById('bl-a-output-impressions').textContent = formatImpressions(impressions);
             document.getElementById('bl-a-output-media-budget').textContent = '$' + formatNumber(mediaBudget);
             document.getElementById('bl-a-output-prod-pct').textContent = prodPct.toFixed(2) + '%';
-            document.getElementById('bl-a-output-media-pct').textContent = mediaPct.toFixed(2) + '%';
+            document.getElementById('bl-a-output-media-pct').textContent = mediaPct.toFixed(6) + '%';
             
             // Validation warning
             const total = margin * 100 + mediaPct + prodPct;
@@ -13556,7 +13652,7 @@ Margin: ${margin}`;
             document.getElementById('bl-b-output-impressions').textContent = formatImpressions(impressions);
             document.getElementById('bl-b-output-media-budget').textContent = '$' + formatNumber(mediaBudget);
             document.getElementById('bl-b-output-prod-pct').textContent = prodPct.toFixed(2) + '%';
-            document.getElementById('bl-b-output-media-pct').textContent = mediaPct.toFixed(2) + '%';
+            document.getElementById('bl-b-output-media-pct').textContent = mediaPct.toFixed(6) + '%';
         }
 
         // Calculator C: Margin Calculator
@@ -13589,11 +13685,11 @@ Margin: ${margin}`;
             const marginPct = (marginDollar / investment) * 100;
             
             // Display results
-            document.getElementById('bl-c-output-margin').textContent = marginPct.toFixed(2) + '%';
+            document.getElementById('bl-c-output-margin').textContent = marginPct.toFixed(6) + '%';
             document.getElementById('bl-c-output-impressions').textContent = formatImpressions(impressions);
             document.getElementById('bl-c-output-media-budget').textContent = '$' + formatNumber(mediaBudget);
             document.getElementById('bl-c-output-prod-pct').textContent = prodPct.toFixed(2) + '%';
-            document.getElementById('bl-c-output-media-pct').textContent = mediaPct.toFixed(2) + '%';
+            document.getElementById('bl-c-output-media-pct').textContent = mediaPct.toFixed(6) + '%';
             
             if (marginPct < 0) {
                 customAlert('Warning: Margin is negative! Costs exceed investment.');
