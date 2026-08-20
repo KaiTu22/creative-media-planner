@@ -5243,6 +5243,7 @@
         // Closed Deals list UI state
         let closedDealsSelectedIds = new Set();
         let closedDealsExpandedIds = new Set();
+        let investmentBreakdownExpandedPackages = new Set();
         let closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
 
         // ====================================================================
@@ -11315,9 +11316,50 @@
 
                 <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Sponsorships Investment Breakdown</h4>
                 ${sponsorshipCount > 0 ? investmentBreakdownTableHTML(sponsorshipCats, true) : '<p style="color: var(--text-muted); font-size: 0.875rem;">No Sponsorship packages in this version.</p>'}
+
+                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Investment Breakdown by Package</h4>
+                ${renderPerPackageInvestmentBreakdown(packages)}
             `;
 
             return html;
+        }
+
+        // Same component-level breakdown as the sections above, but for one
+        // package at a time — reuses the exact same categorization function
+        // and table renderer, just called on a single-package array instead
+        // of the whole version, so a package that spans multiple categories
+        // (e.g. an Influencer package split across Production & Talent and
+        // Paid Media) shows that split correctly here too.
+        function renderPerPackageInvestmentBreakdown(packages) {
+            if (packages.length === 0) {
+                return '<p style="color: var(--text-muted); font-size: 0.875rem;">No packages in this version yet.</p>';
+            }
+            return packages.map((pkg, index) => {
+                const pkgId = pkg.id || `pkg-${index}`;
+                const isExpanded = investmentBreakdownExpandedPackages.has(pkgId);
+                const pkgCats = calculateFullInvestmentBreakdown([pkg]);
+                return `
+                    <div style="margin-bottom: 0.6rem; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden;">
+                        <div onclick="toggleInvestmentBreakdownPackage('${pkgId}')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.85rem; background: var(--background); cursor: pointer;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform 0.15s;transform:rotate(${isExpanded ? '90' : '0'}deg)"><polyline points="9 18 15 12 9 6"/></svg>
+                            <span style="font-weight: 600; font-size: 0.875rem; flex: 1;">${escapeHtml(pkg.title || 'Untitled Package')}</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(getTypeLabel(pkg.type))}</span>
+                            <span style="font-size: 0.8rem; font-weight: 600;">$${formatNumber(pkg.totalInvestment || 0)}</span>
+                        </div>
+                        ${isExpanded ? `<div style="padding: 0.75rem 0.85rem;">${investmentBreakdownTableHTML(pkgCats, false)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleInvestmentBreakdownPackage(pkgId) {
+            if (investmentBreakdownExpandedPackages.has(pkgId)) {
+                investmentBreakdownExpandedPackages.delete(pkgId);
+            } else {
+                investmentBreakdownExpandedPackages.add(pkgId);
+            }
+            const content = document.getElementById('packageDetailsContent');
+            if (content) content.innerHTML = renderInvestmentBreakdownTab();
         }
 
         function renderPackageDetailsTab() {
@@ -12288,6 +12330,23 @@
                     doc.text('No Sponsorship packages in this version.', 14, yPos);
                     yPos += 8;
                 }
+
+                // Per-package breakdown — same categorization, just computed
+                // on one package at a time, so a package that spans multiple
+                // categories (e.g. an Influencer package split across
+                // Production & Talent and Paid Media) shows that split here too.
+                doc.addPage();
+                yPos = 20;
+                doc.setFontSize(14);
+                doc.setTextColor(15, 23, 42);
+                doc.text('INVESTMENT BREAKDOWN BY PACKAGE', 14, yPos);
+                yPos += 10;
+
+                packages.forEach(pkg => {
+                    if (yPos > 250) { doc.addPage(); yPos = 20; }
+                    const pkgCats = calculateFullInvestmentBreakdown([pkg]);
+                    pdfAddInvestmentBreakdownTable(pkgCats, `${pkg.title || 'Untitled Package'} — $${formatNumber(pkg.totalInvestment || 0)}`);
+                });
             })();
 
             // Add new page for packages
@@ -13286,6 +13345,17 @@
                     ibRows.push(['SPONSORSHIPS INVESTMENT BREAKDOWN']);
                     ibRows.push(['No Sponsorship packages in this version.']);
                 }
+
+                // Per-package breakdown — same categorization, just computed
+                // on one package at a time, so a package that spans multiple
+                // categories (e.g. an Influencer package split across
+                // Production & Talent and Paid Media) shows that split here too.
+                ibRows.push([]);
+                ibRows.push(['INVESTMENT BREAKDOWN BY PACKAGE']);
+                packages.forEach(pkg => {
+                    const pkgCats = calculateFullInvestmentBreakdown([pkg]);
+                    pushInvestmentBreakdownSection(ibRows, ibFormats, `${pkg.title || 'Untitled Package'} — $${formatNumber(pkg.totalInvestment || 0)}`, pkgCats);
+                });
 
                 const ws4 = XLSX.utils.aoa_to_sheet(ibRows);
                 ws4['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
