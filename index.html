@@ -4482,6 +4482,18 @@
                     .sort((a, b) => a.path.localeCompare(b.path))
                     .map(({ f, path }) => '<option value="'+f.id+'" '+(project.projectFolderId===f.id?'selected':'')+'>'+escapeHtml(path)+'</option>').join('');
                 const folderSelect = folders.length > 0 ? `<select onchange="moveProjectToFolder(${index},this.value)" onclick="event.stopPropagation()" style="font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-muted);cursor:pointer;max-width:110px;"><option value="">📁 Move to...</option><option value="__none__" ${!project.projectFolderId?'selected':''}>No folder</option>${folderOpts}</select>` : '';
+                const dealCategoryOpts = DEAL_CATEGORIES.map(c => `<option value="${c.value}" ${project.dealCategory === c.value ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+                const dealCategorySelect = `<select onchange="setProjectDealCategory(${index},this.value)" onclick="event.stopPropagation()" style="font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-muted);cursor:pointer;max-width:130px;"><option value="">🏷️ Category...</option>${dealCategoryOpts}</select>`;
+                // Second-level, customizable list — only shown once a
+                // project is tagged as Show/Tentpole, since a specific show
+                // name is meaningless for a Scatter or Upfront deal.
+                let tentpoleShowSelect = '';
+                if (project.dealCategory === 'tentpole') {
+                    const shows = getTentpoleShows();
+                    const showOpts = [...shows].sort((a, b) => a.name.localeCompare(b.name))
+                        .map(s => `<option value="${s.id}" ${project.tentpoleShowId === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+                    tentpoleShowSelect = `<select onchange="setProjectTentpoleShow(${index},this.value)" onclick="event.stopPropagation()" style="font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-muted);cursor:pointer;max-width:130px;"><option value="">🎬 Which show?</option>${showOpts}<option value="__new__">+ New Show/Tentpole...</option></select>`;
+                }
                 const sfBtn = project.salesforceLink ? `<a href="${escapeHtml(project.salesforceLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration:none;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center;gap:3px;line-height:1.25;box-sizing:border-box;font-family:inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> SF</a>` : '';
                 const bsBtn = project.budgetSheetLink ? `<a href="${escapeHtml(project.budgetSheetLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration:none;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center;gap:3px;line-height:1.25;box-sizing:border-box;font-family:inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Budget</a>` : '';
                 const mpBtn = project.mediaPlanLink ? `<a href="${escapeHtml(project.mediaPlanLink)}" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm" style="text-decoration:none;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center;gap:3px;line-height:1.25;box-sizing:border-box;font-family:inherit;" onclick="event.stopPropagation();"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Plan</a>` : '';
@@ -4495,7 +4507,7 @@
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 ${manualButtons}
                                 <span class="badge badge-primary">${project.versions.length} version${project.versions.length!==1?'s':''}</span>
-                                ${sfBtn}${bsBtn}${mpBtn}${folderSelect}
+                                ${sfBtn}${bsBtn}${mpBtn}${folderSelect}${dealCategorySelect}${tentpoleShowSelect}
                                 <button class="btn-secondary btn-sm" data-action="rename-project" data-index="${index}" style="padding:0.3rem 0.6rem;font-size:0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"/></svg> Rename</button>
                                 <button class="btn-secondary btn-sm" data-action="duplicate-project" data-index="${index}" style="padding:0.3rem 0.6rem;font-size:0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;transform:scaleX(-1);"><rect x="2" y="8" width="14" height="14" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/></svg> Dupe</button>
                                 <button class="btn-danger btn-sm" data-action="delete-project" data-index="${index}" style="padding:0.3rem 0.6rem;font-size:0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:2px;position:relative;top:-1px;"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><rect x="5" y="6" width="14" height="15" rx="2"/><path d="M10 11v5"/><path d="M14 11v5"/></svg> Delete</button>
@@ -4793,7 +4805,7 @@
                 const names = verifiedVersions.map(v => v.name || 'Untitled Version').join(', ');
                 message += `\n\n⚠️ WARNING: This project contains ${verifiedVersions.length} VERIFIED SOLD deal${verifiedVersions.length !== 1 ? 's' : ''} (${names}) with a permanently recorded financial snapshot. Deleting this project will permanently destroy that record — it will not be recoverable, and won't appear in any future Closed Deals export.`;
             } else if (trackedVersions.length > 0) {
-                message += `\n\nNote: this project has ${trackedVersions.length} version${trackedVersions.length !== 1 ? 's' : ''} marked as closed/pending verification. Deleting it will remove that tracking status too.`;
+                message += `\n\nNote: this project has ${trackedVersions.length} version${trackedVersions.length !== 1 ? 's' : ''} marked as Verbal/Pending or closed/pending verification. Deleting it will remove that tracking status too.`;
             }
 
             message += '\n\nThis action cannot be undone.';
@@ -5133,6 +5145,99 @@
             displayProjects();
         }
 
+        // Fixed, maintained list of Deal Categories — lives on the Project
+        // (the whole deal is one category, regardless of how many versions
+        // it has), used to group Closed Deals by the kind of deal they are
+        // (as opposed to dealStatus, which tracks where they are in the
+        // pipeline). Add new categories here as the team's needs evolve.
+        const DEAL_CATEGORIES = [
+            { value: 'scatter', label: 'Standard Scatter' },
+            { value: 'tentpole', label: 'Show / Tentpole' },
+            { value: 'upfront', label: 'Upfront' }
+        ];
+        function getDealCategoryLabel(value) {
+            const cat = DEAL_CATEGORIES.find(c => c.value === value);
+            return cat ? cat.label : 'Uncategorized';
+        }
+
+        function setProjectDealCategory(projectIndex, categoryValue) {
+            if (!projects[projectIndex]) return;
+            const project = projects[projectIndex];
+            project.dealCategory = categoryValue || null;
+            if (project.dealCategory !== 'tentpole') {
+                project.tentpoleShowId = null;
+            }
+            saveProjects();
+            displayProjects();
+
+            // Any tracked deal for this project needs its shared record
+            // updated too, so the category is filterable in the Closed Deals
+            // list without waiting for the next verify/edit to re-sync it.
+            (project.versions || []).forEach(version => {
+                if (!version.dealStatus) return;
+                const overall = calculateOverallTotals(version.packages || []);
+                syncDealToSupabase({
+                    dealId: `${project.id}::${version.id}`,
+                    project, version,
+                    totalInvestment: overall.totalPrice,
+                    marginPercent: overall.totalMarginPercent
+                });
+            });
+        }
+
+        // A second, more granular level specifically under the "Show /
+        // Tentpole" category — unlike DEAL_CATEGORIES (a fixed, small set
+        // maintained in code), specific shows/tentpoles come and go
+        // constantly, so this needs to be a list the team grows themselves.
+        // Stored the same way Project Folders already are, for consistency.
+        function getTentpoleShows() {
+            return JSON.parse(localStorage.getItem('tentpoleShows') || '[]');
+        }
+        function saveTentpoleShows(shows) {
+            localStorage.setItem('tentpoleShows', JSON.stringify(shows));
+        }
+        function getTentpoleShowName(showId) {
+            const show = getTentpoleShows().find(s => s.id === showId);
+            return show ? show.name : '';
+        }
+
+        function createTentpoleShow(projectIndex) {
+            showRename('Name this Show / Tentpole:', 'New Show', (name) => {
+                if (!name || !name.trim()) return;
+                const shows = getTentpoleShows();
+                const newShow = { id: 'show_' + generateId(), name: name.trim(), createdAt: new Date().toISOString() };
+                shows.push(newShow);
+                saveTentpoleShows(shows);
+                if (projectIndex !== undefined && projectIndex !== null) {
+                    setProjectTentpoleShow(projectIndex, newShow.id);
+                } else {
+                    displayProjects();
+                }
+            }, 'New Show / Tentpole', 'Create');
+        }
+
+        function setProjectTentpoleShow(projectIndex, showId) {
+            if (!projects[projectIndex]) return;
+            const project = projects[projectIndex];
+            if (showId === '__new__') { createTentpoleShow(projectIndex); return; }
+            project.tentpoleShowId = showId || null;
+            saveProjects();
+            displayProjects();
+
+            // Same reasoning as setProjectDealCategory — re-sync any tracked
+            // deal so the show/tentpole name is filterable right away.
+            (project.versions || []).forEach(version => {
+                if (!version.dealStatus) return;
+                const overall = calculateOverallTotals(version.packages || []);
+                syncDealToSupabase({
+                    dealId: `${project.id}::${version.id}`,
+                    project, version,
+                    totalInvestment: overall.totalPrice,
+                    marginPercent: overall.totalMarginPercent
+                });
+            });
+        }
+
         function createNewVersion() {
             const defaultName = `Version ${currentProject.versions.length + 1}`;
             showRename('Enter a name for this version:', defaultName, (versionName) => {
@@ -5186,6 +5291,30 @@
         // flow requires a typed name and shows an explicit reminder instead,
         // creating an accountability trail rather than real access control.
 
+        function markVersionVerbalPending(versionIndex) {
+            const project = currentProject;
+            const version = currentProject.versions[versionIndex];
+            showConfirm(
+                `Mark "${version.name || 'this version'}" as Verbal / Pending? This is for deals with high confidence of closing that aren't locked in with an IO yet — it'll show in the shared Closed Deals list with its own status, and you can mark it fully Closed later once it's locked in.`,
+                () => {
+                    version.dealStatus = 'verbal_pending';
+                    version.markedVerbalPendingAt = new Date().toISOString();
+                    saveProjects();
+                    displayVersions();
+
+                    const dealId = `${project.id}::${version.id}`;
+                    const overall = calculateOverallTotals(version.packages || []);
+                    syncDealToSupabase({
+                        dealId, project, version,
+                        totalInvestment: overall.totalPrice,
+                        marginPercent: overall.totalMarginPercent
+                    });
+                },
+                'Mark as Verbal/Pending',
+                'btn-primary'
+            );
+        }
+
         function markVersionClosed(projectIndexOrNull, versionIndex) {
             const project = currentProject;
             const version = currentProject.versions[versionIndex];
@@ -5213,14 +5342,17 @@
         function unmarkVersionClosed(versionIndex) {
             const project = currentProject;
             const version = currentProject.versions[versionIndex];
+            const isVerbalPending = version.dealStatus === 'verbal_pending';
+            const statusLabel = isVerbalPending ? 'Verbal/Pending' : 'closed-deal';
             showConfirm(
-                `Remove the closed-deal status from "${version.name || 'this version'}"? Any existing verification will be cleared.`,
+                `Remove the ${statusLabel} status from "${version.name || 'this version'}"?${isVerbalPending ? '' : ' Any existing verification will be cleared.'}`,
                 () => {
                     delete version.dealStatus;
                     delete version.verifiedBy;
                     delete version.verifiedAt;
                     delete version.verificationNotes;
                     delete version.markedClosedAt;
+                    delete version.markedVerbalPendingAt;
                     delete version.dealSnapshot;
                     saveProjects();
                     displayVersions();
@@ -5233,7 +5365,7 @@
                         }
                     });
                 },
-                'Remove Closed Status',
+                `Remove ${statusLabel === 'Verbal/Pending' ? 'Verbal/Pending' : 'Closed'} Status`,
                 'btn-danger'
             );
         }
@@ -5243,8 +5375,7 @@
         // Closed Deals list UI state
         let closedDealsSelectedIds = new Set();
         let closedDealsExpandedIds = new Set();
-        let investmentBreakdownExpandedPackages = new Set();
-        let closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
+        let closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '', dealCategory: '', dealStatus: '', tentpoleShow: '' };
 
         // ====================================================================
         // SHARED CLOSED DEAL STORAGE (Supabase)
@@ -5295,6 +5426,17 @@
         // Builds the Supabase row for a tracked deal, using the same
         // full-detail derivation the overlay and Excel export already use —
         // so the shared record always matches what's shown locally.
+        // Resolves a project's Show/Tentpole name for display, whether the
+        // project is a real local one (has tentpoleShowId, resolved against
+        // this browser's own managed list) or a Supabase-reconstructed one
+        // (already carries the resolved tentpoleShowName directly, since a
+        // local show ID from someone else's browser wouldn't mean anything here).
+        function getProjectTentpoleShowDisplayName(project) {
+            if (project.tentpoleShowName) return project.tentpoleShowName;
+            if (project.tentpoleShowId) return getTentpoleShowName(project.tentpoleShowId);
+            return '';
+        }
+
         function buildSupabaseDealRow(deal) {
             // For a deal that hasn't been verified yet (no frozen snapshot),
             // build one fresh from the current live state rather than a
@@ -5316,6 +5458,8 @@
                 sub_brand_name: deal.project.subBrandName || '',
                 agency_name: deal.project.agencyName || '',
                 version_name: deal.version.name || '',
+                deal_category: deal.project.dealCategory || null,
+                tentpole_show_name: getProjectTentpoleShowDisplayName(deal.project) || null,
                 deal_status: deal.version.dealStatus,
                 verified_by: deal.version.verifiedBy || null,
                 verified_at: deal.version.verifiedAt || null,
@@ -5573,6 +5717,7 @@
         function dealStatusBadgeHTML(version) {
             if (!version.dealStatus) return '';
             const badges = {
+                verbal_pending: { text: '🗣️ Verbal / Pending', bg: '#EDE9FE', color: '#5B21B6', border: '#8B5CF6' },
                 closed_pending_verification: { text: '⏳ Pending Verification', bg: '#FEF3C7', color: '#92400E', border: '#F59E0B' },
                 verified: { text: '✓ Verified Sold', bg: '#DCFCE7', color: '#166534', border: '#16A34A' },
                 needs_reverification: { text: '⚠ Needs Re-Verification', bg: '#FEE2E2', color: '#991B1B', border: '#DC2626' }
@@ -5591,15 +5736,19 @@
         function dealStatusActionsHTML(version, versionIndex) {
             const status = version.dealStatus;
             if (!status) {
-                return `<button class="btn-secondary btn-sm" onclick="markVersionClosed(null, ${versionIndex});">🏁 Mark as Closed</button>`;
+                return `<button class="btn-secondary btn-sm" onclick="markVersionVerbalPending(${versionIndex});">🗣️ Mark as Verbal/Pending</button>
+                        <button class="btn-secondary btn-sm" onclick="markVersionClosed(null, ${versionIndex});">🏁 Mark as Closed</button>`;
             }
             let buttons = '';
-            if (status === 'closed_pending_verification') {
+            if (status === 'verbal_pending') {
+                buttons += `<button class="btn-primary btn-sm" onclick="markVersionClosed(null, ${versionIndex});">🏁 Mark as Closed</button>`;
+            } else if (status === 'closed_pending_verification') {
                 buttons += `<button class="btn-primary btn-sm" onclick="openVerifyDealModal(${versionIndex});">Verify</button>`;
             } else if (status === 'needs_reverification') {
                 buttons += `<button class="btn-primary btn-sm" onclick="openVerifyDealModal(${versionIndex});">Re-Verify</button>`;
             }
-            buttons += `<button class="btn-secondary btn-sm" onclick="unmarkVersionClosed(${versionIndex});">Remove Closed Status</button>`;
+            const removeLabel = status === 'verbal_pending' ? 'Verbal/Pending' : 'Closed';
+            buttons += `<button class="btn-secondary btn-sm" onclick="unmarkVersionClosed(${versionIndex});">Remove ${removeLabel} Status</button>`;
             return buttons;
         }
 
@@ -5915,6 +6064,8 @@
                         <div><strong>Agency:</strong> ${escapeHtml(id.agencyName)}</div>
                         <div><strong>Planner:</strong> ${escapeHtml(id.plannerName || '—')}</div>
                         <div><strong>Version:</strong> ${escapeHtml(id.versionName)}</div>
+                        <div><strong>Deal Category:</strong> ${escapeHtml(getDealCategoryLabel(deal.project.dealCategory))}</div>
+                        ${deal.project.dealCategory === 'tentpole' && getProjectTentpoleShowDisplayName(deal.project) ? `<div><strong>Show / Tentpole:</strong> ${escapeHtml(getProjectTentpoleShowDisplayName(deal.project))}</div>` : ''}
                         <div><strong>Campaign Period:</strong> ${escapeHtml(id.campaignPeriod || '—')}</div>
                         ${id.salesforceLink ? `<div><strong>Salesforce:</strong> <a href="${escapeHtml(id.salesforceLink)}" target="_blank" rel="noopener">Link</a></div>` : ''}
                     </div>
@@ -5979,7 +6130,8 @@
             const hasRealSnapshot = !!snapshot.identification;
             const fakeProject = {
                 id: row.project_id, projectName: row.project_name, brandName: row.brand_name,
-                subBrandName: row.sub_brand_name, agencyName: row.agency_name
+                subBrandName: row.sub_brand_name, agencyName: row.agency_name, dealCategory: row.deal_category || null,
+                tentpoleShowName: row.tentpole_show_name || null
             };
             const fakeVersion = {
                 id: row.version_id, name: row.version_name, dealStatus: row.deal_status,
@@ -6057,11 +6209,15 @@
             // Filter options, built from the full (unfiltered) list
             const brands = [...new Set(allDeals.map(d => d.project.brandName).filter(Boolean))].sort();
             const agencies = [...new Set(allDeals.map(d => d.project.agencyName).filter(Boolean))].sort();
+            const tentpoleShowNames = [...new Set(allDeals.map(d => getProjectTentpoleShowDisplayName(d.project)).filter(Boolean))].sort();
 
             const deals = allDeals.filter(d => {
                 if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
                 if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
-                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dealCategory && (d.project.dealCategory || '') !== closedDealsFilters.dealCategory) return false;
+                if (closedDealsFilters.tentpoleShow && getProjectTentpoleShowDisplayName(d.project) !== closedDealsFilters.tentpoleShow) return false;
+                if (closedDealsFilters.dealStatus && d.version.dealStatus !== closedDealsFilters.dealStatus) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt || d.version.markedVerbalPendingAt;
                 if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
                 if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
                 return true;
@@ -6091,6 +6247,32 @@
                         <select onchange="updateClosedDealsFilter('agency', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
                             <option value="">All Agencies</option>
                             ${agencies.map(a => `<option value="${escapeHtml(a)}" ${closedDealsFilters.agency === a ? 'selected' : ''}>${escapeHtml(a)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Deal Category</label>
+                        <select onchange="updateClosedDealsFilter('dealCategory', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                            <option value="">All Categories</option>
+                            ${DEAL_CATEGORIES.map(c => `<option value="${c.value}" ${closedDealsFilters.dealCategory === c.value ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('')}
+                        </select>
+                    </div>
+                    ${tentpoleShowNames.length > 0 ? `
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Show / Tentpole</label>
+                        <select onchange="updateClosedDealsFilter('tentpoleShow', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                            <option value="">All Shows</option>
+                            ${tentpoleShowNames.map(s => `<option value="${escapeHtml(s)}" ${closedDealsFilters.tentpoleShow === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+                        </select>
+                    </div>
+                    ` : ''}
+                    <div>
+                        <label style="display:block; font-size:0.75rem; color: var(--text-muted); margin-bottom:0.25rem;">Deal Stage</label>
+                        <select onchange="updateClosedDealsFilter('dealStatus', this.value)" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8125rem;">
+                            <option value="">All Stages</option>
+                            <option value="verbal_pending" ${closedDealsFilters.dealStatus === 'verbal_pending' ? 'selected' : ''}>Verbal / Pending</option>
+                            <option value="closed_pending_verification" ${closedDealsFilters.dealStatus === 'closed_pending_verification' ? 'selected' : ''}>Pending Verification</option>
+                            <option value="verified" ${closedDealsFilters.dealStatus === 'verified' ? 'selected' : ''}>Verified Sold</option>
+                            <option value="needs_reverification" ${closedDealsFilters.dealStatus === 'needs_reverification' ? 'selected' : ''}>Needs Re-Verification</option>
                         </select>
                     </div>
                     <div>
@@ -6156,7 +6338,7 @@
         }
 
         function clearClosedDealsFilters() {
-            closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '' };
+            closedDealsFilters = { brand: '', agency: '', dateFrom: '', dateTo: '', dealCategory: '', dealStatus: '', tentpoleShow: '' };
             rerenderClosedDealsFromCache();
         }
 
@@ -6183,7 +6365,10 @@
             const deals = allDeals.filter(d => {
                 if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
                 if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
-                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dealCategory && (d.project.dealCategory || '') !== closedDealsFilters.dealCategory) return false;
+                if (closedDealsFilters.tentpoleShow && getProjectTentpoleShowDisplayName(d.project) !== closedDealsFilters.tentpoleShow) return false;
+                if (closedDealsFilters.dealStatus && d.version.dealStatus !== closedDealsFilters.dealStatus) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt || d.version.markedVerbalPendingAt;
                 if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
                 if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
                 return true;
@@ -6228,7 +6413,10 @@
             const filtered = allDeals.filter(d => {
                 if (closedDealsFilters.brand && d.project.brandName !== closedDealsFilters.brand) return false;
                 if (closedDealsFilters.agency && d.project.agencyName !== closedDealsFilters.agency) return false;
-                const dealDate = d.version.verifiedAt || d.version.markedClosedAt;
+                if (closedDealsFilters.dealCategory && (d.project.dealCategory || '') !== closedDealsFilters.dealCategory) return false;
+                if (closedDealsFilters.tentpoleShow && getProjectTentpoleShowDisplayName(d.project) !== closedDealsFilters.tentpoleShow) return false;
+                if (closedDealsFilters.dealStatus && d.version.dealStatus !== closedDealsFilters.dealStatus) return false;
+                const dealDate = d.version.verifiedAt || d.version.markedClosedAt || d.version.markedVerbalPendingAt;
                 if (closedDealsFilters.dateFrom && (!dealDate || new Date(dealDate) < new Date(closedDealsFilters.dateFrom))) return false;
                 if (closedDealsFilters.dateTo && (!dealDate || new Date(dealDate) > new Date(closedDealsFilters.dateTo + 'T23:59:59'))) return false;
                 return true;
@@ -6284,6 +6472,7 @@
             const dateFmt = 'mm/dd/yyyy';
 
             const statusLabels = {
+                verbal_pending: 'Verbal / Pending',
                 closed_pending_verification: 'Pending Verification',
                 verified: 'Verified Sold',
                 needs_reverification: 'Needs Re-Verification'
@@ -6318,6 +6507,8 @@
                     { value: id.salesforceLink || '' },
                     { value: id.campaignPeriod || '' },
                     { value: id.versionName || '' },
+                    { value: getDealCategoryLabel(d.project.dealCategory) },
+                    { value: getProjectTentpoleShowDisplayName(d.project) || '' },
                     { value: statusLabels[d.version.dealStatus] || d.version.dealStatus },
                     { value: d.isLive ? 'Live (unverified — will change if edited)' : 'Verified snapshot (frozen at verification)' },
                     { value: d.version.verifiedBy || '' },
@@ -6403,7 +6594,7 @@
 
             const headerRow = [
                 'Project', 'Brand', 'Sub-Brand', 'Agency', 'Planner Name', 'Planner Email', 'Salesforce Link', 'Campaign Period',
-                'Version', 'Deal Status', 'Data Source', 'Verified By', 'Verified At', 'Verification Notes',
+                'Version', 'Deal Category', 'Show / Tentpole', 'Deal Status', 'Data Source', 'Verified By', 'Verified At', 'Verification Notes',
                 'Total Investment', 'Total Impressions', 'Overall CPM', 'Total Views', 'Overall CPV', 'Total Cost', 'Margin ($)', 'Margin (%)',
                 'Added Value Cost (tracked separately, not in Total Cost/Margin)', 'Added Value Notional Value',
                 'Creative Investment', 'Creative % of Total Investment', 'Creative Impressions', 'Creative CPM', 'Creative Cost',
@@ -6532,6 +6723,8 @@
                 message += `\n\n⚠️ WARNING: This version is a VERIFIED SOLD deal with a permanently recorded financial snapshot. Deleting it will permanently destroy that record — it will not be recoverable, and won't appear in any future Closed Deals export.`;
             } else if (version.dealStatus === 'closed_pending_verification') {
                 message += `\n\nNote: this version is marked as closed/pending verification. Deleting it will remove that tracking status too.`;
+            } else if (version.dealStatus === 'verbal_pending') {
+                message += `\n\nNote: this version is marked as Verbal/Pending. Deleting it will remove that tracking status too.`;
             }
 
             message += '\n\nThis action cannot be undone.';
@@ -11294,72 +11487,108 @@
         function renderInvestmentBreakdownTab() {
             const packages = currentVersion.packages;
 
-            const nonSponsorshipPackages = packages.filter(pkg => pkg.type !== 'sponsorship');
-            const sponsorshipPackages = packages.filter(pkg => pkg.type === 'sponsorship');
-            const nonSponsorshipCats = calculateFullInvestmentBreakdown(nonSponsorshipPackages);
-            const sponsorshipCats = calculateFullInvestmentBreakdown(sponsorshipPackages);
-            const totalCats = calculateFullInvestmentBreakdown(packages);
-            const sponsorshipCount = sponsorshipPackages.length;
-
             let html = `
                 <h3 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.3rem; border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem;">
                     INVESTMENT BREAKDOWN
                     <span style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(0,10,60,0.08); color: #000a3c; border: 1px solid #000a3c; border-radius: 4px; padding: 2px 8px;">Beta</span>
                 </h3>
-                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem;">A component-level view of investment and cost across the version, broken out by Production &amp; Talent, Paid Media, Social Partnership, Streaming, Linear, Fees, and Brand Funded Content.</p>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1.5rem;">Every package, how it splits across Production &amp; Talent, Paid Media, Social Partnership, Streaming, Linear, Fees, Brand Funded Content, and Added Value, and the total for each category across the whole version.</p>
 
-                <h4 style="color: var(--primary); margin: 0 0 0.75rem; font-size: 1.05rem;">Total Investment Breakdown</h4>
-                ${investmentBreakdownTableHTML(totalCats, true)}
-
-                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Non-Sponsorship Package Breakdown</h4>
-                ${investmentBreakdownTableHTML(nonSponsorshipCats, true)}
-
-                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Sponsorships Investment Breakdown</h4>
-                ${sponsorshipCount > 0 ? investmentBreakdownTableHTML(sponsorshipCats, true) : '<p style="color: var(--text-muted); font-size: 0.875rem;">No Sponsorship packages in this version.</p>'}
-
-                <h4 style="color: var(--primary); margin: 1.5rem 0 0.75rem; font-size: 1.05rem;">Investment Breakdown by Package</h4>
-                ${renderPerPackageInvestmentBreakdown(packages)}
+                ${renderInvestmentBreakdownMatrix(packages)}
             `;
 
             return html;
         }
 
-        // Same component-level breakdown as the sections above, but for one
-        // package at a time — reuses the exact same categorization function
-        // and table renderer, just called on a single-package array instead
-        // of the whole version, so a package that spans multiple categories
+        // Cross-tab matrix: one row per package, one column group per
+        // category (Investment / Cost / Margin), with a totals row at the
+        // bottom. Reuses calculateFullInvestmentBreakdown() per package —
+        // the same categorization function used everywhere else this
+        // breakdown appears — so a package spanning multiple categories
         // (e.g. an Influencer package split across Production & Talent and
-        // Paid Media) shows that split correctly here too.
-        function renderPerPackageInvestmentBreakdown(packages) {
+        // Paid Media) shows correctly here too, and stays consistent with
+        // the aggregate figures shown elsewhere in the app.
+        function renderInvestmentBreakdownMatrix(packages) {
             if (packages.length === 0) {
                 return '<p style="color: var(--text-muted); font-size: 0.875rem;">No packages in this version yet.</p>';
             }
-            return packages.map((pkg, index) => {
-                const pkgId = pkg.id || `pkg-${index}`;
-                const isExpanded = investmentBreakdownExpandedPackages.has(pkgId);
-                const pkgCats = calculateFullInvestmentBreakdown([pkg]);
+
+            const categoryOrder = ['talent', 'media', 'social', 'streaming', 'linear', 'fees', 'brandFunded', 'addedValue'];
+            const perPackageCats = packages.map(pkg => calculateFullInvestmentBreakdown([pkg]));
+            const totalCats = calculateFullInvestmentBreakdown(packages);
+
+            // Only show category columns that actually have something in
+            // them anywhere in this version — an empty "Linear" column for a
+            // version with no Linear packages at all just adds width for no
+            // information.
+            const activeCategoryKeys = categoryOrder.filter(key => totalCats[key].investment !== 0 || totalCats[key].cost !== 0);
+
+            function marginFor(investment, cost) {
+                const marginDollar = investment - cost;
+                const marginPercent = investment > 0 ? (marginDollar / investment) * 100 : 0;
+                return { marginDollar, marginPercent };
+            }
+
+            function cellsFor(cat, isAddedValue) {
+                const { marginDollar, marginPercent } = marginFor(cat.investment, cat.cost || 0);
                 return `
-                    <div style="margin-bottom: 0.6rem; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden;">
-                        <div onclick="toggleInvestmentBreakdownPackage('${pkgId}')" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.85rem; background: var(--background); cursor: pointer;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform 0.15s;transform:rotate(${isExpanded ? '90' : '0'}deg)"><polyline points="9 18 15 12 9 6"/></svg>
-                            <span style="font-weight: 600; font-size: 0.875rem; flex: 1;">${escapeHtml(pkg.title || 'Untitled Package')}</span>
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(getTypeLabel(pkg.type))}</span>
-                            <span style="font-size: 0.8rem; font-weight: 600;">$${formatNumber(pkg.totalInvestment || 0)}</span>
-                        </div>
-                        ${isExpanded ? `<div style="padding: 0.75rem 0.85rem;">${investmentBreakdownTableHTML(pkgCats, false)}</div>` : ''}
-                    </div>
+                    <td style="padding: 0.5rem 0.6rem; text-align: right; border-left: 2px solid var(--border);">$${formatNumber(cat.investment)}</td>
+                    <td style="padding: 0.5rem 0.6rem; text-align: right;">${cat.hasCost === false ? '—' : '$' + formatNumber(cat.cost)}</td>
+                    <td style="padding: 0.5rem 0.6rem; text-align: right; ${isAddedValue || cat.hasCost === false ? '' : `color: ${getMarginColor(marginPercent)};`}">${isAddedValue ? 'N/A' : (cat.hasCost === false ? '—' : '$' + formatNumber(marginDollar) + ' (' + marginPercent.toFixed(6) + '%)')}</td>
+                `;
+            }
+
+            const headerCategoryGroups = activeCategoryKeys.map(key => `
+                <th colspan="3" style="padding: 0.5rem 0.6rem; text-align: center; border-left: 2px solid var(--border); border-bottom: 1px solid var(--border);">${makeEmptyInvestmentBreakdownCats()[key].label}</th>
+            `).join('');
+            const headerSubCols = activeCategoryKeys.map(() => `
+                <th style="padding: 0.4rem 0.6rem; text-align: right; border-left: 2px solid var(--border); font-weight: 600; font-size: 0.75rem;">Investment</th>
+                <th style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600; font-size: 0.75rem;">Cost</th>
+                <th style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600; font-size: 0.75rem;">Margin</th>
+            `).join('');
+
+            const bodyRows = packages.map((pkg, i) => {
+                const cats = perPackageCats[i];
+                const cells = activeCategoryKeys.map(key => cellsFor(cats[key], key === 'addedValue')).join('');
+                return `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem 0.6rem; position: sticky; left: 0; background: white; font-weight: 600;">${escapeHtml(pkg.title || 'Untitled Package')}</td>
+                        <td style="padding: 0.5rem 0.6rem; color: var(--text-muted); font-size: 0.8rem;">${escapeHtml(getTypeLabel(pkg.type))}</td>
+                        <td style="padding: 0.5rem 0.6rem; text-align: right; font-weight: 600; border-left: 2px solid var(--border);">$${formatNumber(pkg.totalInvestment || 0)}</td>
+                        ${cells}
+                    </tr>
                 `;
             }).join('');
-        }
 
-        function toggleInvestmentBreakdownPackage(pkgId) {
-            if (investmentBreakdownExpandedPackages.has(pkgId)) {
-                investmentBreakdownExpandedPackages.delete(pkgId);
-            } else {
-                investmentBreakdownExpandedPackages.add(pkgId);
-            }
-            const content = document.getElementById('packageDetailsContent');
-            if (content) content.innerHTML = renderInvestmentBreakdownTab();
+            const totalCells = activeCategoryKeys.map(key => cellsFor(totalCats[key], key === 'addedValue')).join('');
+            const grandTotalInvestment = packages.reduce((sum, p) => sum + (p.totalInvestment || 0), 0);
+
+            return `
+                <div style="overflow-x: auto; border: 1.5px solid var(--border); border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; white-space: nowrap;">
+                        <thead>
+                            <tr style="background: var(--background);">
+                                <th rowspan="2" style="padding: 0.5rem 0.6rem; text-align: left; position: sticky; left: 0; background: var(--background); border-bottom: 1px solid var(--border);">Package</th>
+                                <th rowspan="2" style="padding: 0.5rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border);">Type</th>
+                                <th rowspan="2" style="padding: 0.5rem 0.6rem; text-align: right; border-left: 2px solid var(--border); border-bottom: 1px solid var(--border);">Total Investment</th>
+                                ${headerCategoryGroups}
+                            </tr>
+                            <tr style="background: var(--background);">
+                                ${headerSubCols}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bodyRows}
+                            <tr style="border-top: 2px solid var(--primary); font-weight: 700; background: var(--background);">
+                                <td style="padding: 0.6rem; position: sticky; left: 0; background: var(--background);">Total</td>
+                                <td style="padding: 0.6rem;"></td>
+                                <td style="padding: 0.6rem; text-align: right; border-left: 2px solid var(--border);">$${formatNumber(grandTotalInvestment)}</td>
+                                ${totalCells}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
         function renderPackageDetailsTab() {
