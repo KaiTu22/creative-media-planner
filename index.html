@@ -5673,7 +5673,50 @@
                         pricingLabel: metricInfo.pricingLabel,
                         pricingValue: metricInfo.pricingValue,
                         notes: pkg.notes || '',
-                        categoryBreakdown7
+                        categoryBreakdown7,
+                        // Accounting detail: every field the in-app "Package
+                        // Details" tab (renderPackageDetailsTab) uses to show
+                        // how a package's investment/cost breaks down into
+                        // talent vs. media, per-platform placements, blended
+                        // platforms, sponsorship line items, or Added Value
+                        // sub-type specifics. Captured verbatim (not derived)
+                        // so a dashboard reading this snapshot can rebuild
+                        // the exact same view without re-implementing the
+                        // planner's package-type branching logic from scratch.
+                        accounting: {
+                            talentInvestment: pkg.talentInvestment || 0,
+                            talentCost: pkg.talentCost || 0,
+                            mediaInvestmentDollar: pkg.mediaInvestmentDollar || 0,
+                            impressions: pkg.impressions || 0,
+                            totalImpressions: pkg.totalImpressions || 0,
+                            cpmCost: pkg.cpmCost || 0,
+                            cpmPrice: pkg.cpmPrice || 0,
+                            totalValue: pkg.totalValue || 0,
+                            addedValueType: pkg.addedValueType || null,
+                            sponsorshipType: pkg.sponsorshipType || null,
+                            platformAllocations: (pkg.platformAllocations || []).map(a => ({
+                                platform: a.platform || '',
+                                mediaType: a.mediaType || 'N/A',
+                                handleType: a.handleType || '',
+                                percentage: a.percentage || 0,
+                                impressions: a.impressions || 0,
+                                totalCost: a.totalCost || 0,
+                                costCPM: a.costCPM || 0,
+                                marginPercent: a.marginPercent || 0
+                            })),
+                            blendedPlatforms: (pkg.blendedPlatforms || []).map(p => ({
+                                platform: p.platform || '',
+                                mediaType: p.mediaType || 'N/A',
+                                handleType: p.handleType || ''
+                            })),
+                            sponsorshipLineItems: (pkg.sponsorshipLineItems || []).map(item => ({
+                                placementType: item.placementType || '',
+                                placementLabel: getPlacementTypeLabel(item.placementType),
+                                investment: item.totalInvestment || item.investment || 0,
+                                totalCost: item.totalCost || 0,
+                                addedValueSubType: item.addedValueSubType || null
+                            }))
+                        }
                     };
                 })
             };
