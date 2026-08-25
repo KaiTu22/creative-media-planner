@@ -11217,7 +11217,12 @@
                 // browser created it and is very unlikely to mean anything
                 // here; overwriting a deliberate local organization choice
                 // with a probably-dangling reference would be surprising.
+                // Also sanitize it — if the EXISTING entry was itself
+                // created before this fix existed, it could be carrying a
+                // dangling reference of its own, which would otherwise just
+                // perpetuate the same invisibility on every future replace.
                 pendingImportProject.projectFolderId = projects[pendingImportIndex].projectFolderId;
+                sanitizeImportedProjectFolderId(pendingImportProject);
                 
                 // Normalize sponsorship data (lineItems → sponsorshipLineItems)
                 pendingImportProject.versions.forEach(version => {
