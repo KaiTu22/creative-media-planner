@@ -5642,24 +5642,6 @@
                 ),
                 packages: packages.map(pkg => {
                     const metricInfo = getPackageMetricInfo(pkg);
-                    // Per-package category split, computed the same way the
-                    // Investment Breakdown (Beta) matrix does it in-app
-                    // (calculateFullInvestmentBreakdown on a single-package
-                    // array) — captured here so a dashboard reading this
-                    // snapshot can reconstruct that same matrix per campaign
-                    // without needing the raw package fields.
-                    const pkgCat7 = calculateFullInvestmentBreakdown([pkg]);
-                    const categoryBreakdown7 = Object.fromEntries(
-                        Object.entries(pkgCat7)
-                            .filter(([, cat]) => cat.investment !== 0 || cat.cost !== 0)
-                            .map(([key, cat]) => [key, {
-                                label: cat.label,
-                                investment: cat.investment,
-                                cost: cat.hasCost ? cat.cost : null,
-                                marginDollar: cat.investment - cat.cost,
-                                marginPercent: marginPct(cat.investment, cat.cost)
-                            }])
-                    );
                     return {
                         title: pkg.title || '',
                         type: pkg.type,
@@ -5672,53 +5654,7 @@
                         metricValue: metricInfo.metricValue,
                         pricingLabel: metricInfo.pricingLabel,
                         pricingValue: metricInfo.pricingValue,
-                        notes: pkg.notes || '',
-                        categoryBreakdown7,
-                        // Accounting detail: every field the in-app "Package
-                        // Details" tab (renderPackageDetailsTab) uses to show
-                        // how a package's investment/cost breaks down into
-                        // talent vs. media, per-platform placements, blended
-                        // platforms, sponsorship line items, or Added Value
-                        // sub-type specifics. Captured verbatim (not derived)
-                        // so a dashboard reading this snapshot can rebuild
-                        // the exact same view without re-implementing the
-                        // planner's package-type branching logic from scratch.
-                        accounting: {
-                            talentInvestment: pkg.talentInvestment || 0,
-                            talentCost: pkg.talentCost || 0,
-                            mediaInvestmentDollar: pkg.mediaInvestmentDollar || 0,
-                            mediaCost: pkg.mediaCost || 0,
-                            revShare: (pkg.type === 'partnership') ? (pkg.revShare || 50) : null,
-                            impressions: pkg.impressions || 0,
-                            totalImpressions: pkg.totalImpressions || 0,
-                            cpmCost: pkg.cpmCost || 0,
-                            cpmPrice: pkg.cpmPrice || 0,
-                            totalValue: pkg.totalValue || 0,
-                            addedValueType: pkg.addedValueType || null,
-                            sponsorshipType: pkg.sponsorshipType || null,
-                            platformAllocations: (pkg.platformAllocations || []).map(a => ({
-                                platform: a.platform || '',
-                                mediaType: a.mediaType || 'N/A',
-                                handleType: a.handleType || '',
-                                percentage: a.percentage || 0,
-                                impressions: a.impressions || 0,
-                                totalCost: a.totalCost || 0,
-                                costCPM: a.costCPM || 0,
-                                marginPercent: a.marginPercent || 0
-                            })),
-                            blendedPlatforms: (pkg.blendedPlatforms || []).map(p => ({
-                                platform: p.platform || '',
-                                mediaType: p.mediaType || 'N/A',
-                                handleType: p.handleType || ''
-                            })),
-                            sponsorshipLineItems: (pkg.sponsorshipLineItems || []).map(item => ({
-                                placementType: item.placementType || '',
-                                placementLabel: getPlacementTypeLabel(item.placementType),
-                                investment: item.totalInvestment || item.investment || 0,
-                                totalCost: item.totalCost || 0,
-                                addedValueSubType: item.addedValueSubType || null
-                            }))
-                        }
+                        notes: pkg.notes || ''
                     };
                 })
             };
@@ -11165,6 +11101,23 @@
             reader.readAsText(file);
         }
 
+        // An imported project's projectFolderId was generated in whatever
+        // browser originally created it — folders are local, not shared, so
+        // that id almost never matches anything in the importing browser.
+        // Left as-is, the project matches neither a real folder section nor
+        // the "uncategorized" bucket (which only catches a null/empty id),
+        // and becomes invisible in the projects list even though it
+        // imported successfully. Reset it whenever it doesn't match a
+        // folder that actually exists here.
+        function sanitizeImportedProjectFolderId(project) {
+            if (!project.projectFolderId) return project;
+            const localFolders = getProjectFolders();
+            if (!localFolders.some(f => f.id === project.projectFolderId)) {
+                project.projectFolderId = null;
+            }
+            return project;
+        }
+
         function importProject() {
             const fileInput = document.getElementById('fileImportInput');
             
@@ -11228,6 +11181,7 @@
                         } else {
                             // New project - import directly
                             importedProject.id = generateId();
+                            sanitizeImportedProjectFolderId(importedProject);
                             
                             // Normalize sponsorship data (lineItems → sponsorshipLineItems)
                             importedProject.versions.forEach(version => {
@@ -11257,6 +11211,13 @@
             if (pendingImportProject && pendingImportIndex >= 0) {
                 // Keep the same ID to maintain identity
                 pendingImportProject.id = projects[pendingImportIndex].id;
+
+                // Keep the existing project's own folder placement — the
+                // imported file's projectFolderId was set in whatever
+                // browser created it and is very unlikely to mean anything
+                // here; overwriting a deliberate local organization choice
+                // with a probably-dangling reference would be surprising.
+                pendingImportProject.projectFolderId = projects[pendingImportIndex].projectFolderId;
                 
                 // Normalize sponsorship data (lineItems → sponsorshipLineItems)
                 pendingImportProject.versions.forEach(version => {
@@ -11290,6 +11251,7 @@
                             // Import with new name and new ID
                             pendingImportProject.id = generateId();
                             pendingImportProject.projectName = newName.trim();
+                            sanitizeImportedProjectFolderId(pendingImportProject);
                             
                             // Normalize sponsorship data (lineItems → sponsorshipLineItems)
                             pendingImportProject.versions.forEach(version => {
