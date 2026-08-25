@@ -5687,6 +5687,8 @@
                             talentInvestment: pkg.talentInvestment || 0,
                             talentCost: pkg.talentCost || 0,
                             mediaInvestmentDollar: pkg.mediaInvestmentDollar || 0,
+                            mediaCost: pkg.mediaCost || 0,
+                            revShare: (pkg.type === 'partnership') ? (pkg.revShare || 50) : null,
                             impressions: pkg.impressions || 0,
                             totalImpressions: pkg.totalImpressions || 0,
                             cpmCost: pkg.cpmCost || 0,
