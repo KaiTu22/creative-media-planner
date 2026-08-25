@@ -5642,6 +5642,24 @@
                 ),
                 packages: packages.map(pkg => {
                     const metricInfo = getPackageMetricInfo(pkg);
+                    // Per-package category split, computed the same way the
+                    // Investment Breakdown (Beta) matrix does it in-app
+                    // (calculateFullInvestmentBreakdown on a single-package
+                    // array) — captured here so a dashboard reading this
+                    // snapshot can reconstruct that same matrix per campaign
+                    // without needing the raw package fields.
+                    const pkgCat7 = calculateFullInvestmentBreakdown([pkg]);
+                    const categoryBreakdown7 = Object.fromEntries(
+                        Object.entries(pkgCat7)
+                            .filter(([, cat]) => cat.investment !== 0 || cat.cost !== 0)
+                            .map(([key, cat]) => [key, {
+                                label: cat.label,
+                                investment: cat.investment,
+                                cost: cat.hasCost ? cat.cost : null,
+                                marginDollar: cat.investment - cat.cost,
+                                marginPercent: marginPct(cat.investment, cat.cost)
+                            }])
+                    );
                     return {
                         title: pkg.title || '',
                         type: pkg.type,
@@ -5654,7 +5672,8 @@
                         metricValue: metricInfo.metricValue,
                         pricingLabel: metricInfo.pricingLabel,
                         pricingValue: metricInfo.pricingValue,
-                        notes: pkg.notes || ''
+                        notes: pkg.notes || '',
+                        categoryBreakdown7
                     };
                 })
             };
