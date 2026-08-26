@@ -12905,7 +12905,7 @@
                                 formatImpressions(allocation.impressions),
                                 '$' + formatNumber(allocation.totalCost),
                                 '$' + costCPM.toFixed(2),
-                                allocation.marginPercent.toFixed(1) + '%'
+                                allocation.marginPercent.toFixed(6) + '%'
                             ];
                         });
                         
@@ -13011,7 +13011,7 @@
                 } else if (pkg.type === 'branded-blended' && pkg.blendedPlatforms && pkg.blendedPlatforms.length > 0) {
                     // Add blended packages as a single aggregated row
                     const key = `Blended|N/A|blended|${pkg.title}`; // Unique key per blended package
-                    
+
                     placementBreakdown[key] = {
                         platform: 'Blended',
                         mediaType: 'See Package Details',
@@ -13020,6 +13020,21 @@
                         impressions: pkg.impressions || 0,
                         cost: (pkg.totalCost || 0) - (pkg.talentCost || 0), // Media cost only
                         packages: [pkg.title]
+                    };
+                } else if (pkg.type === 'added-value' && pkg.addedValueType === 'distribution') {
+                    // Add Added Value distribution packages
+                    const key = `Added Value|Distribution|added-value|${pkg.title}`; // Unique key
+
+                    placementBreakdown[key] = {
+                        platform: 'Added Value',
+                        mediaType: 'Paid Distribution',
+                        handleType: 'added-value', // Special type
+                        investment: 0, // No investment (it's free)
+                        impressions: pkg.impressions || 0,
+                        cost: pkg.totalCost || 0,
+                        priceCPM: pkg.cpmPrice || 0, // Store price CPM separately
+                        packages: [pkg.title],
+                        isAddedValue: true
                     };
                 }
             });
@@ -13037,38 +13052,49 @@
                 yPos += 10;
                 
                 const placementRows = placementEntries.map(placement => {
-                    const priceCPM = placement.impressions > 0 ? (placement.investment / placement.impressions * 1000) : 0;
+                    const isBlended = placement.handleType === 'blended';
+                    const isAddedValue = placement.handleType === 'added-value';
+                    const priceCPM = isAddedValue
+                        ? (placement.priceCPM || 0)
+                        : (placement.impressions > 0 ? (placement.investment / placement.impressions * 1000) : 0);
                     const costCPM = placement.impressions > 0 ? (placement.cost / placement.impressions * 1000) : 0;
                     const margin = placement.investment - placement.cost;
                     const marginPercent = placement.investment > 0 ? (margin / placement.investment * 100) : 0;
-                    
+
                     // Determine handle display
                     let handleDisplay;
                     if (placement.handleType === 'blended') {
                         handleDisplay = 'See Package Details';
+                    } else if (placement.handleType === 'added-value') {
+                        handleDisplay = 'Added Value';
                     } else if (placement.handleType === 'paramount') {
                         handleDisplay = 'Paramount';
                     } else {
                         handleDisplay = 'Influencer';
                     }
-                    
+
+                    const priceCPMDisplay = (isBlended || (isAddedValue && priceCPM === 0)) ? 'N/A' : '$' + priceCPM.toFixed(2);
+                    const marginDisplay = (isBlended || isAddedValue) ? 'N/A' : '$' + formatNumber(margin);
+                    const marginPercentDisplay = (isBlended || isAddedValue) ? 'N/A' : marginPercent.toFixed(6) + '%';
+
                     return [
                         placement.platform,
                         placement.mediaType,
                         handleDisplay,
                         '$' + formatNumber(placement.investment),
                         formatImpressions(placement.impressions),
-                        '$' + priceCPM.toFixed(2),
+                        priceCPMDisplay,
                         '$' + formatNumber(placement.cost),
                         '$' + costCPM.toFixed(2),
-                        '$' + formatNumber(margin),
-                        marginPercent.toFixed(2) + '%'
+                        marginDisplay,
+                        marginPercentDisplay,
+                        placement.packages.join(', ')
                     ];
                 });
-                
+
                 doc.autoTable({
                     startY: yPos,
-                    head: [['Platform', 'Media Type', 'Handle', 'Investment', 'Impressions', 'Price CPM', 'Media Budget', 'Cost CPM', 'Margin $', 'Margin %']],
+                    head: [['Platform', 'Media Type', 'Handle', 'Investment', 'Impressions', 'Price CPM', 'Media Budget', 'Cost CPM', 'Margin $', 'Margin %', 'Packages']],
                     body: placementRows,
                     theme: 'striped',
                     headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
@@ -13137,7 +13163,7 @@
                         '$' + formatNumber(platform.cost),
                         '$' + costCPM.toFixed(2),
                         '$' + formatNumber(margin),
-                        marginPercent.toFixed(2) + '%'
+                        marginPercent.toFixed(6) + '%'
                     ];
                 });
                 
@@ -13206,7 +13232,7 @@
                         '$' + costCPM.toFixed(2),
                         '$' + formatNumber(item.mediaCost),
                         '$' + formatNumber(item.margin),
-                        item.marginPercent.toFixed(2) + '%'
+                        item.marginPercent.toFixed(6) + '%'
                     ];
                 });
 
@@ -13277,22 +13303,25 @@
                         }
                         
                         return [
-                            (item.platform || 'N/A').substring(0, 20), // Truncate for space
-                            placementTypeLabel.substring(0, 15) + addedValueSubType,
+                            (item.platform || 'N/A'),
+                            (item.package || ''),
+                            placementTypeLabel + addedValueSubType,
                             formatImpressions(item.quantity || 0),
                             item.costMethod || 'N/A',
                             '$' + formatNumber(item.netCost),
                             '$' + formatNumber(talentCost),
                             '$' + formatNumber(mediaCost),
                             '$' + formatNumber(item.totalCost || 0),
+                            '$' + formatNumber(item.margin || 0),
                             (item.marginPercent || 0).toFixed(6) + '%'
                         ];
                     });
-                    
+
                     doc.autoTable({
                         startY: yPos,
                         head: [[
                             'Platform',
+                            'Placement',
                             'Type',
                             'Impr./Views',
                             'Method',
@@ -13300,31 +13329,59 @@
                             'Prod. & Talent\n(INTERNAL)',
                             'Media Cost\n(INTERNAL)',
                             'Total Cost\n(INTERNAL)',
+                            'Margin $',
                             'Margin %'
                         ]],
                         body: lineItemRows,
                         theme: 'striped',
-                        headStyles: { 
-                            fillColor: [15, 23, 42], 
-                            textColor: [255, 255, 255], 
-                            fontSize: 7, 
+                        headStyles: {
+                            fillColor: [15, 23, 42],
+                            textColor: [255, 255, 255],
+                            fontSize: 7,
                             fontStyle: 'bold',
                             halign: 'center',
                             valign: 'middle'
                         },
                         styles: { fontSize: 7, cellPadding: 1.5 },
                         columnStyles: {
-                            2: { halign: 'right' },
-                            4: { halign: 'right', fontStyle: 'bold' },
-                            5: { halign: 'right' },
+                            3: { halign: 'right' },
+                            5: { halign: 'right', fontStyle: 'bold' },
                             6: { halign: 'right' },
-                            7: { halign: 'right', fontStyle: 'bold' },
-                            8: { halign: 'right' }
+                            7: { halign: 'right' },
+                            8: { halign: 'right', fontStyle: 'bold' },
+                            9: { halign: 'right', fontStyle: 'bold' },
+                            10: { halign: 'right' }
                         },
-                        margin: { left: 14, right: 14 }
+                        margin: { left: 10, right: 10 }
                     });
-                    
-                    yPos = doc.lastAutoTable.finalY + 6;
+
+                    yPos = doc.lastAutoTable.finalY + 4;
+
+                    // Per-item notes (dropped in the tabular row above — shown as a footer list instead)
+                    const itemsWithNotes = pkg.sponsorshipLineItems.filter(item => item.notes);
+                    if (itemsWithNotes.length > 0) {
+                        if (yPos > 240) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.setFontSize(7);
+                        doc.setTextColor(59, 130, 246);
+                        doc.text('Line Item Notes:', 14, yPos);
+                        yPos += 4;
+                        doc.setFontSize(6.5);
+                        doc.setTextColor(51, 65, 85);
+                        itemsWithNotes.forEach(item => {
+                            const noteText = `${item.platform || 'N/A'}: ${item.notes}`;
+                            const splitNote = doc.splitTextToSize(noteText, 180);
+                            if (yPos > 260) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+                            doc.text(splitNote, 14, yPos);
+                            yPos += (splitNote.length * 3) + 2;
+                        });
+                        yPos += 2;
+                    }
 
                     // Per-sponsorship Investment Breakdown (Beta) - all categories shown, even $0
                     if (yPos > 200) {
@@ -13507,8 +13564,13 @@
                 summaryData.push(['INVESTMENT CATEGORY BREAKDOWN']);
                 summaryData.push([]);
                 Object.values(catDefs).forEach(cat => {
-                    if (cat.count > 0) {
-                        summaryData.push([`${cat.label} (${cat.count} package${cat.count !== 1 ? 's' : ''})`]);
+                    // Gate on investment/cost, not cat.count — detailed Sponsorship
+                    // packages distribute their line items into categories without
+                    // ever incrementing cat.count, so a sponsorship-only version
+                    // would otherwise make this entire section vanish.
+                    if (cat.investment > 0 || cat.cost > 0) {
+                        const countText = cat.count > 0 ? ` (${cat.count} package${cat.count !== 1 ? 's' : ''})` : '';
+                        summaryData.push([`${cat.label}${countText}`]);
                         if (cat.label === 'Added Value') {
                             // Added Value doesn't have a meaningful "margin" —
                             // its cost is tracked separately, not offset
@@ -13516,8 +13578,18 @@
                             // used everywhere else this category is shown.
                             summaryData.push(['Client Price', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                             summaryData.push(['Value Provided', cat.value]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            if (cat.talentCost > 0) {
+                                summaryData.push(['Production & Talent Cost', cat.talentCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            }
+                            if (cat.mediaCost > 0) {
+                                summaryData.push(['Media Cost', cat.mediaCost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            }
                             if (cat.impressions > 0) {
                                 summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                                const mediaCPM = cat.mediaCost > 0 ? (cat.mediaCost / cat.impressions * 1000) : 0;
+                                if (mediaCPM > 0) {
+                                    summaryData.push(['Media CPM', mediaCPM]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                                }
                             }
                             summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                             summaryData.push(['Margin ($)', 'N/A']);
@@ -13525,13 +13597,21 @@
                         } else {
                             const margin = cat.investment - cat.cost;
                             const marginPercent = cat.investment > 0 ? (margin / cat.investment) * 100 : 0;
+                            const cpm = cat.impressions > 0 ? (cat.investment / cat.impressions * 1000) : 0;
                             summaryData.push(['Investment', cat.investment]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                             if (cat.impressions > 0) {
                                 summaryData.push(['Impressions', cat.impressions]); summaryFormats.push([summaryData.length - 1, 1, numberFmt]);
+                                summaryData.push(['CPM', cpm]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
                             }
                             summaryData.push(['Cost', cat.cost]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
-                            summaryData.push(['Margin ($)', margin]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
-                            summaryData.push(['Margin (%)', marginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
+                            summaryData.push([cat.label === 'Creative' ? 'Overall Creative Margin ($)' : 'Margin ($)', margin]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                            summaryData.push([cat.label === 'Creative' ? 'Overall Creative Margin (%)' : 'Margin (%)', marginPercent / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
+                            if (cat.label === 'Creative') {
+                                const mNF = cat.marginNoFees || 0;
+                                const mNFPct = (cat.investmentNoFees || 0) > 0 ? (mNF / cat.investmentNoFees * 100) : 0;
+                                summaryData.push(['Creative Margin w/o Fees ($)', mNF]); summaryFormats.push([summaryData.length - 1, 1, currencyFmt]);
+                                summaryData.push(['Creative Margin w/o Fees (%)', mNFPct / 100]); summaryFormats.push([summaryData.length - 1, 1, percentFmt]);
+                            }
                         }
                         summaryData.push([]);
                     }
@@ -13545,13 +13625,47 @@
                 // ========== SHEET 2: PACKAGE DETAILS ==========
                 const pkgData = [];
                 const pkgFormats = [];
-                pkgData.push(['#', 'Package Title', 'Type', 'Investment', 'Production & Talent Investment', 'Production & Talent Cost', 'Media Investment', 'Media Cost', 'Total Cost', 'Margin ($)', 'Margin (%)']);
+                pkgData.push(['#', 'Package Title', 'Type', 'Investment', 'Value Provided', 'Production & Talent Investment', 'Production & Talent Cost', 'Media Investment', 'Media Cost', 'Total Cost', 'Margin ($)', 'Margin (%)', 'Impressions', 'CPM Price', 'CPM Cost', 'Notes']);
                 packages.forEach((pkg, i) => {
                     let talentCostAmount = pkg.talentCost || 0;
                     let mediaCostAmount = 0;
+                    let valueProvided = '';
+                    let impressionsVal = '';
+                    let cpmPriceVal = '';
+                    let cpmCostVal = '';
                     const hasMedia = pkg.platformAllocations && pkg.platformAllocations.length > 0;
-                    if (pkg.type === 'added-value') {
+                    if (pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems) {
+                        // Detailed Sponsorship cost lives in sponsorshipLineItems, not
+                        // pkg.talentCost — derive the internal talent/media split from
+                        // the line items the same way the overlay and PDF export do.
+                        talentCostAmount = 0;
                         mediaCostAmount = 0;
+                        pkg.sponsorshipLineItems.forEach(item => {
+                            const placementType = item.placementType;
+                            if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
+                                talentCostAmount += (item.totalCost || 0);
+                            } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                mediaCostAmount += (item.totalCost || 0);
+                            } else if (placementType === 'ADDED_VALUE') {
+                                if (item.addedValueSubType === 'talent') {
+                                    talentCostAmount += (item.totalCost || 0);
+                                } else {
+                                    mediaCostAmount += (item.totalCost || 0);
+                                }
+                            }
+                        });
+                    } else if (pkg.type === 'added-value') {
+                        valueProvided = pkg.totalValue || 0;
+                        if (pkg.addedValueType === 'talent') {
+                            talentCostAmount = pkg.totalCost || 0;
+                            mediaCostAmount = 0;
+                        } else {
+                            talentCostAmount = 0;
+                            mediaCostAmount = pkg.addedValueType === 'distribution' ? (pkg.totalCost || 0) : 0;
+                            impressionsVal = pkg.impressions || 0;
+                            cpmPriceVal = pkg.cpmPrice || 0;
+                            if (pkg.addedValueType === 'distribution') cpmCostVal = pkg.cpmCost || 0;
+                        }
                     } else if (pkg.type === 'branded-blended') {
                         mediaCostAmount = (pkg.totalCost || 0) - talentCostAmount;
                     } else if (pkg.type === 'brand-funded-content') {
@@ -13569,16 +13683,25 @@
                     const margin = pkg.totalInvestment - (pkg.totalCost || 0);
                     const marginPercent = pkg.totalInvestment > 0 ? (margin / pkg.totalInvestment) * 100 : 0;
                     const row = i + 1;
+                    let notesContent = pkg.notes || '';
+                    if (pkg.type === 'branded-blended' && pkg.blendedPlatforms && pkg.blendedPlatforms.length > 0) {
+                        if (notesContent) notesContent += '\n\n';
+                        notesContent += 'Distribution Platforms:\n' + pkg.blendedPlatforms.map(platform => {
+                            const handleText = platform.handleType === 'paramount' ? 'Paramount' : 'Influencer';
+                            return `• ${platform.platform} - ${platform.mediaType || 'N/A'} (${handleText})`;
+                        }).join('\n');
+                    }
                     pkgData.push([
-                        row, pkg.title, getTypeLabel(pkg.type), pkg.totalInvestment,
+                        row, pkg.title, getTypeLabel(pkg.type), pkg.totalInvestment, valueProvided,
                         talentInvestmentAmount, talentCostAmount, mediaInvestmentAmount, mediaCostAmount,
-                        pkg.totalCost || 0, margin, marginPercent / 100
+                        pkg.totalCost || 0, margin, marginPercent / 100, impressionsVal, cpmPriceVal, cpmCostVal, notesContent
                     ]);
-                    [3, 4, 5, 6, 7, 8, 9].forEach(col => pkgFormats.push([pkgData.length - 1, col, currencyFmt]));
-                    pkgFormats.push([pkgData.length - 1, 10, percentFmt]);
+                    [3, 4, 5, 6, 7, 8, 9, 10, 13, 14].forEach(col => pkgFormats.push([pkgData.length - 1, col, currencyFmt]));
+                    pkgFormats.push([pkgData.length - 1, 11, percentFmt]);
+                    pkgFormats.push([pkgData.length - 1, 12, numberFmt]);
                 });
                 const ws2 = XLSX.utils.aoa_to_sheet(pkgData);
-                ws2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+                ws2['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 40 }];
                 applyFormats(ws2, pkgFormats);
                 XLSX.utils.book_append_sheet(wb, ws2, 'Package Details');
 
@@ -13600,18 +13723,95 @@
                             platformMap[key].cost += (a.totalCost || 0);
                             if (!platformMap[key].packages.includes(pkg.title)) platformMap[key].packages.push(pkg.title);
                         });
+                    } else if (pkg.type === 'branded-blended' && pkg.blendedPlatforms && pkg.blendedPlatforms.length > 0) {
+                        const key = `Blended|N/A|blended|${pkg.title}`; // Unique key per blended package
+                        const mediaCost = (pkg.totalCost || 0) - (pkg.talentCost || 0);
+                        const impressions = pkg.impressions || 0;
+                        platformMap[key] = {
+                            platform: 'Blended', mediaType: 'See Package Details', handle: 'See Package Details',
+                            investment: pkg.totalInvestment || 0, impressions, cost: mediaCost, packages: [pkg.title],
+                            priceCPMOverride: 'N/A',
+                            costCPMOverride: impressions > 0 ? (mediaCost / impressions * 1000) : (pkg.cpmCost || 0),
+                            marginOverride: 'N/A', marginPercentOverride: 'N/A'
+                        };
+                    } else if (pkg.type === 'added-value' && pkg.addedValueType === 'distribution') {
+                        const key = `Added Value|Distribution|added-value|${pkg.title}`; // Unique key
+                        platformMap[key] = {
+                            platform: 'Added Value', mediaType: 'Paid Distribution', handle: 'Added Value',
+                            investment: 0, impressions: pkg.impressions || 0, cost: pkg.totalCost || 0, packages: [pkg.title],
+                            priceCPMOverride: pkg.cpmPrice || 0, costCPMOverride: pkg.cpmCost || 0,
+                            marginOverride: 'N/A', marginPercentOverride: 'N/A'
+                        };
                     }
                 });
                 Object.values(platformMap).forEach(p => {
-                    const priceCPM = p.impressions > 0 ? (p.investment / p.impressions * 1000) : 0;
-                    const costCPM = p.impressions > 0 ? (p.cost / p.impressions * 1000) : 0;
-                    const margin = p.investment - p.cost;
-                    const marginPercent = p.investment > 0 ? (margin / p.investment) * 100 : 0;
-                    mediaRows.push([p.platform, p.mediaType, p.handle, p.packages.join(', '), p.investment, p.impressions, priceCPM, p.cost, costCPM, margin, marginPercent / 100]);
+                    const priceCPM = p.priceCPMOverride !== undefined ? p.priceCPMOverride : (p.impressions > 0 ? (p.investment / p.impressions * 1000) : 0);
+                    const costCPM = p.costCPMOverride !== undefined ? p.costCPMOverride : (p.impressions > 0 ? (p.cost / p.impressions * 1000) : 0);
+                    const margin = p.marginOverride !== undefined ? p.marginOverride : (p.investment - p.cost);
+                    const marginPercent = p.marginPercentOverride !== undefined ? p.marginPercentOverride : (p.investment > 0 ? ((p.investment - p.cost) / p.investment) * 100 : 0);
+                    mediaRows.push([p.platform, p.mediaType, p.handle, p.packages.join(', '), p.investment, p.impressions, priceCPM, p.cost, costCPM, margin, typeof marginPercent === 'number' ? marginPercent / 100 : marginPercent]);
                     [4, 6, 7, 8, 9].forEach(col => mediaFormats.push([mediaRows.length - 1, col, currencyFmt]));
                     mediaFormats.push([mediaRows.length - 1, 5, numberFmt]);
                     mediaFormats.push([mediaRows.length - 1, 10, percentFmt]);
                 });
+
+                // Second table: platform-only aggregation (mirrors the overlay's
+                // "Custom Creative Platform Breakdown" table)
+                mediaRows.push([]);
+                mediaRows.push(['CUSTOM CREATIVE PLATFORM BREAKDOWN']);
+                mediaRows.push(['Platform', 'Investment', 'Impressions', 'CPM Price', 'Media Budget', 'CPM Cost', 'Margin ($)', 'Margin (%)']);
+                const platformOnlyMap = {};
+                Object.values(platformMap).forEach(p => {
+                    if (!platformOnlyMap[p.platform]) platformOnlyMap[p.platform] = { investment: 0, impressions: 0, cost: 0 };
+                    platformOnlyMap[p.platform].investment += p.investment;
+                    platformOnlyMap[p.platform].impressions += p.impressions;
+                    platformOnlyMap[p.platform].cost += p.cost;
+                });
+                Object.entries(platformOnlyMap).forEach(([name, data]) => {
+                    const priceCPM = data.impressions > 0 ? (data.investment / data.impressions * 1000) : 0;
+                    const costCPM = data.impressions > 0 ? (data.cost / data.impressions * 1000) : 0;
+                    const margin = data.investment - data.cost;
+                    const marginPercent = data.investment > 0 ? (margin / data.investment) * 100 : 0;
+                    mediaRows.push([name, data.investment, data.impressions, priceCPM, data.cost, costCPM, margin, marginPercent / 100]);
+                    [1, 3, 4, 5, 6].forEach(col => mediaFormats.push([mediaRows.length - 1, col, currencyFmt]));
+                    mediaFormats.push([mediaRows.length - 1, 2, numberFmt]);
+                    mediaFormats.push([mediaRows.length - 1, 7, percentFmt]);
+                });
+
+                // Third table: Sponsorship Paid Media (mirrors the overlay's
+                // "Sponsorship Paid Media" table on the Paid Media tab)
+                const sponsorshipPaidMediaItems = [];
+                packages.filter(pkg => pkg.type === 'sponsorship' && pkg.sponsorshipType === 'detailed' && pkg.sponsorshipLineItems).forEach(pkg => {
+                    pkg.sponsorshipLineItems.forEach(item => {
+                        if (['PAID_MEDIA', 'CUSTOM_SOCIAL'].includes(item.placementType)) {
+                            sponsorshipPaidMediaItems.push({
+                                packageTitle: pkg.title,
+                                platform: item.platform || 'N/A',
+                                placement: item.package || '',
+                                type: item.placementType === 'PAID_MEDIA' ? 'Paid Media Distribution' : 'Custom Social Package',
+                                impressions: item.quantity || 0,
+                                netCost: item.netCost || 0,
+                                mediaCost: item.totalCost || 0,
+                                margin: item.margin || 0,
+                                marginPercent: item.marginPercent || 0
+                            });
+                        }
+                    });
+                });
+                if (sponsorshipPaidMediaItems.length > 0) {
+                    mediaRows.push([]);
+                    mediaRows.push(['SPONSORSHIP PAID MEDIA']);
+                    mediaRows.push(['Sponsorship Package', 'Platform', 'Placement', 'Type', 'Investment', 'Impressions', 'CPM Price', 'CPM Cost', 'Media Budget (INTERNAL)', 'Margin ($)', 'Margin (%)']);
+                    sponsorshipPaidMediaItems.forEach(item => {
+                        const priceCPM = item.impressions > 0 ? (item.netCost / item.impressions * 1000) : 0;
+                        const costCPM = item.impressions > 0 ? (item.mediaCost / item.impressions * 1000) : 0;
+                        mediaRows.push([item.packageTitle, item.platform, item.placement, item.type, item.netCost, item.impressions, priceCPM, costCPM, item.mediaCost, item.margin, item.marginPercent / 100]);
+                        [4, 6, 7, 8, 9].forEach(col => mediaFormats.push([mediaRows.length - 1, col, currencyFmt]));
+                        mediaFormats.push([mediaRows.length - 1, 5, numberFmt]);
+                        mediaFormats.push([mediaRows.length - 1, 10, percentFmt]);
+                    });
+                }
+
                 const ws3 = XLSX.utils.aoa_to_sheet(mediaRows);
                 ws3['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
                 applyFormats(ws3, mediaFormats);
@@ -13691,22 +13891,33 @@
                 if (sponsorshipPkgs.length > 0) {
                     const spRows = [];
                     const spFormats = [];
-                    spRows.push(['Sponsorship Package', 'Platform', 'Package/Placement', 'Type', 'Quantity', 'Cost Method', 'Net Cost', 'Total Cost', 'Margin ($)', 'Margin (%)', 'Notes']);
+                    spRows.push(['Sponsorship Package', 'Platform', 'Package/Placement', 'Type', 'Quantity', 'Cost Method', 'Net Cost', 'Production & Talent (INTERNAL)', 'Media Cost (INTERNAL)', 'Total Cost (INTERNAL)', 'Margin ($)', 'Margin (%)', 'Notes']);
                     sponsorshipPkgs.forEach(pkg => {
                         (pkg.sponsorshipLineItems || []).forEach(item => {
+                            const placementType = item.placementType;
+                            let talentCost = 0, mediaCost = 0;
+                            if (['TALENT_PRODUCTION', 'EXPERIENTIAL_FEE', 'EXPERIENTIAL_BUILDOUT', 'INTEGRATION_FEE', 'INTEGRATION_BUILDOUT', 'IP_LICENSING'].includes(placementType)) {
+                                talentCost = item.totalCost || 0;
+                            } else if (['PAID_MEDIA', 'CUSTOM_SOCIAL', 'SOCIAL_VIDEO', 'DIGITAL_OO', 'LINEAR_OO'].includes(placementType)) {
+                                mediaCost = item.totalCost || 0;
+                            } else if (placementType === 'ADDED_VALUE') {
+                                if (item.addedValueSubType === 'talent') talentCost = item.totalCost || 0;
+                                else mediaCost = item.totalCost || 0;
+                            }
                             spRows.push([
                                 pkg.title, item.platform || '', item.package || '',
                                 getPlacementTypeLabel(item.placementType) + (item.addedValueSubType ? ` (${item.addedValueSubType})` : ''),
-                                item.quantity || 0, item.costMethod || 'N/A', item.netCost || 0, item.totalCost || 0,
+                                item.quantity || 0, item.costMethod || 'N/A', item.netCost || 0,
+                                talentCost, mediaCost, item.totalCost || 0,
                                 item.margin || 0, (item.marginPercent || 0) / 100, item.notes || ''
                             ]);
-                            [6, 7, 8].forEach(col => spFormats.push([spRows.length - 1, col, currencyFmt]));
+                            [6, 7, 8, 9, 10].forEach(col => spFormats.push([spRows.length - 1, col, currencyFmt]));
                             spFormats.push([spRows.length - 1, 4, numberFmt]);
-                            spFormats.push([spRows.length - 1, 9, percentFmt]);
+                            spFormats.push([spRows.length - 1, 11, percentFmt]);
                         });
                     });
                     const ws5 = XLSX.utils.aoa_to_sheet(spRows);
-                    ws5['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }];
+                    ws5['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }];
                     applyFormats(ws5, spFormats);
                     XLSX.utils.book_append_sheet(wb, ws5, 'Sponsorship Details');
                 }
